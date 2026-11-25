@@ -1,0 +1,17 @@
+{
+  "name": "dopagaki",
+  "private": true,
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check": "turbo run lint typecheck test",
+    "generate": "turbo run generate"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.13"
+  }
+}
