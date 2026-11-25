@@ -1,0 +1,116 @@
+:root {
+  color-scheme: light;
+
+  /* Hallmark 4px spacing scale */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+  --space-4xl: 144px;
+
+  /* App-scope fixed type scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.44rem;
+  --text-2xl: 1.728rem;
+  --text-3xl: 2.074rem;
+  --text-display-s: 1.42rem;
+  --text-display: 1.62rem;
+  --text-section: 1.2rem;
+  --text-title: 1rem;
+  --text-lead: 0.95rem;
+
+  /* Motion tokens (Emil Kowalski `animate` + Apple WWDC Fluid Interfaces) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-micro: 120ms;
+  --dur-exit: 160ms;
+  --dur-short: 200ms;
+  --dur-panel: 220ms;
+  --dur-slide: 240ms;
+  --dur-sheet: 280ms;
+  --dur-long: 420ms;
+
+  /* Layout & z-index */
+  --container: 760px;
+  --gutter: 24px;
+  --gap-columns: 16px;
+  --section-gap-s: 24px;
+  --section-gap: 32px;
+  --section-gap-l: 40px;
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sticky-nav: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  /* Pastel beauty-app palette — @radix-ui/colors pink / plum / sky / mauve (light).
+     Navy is reserved for text; borders are soft pink lines; fills use pink-11. */
+  --color-canvas: var(--pink-2);
+  --color-paper: #ffffff;
+  --color-paper-2: var(--pink-3);
+  --color-paper-3: var(--pink-5);
+  --color-ink: #1f2a6b;
+  --color-ink-2: #34407e;
+  --color-muted: var(--mauve-11);
+  --color-rule: var(--mauve-4);
+  --color-line: var(--pink-6);
+  --color-line-soft: var(--pink-4);
+  --color-select: var(--pink-11);
+  --color-on-select: #ffffff;
+  --color-soft: var(--plum-3);
+  --color-soft-ink: var(--plum-11);
+  --color-soft-ink-strong: var(--plum-12);
+  --color-accent: var(--pink-11);
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: var(--pink-3);
+  --color-focus: var(--plum-11);
+  --color-error: oklch(52% 0.19 27);
+  --color-success: oklch(48% 0.12 150);
+
+  /* Japanese-support badge: Radix Sky */
+  --color-jp-surface: var(--sky-3);
+  --color-jp-surface-2: var(--sky-4);
+  --color-jp-border: var(--sky-7);
+  --color-jp-dot: var(--sky-9);
+  --color-jp-solid: var(--sky-11);
+  --color-jp-ink: var(--sky-12);
+  --color-jp-on-solid: #ffffff;
+
+  --color-backdrop: rgb(83 25 93 / 0.32);
+  --color-map-well: var(--pink-3);
+  --color-map-overlay: rgb(255 255 255 / 0.92);
+  --color-grabber: var(--pink-7);
+
+  /* Typography — Tokyo-Seoul unified geometric LINE Seed KR + LINE Seed JP */
+  --font-display: 'LINE Seed KR', 'LINE Seed JP', ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'LINE Seed KR', 'LINE Seed JP', ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Zen Maru Gothic', 'LINE Seed KR', 'LINE Seed JP', ui-sans-serif, -apple-system, sans-serif;
+  --font-outlier: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Soft rounded geometry */
+  --radius-card: 14px;
+  --radius-chip: 10px;
+  --radius-pill: 999px;
+  --rule-hair: 1px;
+  --rule-bar: 1px;
+  --rule-box: 1px;
+  --shadow-card: 0 1px 2px rgb(83 25 93 / 0.04), 0 4px 16px rgb(83 25 93 / 0.06);
+  --texture-opacity: 0;
+  --tracking-display: -0.03em;
+  --tracking-ui: -0.015em;
+  --tracking-kicker: 0.05em;
+  --display-weight: 700;
+  --heavy-weight: 800;
+}

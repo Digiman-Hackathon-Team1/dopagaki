@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+pnpm generate
+
+# 훅이 만든 파일은 이미 만들어진 커밋에 들어가지 않으므로 push를 멈추고 커밋하게 한다.
+files="packages/api-client/openapi.json packages/api-client/src/schema.d.ts"
+if [ -n "$(git status --porcelain -- $files)" ]; then
+  echo "API 타입이 갱신되었습니다. 아래 파일을 커밋한 뒤 다시 push하세요." >&2
+  git status --short -- $files >&2
+  exit 1
+fi

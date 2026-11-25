@@ -6,6 +6,7 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "dev": "turbo run dev",
     "build": "turbo run build",
     "check": "turbo run lint typecheck test",
