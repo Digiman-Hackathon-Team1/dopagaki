@@ -8,3 +8,10 @@ __pycache__/
 *.tsbuildinfo
 .env
 .DS_Store
+*.log
+.env.local
+.env.*.local
+.dev.vars
+.wrangler
+apps/web/public/official-proofs/
+apps/web/public/official-proofs-ja/

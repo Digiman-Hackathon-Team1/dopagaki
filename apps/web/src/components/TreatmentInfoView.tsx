@@ -1,0 +1,180 @@
+import { useEffect, useRef } from 'react';
+import type { Lang, PriceDataset } from '@/types.ts';
+import { TREATMENT_EFFECTS } from '@/lib/clinic-helpers.ts';
+import {
+  animateScoreRings,
+  renderEffectBulletHtml,
+  renderScoreGaugesHtml
+} from '@/lib/score-rings.ts';
+import { SvgIcon } from '@/components/SvgIcon.tsx';
+import { ConciergeEmoji, MenuEmoji } from '@/components/emoji.tsx';
+import { formatMinutes, treatmentMinutes } from '@/lib/concierge.ts';
+import { AnimatedBackground } from '@/components/motion-primitives/animated-background.tsx';
+import { BlurFade } from '@/components/ui/blur-fade.tsx';
+
+interface TreatmentInfoViewProps {
+  dataset: PriceDataset;
+  lang: Lang;
+  selectedMenuId: string;
+  onSelectMenu: (menuId: string) => void;
+  onHaptic: () => void;
+}
+
+export function TreatmentInfoView({
+  dataset,
+  lang,
+  selectedMenuId,
+  onSelectMenu,
+  onHaptic
+}: TreatmentInfoViewProps) {
+  const isJa = lang === 'ja';
+  const detailCardRef = useRef<HTMLElement>(null);
+
+  const activeMenu =
+    dataset.menus.find((m) => m.id === selectedMenuId) ?? dataset.menus[0];
+  const activeEffect = TREATMENT_EFFECTS[activeMenu.id];
+
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => {
+      if (detailCardRef.current) {
+        animateScoreRings(detailCardRef.current);
+      }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [activeMenu.id, lang]);
+
+  return (
+    <div className="ti-view" id="treatment-info-view">
+      <section className="ti-picker-card" aria-label={isJa ? '施術を選ぶ' : '시술 선택'}>
+        <div className="treat-grid treat-row has-mp-bg ti-treat-grid" role="group">
+          <AnimatedBackground
+            value={activeMenu.id}
+            onValueChange={(nextMenu) => {
+              if (nextMenu && nextMenu !== activeMenu.id) {
+                onHaptic();
+                onSelectMenu(nextMenu);
+              }
+            }}
+            className="mp-accent-pill"
+            transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
+          >
+            {dataset.menus.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                data-id={m.id}
+                className="treat-cell"
+                aria-pressed={m.id === activeMenu.id}
+              >
+                <MenuEmoji menuId={m.id} size={16} className="treat-emoji" />
+                {m.id === 're2o-5cc' ? (
+                  <span className="treat-label">
+                    {isJa ? 'ブナジュ' : '리투오'}
+                    <span className="treat-alias">{isJa ? '韓: リトゥオ' : '일: 부나주'}</span>
+                  </span>
+                ) : (
+                  <span className="treat-label">{isJa ? m.shortJa : m.shortKo}</span>
+                )}
+              </button>
+            ))}
+          </AnimatedBackground>
+        </div>
+      </section>
+
+      {activeEffect && (
+        <BlurFade key={activeMenu.id} delay={0} duration={0.18} offset={4} blur="2px">
+          <section
+            ref={detailCardRef}
+            className="ti-detail-card"
+            id="ti-detail-card"
+            aria-label={isJa ? activeMenu.nameJa : activeMenu.nameKo}
+          >
+            <div className="ti-detail-head">
+              <div className="ti-detail-icon">
+                <MenuEmoji menuId={activeMenu.id} size={34} />
+              </div>
+              <div className="ti-detail-titles">
+                <div className="ti-detail-badges">
+                  {treatmentMinutes(activeMenu) !== null && (
+                    <span className="ti-time-pill">
+                      <ConciergeEmoji name="stopwatch" size={13} />
+                      {isJa
+                        ? `施術 ${formatMinutes(treatmentMinutes(activeMenu)!, true)}`
+                        : `시술 ${formatMinutes(treatmentMinutes(activeMenu)!, false)}`}
+                    </span>
+                  )}
+                  {activeMenu.id === 're2o-5cc' && (
+                    <span className="ti-alias-pill">
+                      {isJa ? '韓国名: リトゥオ (Re2O)' : '일본명: 부나주 (ブナジュ)'}
+                    </span>
+                  )}
+                </div>
+                <h2 className="ti-detail-name">
+                  {isJa ? activeMenu.nameJa : activeMenu.nameKo}
+                </h2>
+                <p className="ti-detail-headline">
+                  {isJa ? activeEffect.headlineJa : activeEffect.headlineKo}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="ti-gauges"
+              dangerouslySetInnerHTML={{
+                __html: renderScoreGaugesHtml(activeEffect, isJa, 'md')
+              }}
+            />
+
+            <p className="treat-guide-mech ti-mech">
+              {isJa ? activeEffect.mechanismJa : activeEffect.mechanismKo}
+            </p>
+
+            <div className="ti-section">
+              <div className="treat-guide-sub">
+                {isJa ? '主な効果' : '나타날 수 있는 주요 효과'}
+              </div>
+              <ul
+                className="treat-guide-list"
+                dangerouslySetInnerHTML={{
+                  __html: (isJa ? activeEffect.effectsJa : activeEffect.effectsKo)
+                    .map((line) => renderEffectBulletHtml(line))
+                    .join('')
+                }}
+              />
+            </div>
+
+            <div className="treat-guide-facts ti-facts">
+              <div className="treat-guide-fact-card">
+                <span className="treat-guide-fact-k">
+                  <SvgIcon name="spark" />
+                  <span>{isJa ? 'おすすめの方' : '추천 대상'}</span>
+                </span>
+                <span className="treat-guide-fact-v">
+                  {isJa ? activeEffect.bestForJa : activeEffect.bestForKo}
+                </span>
+              </div>
+              <div className="treat-guide-fact-card">
+                <span className="treat-guide-fact-k">
+                  <SvgIcon name="clock" />
+                  <span>{isJa ? '効果・持続' : '효과 느낌 · 유지 기간'}</span>
+                </span>
+                <span className="treat-guide-fact-v">
+                  {isJa ? activeEffect.timingJa : activeEffect.timingKo}
+                </span>
+              </div>
+              <div className="treat-guide-fact-card is-note">
+                <span className="treat-guide-fact-k">
+                  <SvgIcon name="info" />
+                  <span>{isJa ? '回復・注意点' : '시술 후 회복 · 주의할 점'}</span>
+                </span>
+                <span className="treat-guide-fact-v">
+                  {isJa ? activeEffect.noteJa : activeEffect.noteKo}
+                </span>
+              </div>
+            </div>
+          </section>
+        </BlurFade>
+      )}
+    </div>
+  );
+}
