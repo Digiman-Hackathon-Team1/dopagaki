@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MotionConfig } from 'motion/react';
 import { Toaster, toast } from 'sonner';
@@ -207,7 +207,16 @@ function MisregWord({ word }: { word: string }) {
   );
 }
 
+const AgentDev = import.meta.env.DEV ? lazy(() => import('./dev/AgentDev')) : null;
+
 export function App() {
+  if (AgentDev && /^\/agent-dev\/?$/.test(window.location.pathname)) {
+    return <Suspense fallback={null}><AgentDev /></Suspense>;
+  }
+  return <ClinicApp />;
+}
+
+function ClinicApp() {
   const initialQuery = useMemo(() => parseHomeQuery(window.location.search), []);
   const initialRoute = useMemo(() => parseRoute(window.location.pathname, APP_BASE_PATH), []);
   const initialClinicParams = useMemo(() => new URLSearchParams(window.location.search), []);
