@@ -53,7 +53,7 @@ load_context → safety_check → agent ⇄ tools → finalize
 
 ### `langchain-anthropic` 확인 결과
 
-`langchain-anthropic` 1.7.13, `langchain-core` 1.8.5, `anthropic` 2.14.0 기준이다. 실제 요청을 보내지 않고, `ChatAnthropic`이 만드는 요청 본문을 Sonnet 5.5와 Haiku 5.5에 대해 확인했다.
+`langchain-anthropic` 1.7.13, `langchain-core` 1.8.5, `anthropic` 2.14.0 기준이다. `ChatAnthropic`이 만드는 요청 본문을 확인한 뒤, 같은 설정으로 Sonnet 5.5와 Haiku 5.5에 실제 요청을 보냈다.
 
 | 확인 항목 | 결과 |
 | --- | --- |
@@ -65,7 +65,15 @@ load_context → safety_check → agent ⇄ tools → finalize
 | max_tokens | 기본값이 128000이라 스트리밍이 아닌 요청에 맞게 16000으로 지정한다 |
 
 * 도구가 없을 때 `bind_tools([])`는 빈 `tools` 배열을 보내므로, 응답 형식만 붙이는 `bind(response_format=...)`를 쓴다.
-* 실제 API가 이 요청을 받아들이는지는 API 키로 Swagger에서 대화해 확인한다. 거절되는 설정이 있으면 그 노드만 Anthropic SDK 직접 호출로 바꾸고 이 ADR을 고친다.
+* 실제 API 확인: 두 모델 모두 도구 호출(effort `medium`) → 도구 결과 → 구조화 출력 응답이 오고, 같은 대화 ID의 2턴째에 앞 내용을 기억했다. Haiku 5.5는 thinking 블록을 돌려줬고 2턴째에 그대로 다시 보내도 받아들여졌다.
+
+### 대화 기록은 덧붙이기만 한다
+
+Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을, 그 블록이 만들어질 때와 요청 앞부분이 같은 대화에서만 받아들인다. 처음에는 응답 언어를 시스템 프롬프트에 넣었는데, 2턴째에 언어를 바꾸자 Haiku 5.5가 400(`Invalid signature in thinking block. The block is bound to a different conversation`)을 돌려줬다.
+
+* 시스템 프롬프트는 턴마다 바뀌는 값이 없는 고정 문장으로 둔다.
+* 응답 언어처럼 턴마다 바뀌는 지시는 `load_context`가 그 턴의 사용자 메시지 뒤에 시스템 메시지로 덧붙이고 대화 기록에 남긴다.
+* 대화 기록을 고치거나 지우는 기능(요약, 오래된 턴 자르기 등)을 넣을 때는 이 조건을 다시 확인한다.
 
 **후속 작업**
 * T2 #5부터 `tools/`에 도구를 추가해 같은 루프에 붙인다
