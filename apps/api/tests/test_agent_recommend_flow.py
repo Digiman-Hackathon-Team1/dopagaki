@@ -113,6 +113,43 @@ def test_location_card_is_only_for_this_turn() -> None:
     assert read_cards(second) == []
 
 
+def test_previous_turn_location_is_shown_when_search_uses_it() -> None:
+    """앞 턴에 찾은 위치로 이번 턴에 검색하면, 그 위치 카드를 앞 턴의 사용자 표현과 함께 낸다."""
+    graph = graph_with(
+        tool_call("resolve_location", {"query": "홍대 숙소"}, "c1"),
+        reply_message("홍대 기준으로 볼게요"),
+        tool_call(
+            "search_clinics",
+            {"menu_id": "shrink-300", "sort": "distance", "origin_id": "area:hongdae"},
+            "c2",
+        ),
+        reply_message("가까운 순"),
+    )
+
+    run(graph, "홍대 숙소예요")
+    cards = read_cards(run(graph, "슈링크 가까운 순으로 보여 줘"))
+
+    assert (cards[0].kind, cards[0].location_id, cards[0].query) == (
+        "location",
+        "area:hongdae",
+        "홍대 숙소",
+    )
+    assert all(c.distance_meters is not None for c in cards[1:])
+
+
+def test_location_not_used_by_this_turn_search_is_not_shown() -> None:
+    """위치를 찾았는데 검색에 쓰지 않았으면 위치 카드를 내지 않는다(거리 없는 병원 카드와 어긋나지 않게)."""
+    graph = graph_with(
+        tool_call("resolve_location", {"query": "홍대 숙소"}, "c1"),
+        tool_call("search_clinics", {"menu_id": "shrink-300"}, "c2"),
+        reply_message("슈링크"),
+    )
+
+    cards = read_cards(run(graph, "홍대 숙소, 슈링크"))
+
+    assert cards and all(c.kind == "recommendation" for c in cards)
+
+
 def test_search_with_two_origins_is_a_comparison() -> None:
     """ADR 0009: 기준 위치 ID가 다르면 비교로 보고 두 검색의 카드를 모두 낸다."""
     graph = graph_with(
@@ -131,4 +168,9 @@ def test_search_with_two_origins_is_a_comparison() -> None:
 
     cards = read_cards(run(graph, "홍대와 강남역 기준 비교"))
 
-    assert {c.search_id for c in cards} == {"s1", "s2"}
+    # 두 검색이 쓴 기준 위치가 카드로 나간다. resolve_location을 거치지 않았으므로 query는 null이다.
+    assert [(c.kind, c.location_id, c.query) for c in cards[:2]] == [
+        ("location", "area:hongdae", None),
+        ("location", "station:강남", None),
+    ]
+    assert {c.search_id for c in cards[2:]} == {"s1", "s2"}

@@ -1,6 +1,6 @@
 """resolve_location: 위치 표현을 위치 ID와 좌표로 바꾼다(설계 문서 4.3, 9장, FR-16).
 
-데이터의 지역 13곳과 주요 역만 찾는다. 못 찾으면 "모름"으로 돌려주고, LLM은 사용자에게 한 번 묻는다.
+데이터의 지역 12곳(서울 전역 제외)과 병원 역 문장에 나오는 역만 찾는다(ADR 0011). 못 찾으면 "모름"으로 돌려주고, LLM은 사용자에게 한 번 묻는다.
 찾은 위치는 기준 위치 카드로 화면에 나간다(finalize가 artifact로 조립).
 """
 
@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from api.agent.schemas import LocationCardData
 from api.domain.catalog import get_catalog
-from api.domain.locations import Location, get_locations
+from api.domain.locations import Location, area_parts, get_locations
 
 TOOL_NAME = "resolve_location"
 
@@ -34,6 +34,18 @@ class ResolveLocationArtifact(BaseModel):
     location: LocationCardData | None = None
 
 
+def location_card(location: Location, query: str | None) -> LocationCardData:
+    return LocationCardData(
+        location_id=location.id,
+        location_type=location.type,
+        query=query,
+        name_ja=location.name_ja,
+        name_ko=location.name_ko,
+        lat=location.lat,
+        lng=location.lng,
+    )
+
+
 def _label(location: Location) -> str:
     kind = "area center" if location.type == "area" else "station"
     return (
@@ -42,15 +54,15 @@ def _label(location: Location) -> str:
 
 
 def _area_names() -> str:
-    return ", ".join(
-        f"{a.name_ko.split(' (')[0]} / {a.name_ja.split(' (')[0]}"
+    return "; ".join(
+        f"{'・'.join(area_parts(a.name_ko))} / {'・'.join(area_parts(a.name_ja))}"
         for a in get_catalog().areas
         if a.id != "all"
     )
 
 
 DESCRIPTION = f"""\
-사용자가 말한 위치(숙소, 사는 동네, 역)를 위치 ID로 바꾼다. 데이터의 서울 지역 13곳과 병원 근처 주요 역만 안다.
+사용자가 말한 위치(숙소, 사는 동네, 역)를 위치 ID로 바꾼다. 아래 서울 지역 12곳과 병원 근처 역만 안다.
 필수 입력: query. 사용자가 숙소·기준 위치를 말하면 search_clinics보다 먼저 부르고, 결과의 location_id를
 search_clinics의 origin_id에 그대로 넣는다. 좌표를 직접 넘기거나 지어내지 않는다.
 찾은 위치는 화면에 기준 위치 카드로 나간다. 답변 맨 위 조건 요약에 그 위치를 적어 사용자가 고칠 수 있게 한다.
@@ -85,15 +97,7 @@ def resolve_location(query: str) -> tuple[str, dict]:
         return message, ResolveLocationArtifact(status="ambiguous").model_dump()
 
     location = result.locations[0]
-    card = LocationCardData(
-        location_id=location.id,
-        location_type=location.type,
-        query=query,
-        name_ja=location.name_ja,
-        name_ko=location.name_ko,
-        lat=location.lat,
-        lng=location.lng,
-    )
+    card = location_card(location, query)
     message = (
         f"{head} → found {_label(location)}. Pass origin_id={location.id!r} to search_clinics. "
         "Distances will be straight-line distances from this point."

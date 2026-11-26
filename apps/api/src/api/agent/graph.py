@@ -37,9 +37,10 @@ from api.agent.schemas import (
     RecommendationCard,
 )
 from api.agent.tools.resolve_location import TOOL_NAME as RESOLVE_LOCATION
-from api.agent.tools.resolve_location import ResolveLocationArtifact
+from api.agent.tools.resolve_location import ResolveLocationArtifact, location_card
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
 from api.agent.tools.search_clinics import SearchClinicsArtifact
+from api.domain.locations import get_locations
 
 LANG_NAME: dict[Lang, str] = {"ja": "Japanese", "ko": "Korean"}
 
@@ -86,31 +87,63 @@ def read_cards(state: AgentState) -> list[Card]:
     return CARDS.validate_python(state.get("cards") or [])
 
 
-def _this_turn(messages: Sequence[BaseMessage], tool_name: str) -> list[ToolMessage]:
-    """이번 턴(마지막 사용자 메시지 뒤)의 성공한 도구 결과."""
-    start = max(
+def _turn_start(messages: Sequence[BaseMessage]) -> int:
+    return max(
         (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
     )
+
+
+def _tool_results(messages: Sequence[BaseMessage], tool_name: str) -> list[ToolMessage]:
     return [
         m
-        for m in messages[start + 1 :]
+        for m in messages
         if isinstance(m, ToolMessage) and m.name == tool_name and m.status != "error"
     ]
 
 
-def location_results(messages: Sequence[BaseMessage]) -> list[LocationCardData]:
-    """이번 턴에 resolve_location이 찾은 기준 위치. 같은 위치는 처음 찾은 것 하나만 둔다.
+def _this_turn(messages: Sequence[BaseMessage], tool_name: str) -> list[ToolMessage]:
+    """이번 턴(마지막 사용자 메시지 뒤)의 성공한 도구 결과."""
+    return _tool_results(messages[_turn_start(messages) + 1 :], tool_name)
 
-    찾지 못한 결과(unknown, ambiguous)는 카드가 되지 않는다. 비교처럼 위치가 여럿이면 모두 낸다.
-    """
+
+def _found_locations(messages: Sequence[BaseMessage]) -> list[LocationCardData]:
     found: list[LocationCardData] = []
-    for message in _this_turn(messages, RESOLVE_LOCATION):
-        result = ResolveLocationArtifact.model_validate(message.artifact)
-        if result.location and all(
-            f.location_id != result.location.location_id for f in found
-        ):
-            found.append(result.location)
+    for message in _tool_results(messages, RESOLVE_LOCATION):
+        location = ResolveLocationArtifact.model_validate(message.artifact).location
+        if location:
+            found.append(location)
     return found
+
+
+def location_cards(
+    messages: Sequence[BaseMessage], results: Sequence[SearchClinicsArtifact]
+) -> list[LocationCardData]:
+    """이번 턴에 보여 줄 기준 위치(설계 문서 4.3, ADR 0011).
+
+    - 이번 턴에 병원을 검색했으면, 낸 검색 결과(`results`)가 쓴 기준 위치만 낸다. 위치 카드가 있는데
+      병원 카드에 거리가 없는 일이 없게 하고, 앞 턴에 정한 위치로 검색해도 카드가 나오게 하기 위해서다.
+    - 검색이 없었으면 이번 턴에 resolve_location이 찾은 위치를 낸다.
+    - 같은 위치는 한 장이다. 사용자 표현(query)은 이번 턴, 없으면 가장 최근 턴에 찾은 결과의 것을 쓰고,
+      어느 턴에서도 찾지 않은 ID면 null이다.
+    """
+    this_turn = _found_locations(messages[_turn_start(messages) + 1 :])
+    if results:
+        ids = [r.target.origin_id for r in results if r.target.origin_id]
+    else:
+        ids = [loc.location_id for loc in this_turn]
+    earlier = _found_locations(messages)
+    cards: list[LocationCardData] = []
+    for location_id in dict.fromkeys(ids):
+        card = next(
+            (c for c in this_turn if c.location_id == location_id),
+            next((c for c in reversed(earlier) if c.location_id == location_id), None),
+        )
+        location = get_locations().get(location_id)
+        if card is None and location is not None:
+            card = location_card(location, query=None)
+        if card is not None:
+            cards.append(card)
+    return cards
 
 
 def read_exclusions(state: AgentState) -> list[Exclusion]:
@@ -223,7 +256,7 @@ def build_graph(
         results = search_results(state["messages"])
         locations = [
             LocationCard(**loc.model_dump(), kind="location")
-            for loc in location_results(state["messages"])
+            for loc in location_cards(state["messages"], results)
         ]
         cards = [*locations, *assemble_cards(results, reply)]
         exclusions = assemble_exclusions(results)

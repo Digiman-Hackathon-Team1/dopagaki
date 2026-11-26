@@ -180,7 +180,12 @@ class LocationCardData(ResponseModel):
     location_type: Literal["area", "station"] = Field(
         description="area 지역 중심 좌표, station 역 좌표"
     )
-    query: str = Field(description="위치를 찾은 사용자 표현. 예: 홍대 숙소")
+    query: str | None = Field(
+        description=(
+            "위치를 찾은 사용자 표현. 예: 홍대 숙소. resolve_location을 거치지 않은 위치 ID로 "
+            "검색했으면 null"
+        )
+    )
     name_ja: str
     name_ko: str
     lat: float

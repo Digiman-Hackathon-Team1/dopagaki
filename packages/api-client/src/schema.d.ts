@@ -146,9 +146,9 @@ export interface components {
             locationType: "area" | "station";
             /**
              * Query
-             * @description 위치를 찾은 사용자 표현. 예: 홍대 숙소
+             * @description 위치를 찾은 사용자 표현. 예: 홍대 숙소. resolve_location을 거치지 않은 위치 ID로 검색했으면 null
              */
-            query: string;
+            query: string | null;
             /** Nameja */
             nameJa: string;
             /** Nameko */

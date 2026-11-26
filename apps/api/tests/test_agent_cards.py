@@ -190,7 +190,7 @@ def test_same_clinic_in_two_comparisons_appears_in_each() -> None:
         reply_message("비교"),
     )
 
-    cards = read_cards(run(graph))
+    cards = [c for c in read_cards(run(graph)) if c.kind == "recommendation"]
     first = [c for c in cards if c.search_id == "s1"]
     second = [c for c in cards if c.search_id == "s2"]
 
