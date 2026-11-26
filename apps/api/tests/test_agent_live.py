@@ -4,6 +4,7 @@ API 키가 있고 `AGENT_LIVE_TESTS=1`일 때만 실행한다. 키가 `.env`에 
 실제 호출(비용)이 일어나지 않는다. 실행: `cd apps/api && AGENT_LIVE_TESTS=1 uv run pytest tests/test_agent_live.py`
 """
 
+import json
 import os
 from uuid import uuid4
 
@@ -11,6 +12,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.agent.config import get_settings
+from api.domain.calc import rank_rows
+from api.domain.catalog import get_catalog
 from api.main import app
 
 key = get_settings().anthropic_api_key
@@ -50,3 +53,36 @@ def test_live_second_turn_remembers_first_turn() -> None:
     assert second.status_code == 200, second.text
     answer = second.json()["answer"].replace(",", "")
     assert any(s in answer for s in ("3만", "30000")), answer
+
+
+@pytest.mark.parametrize(
+    ("lang", "message"),
+    [
+        ("ko", "리쥬란 받고 싶은데 서울에서 일본보다 싼 곳 알려 줘"),
+        ("ja", "リジュランをソウルで日本より安く受けられるクリニックを教えて"),
+    ],
+)
+def test_live_price_question_returns_cards_with_web_prices(
+    lang: str, message: str
+) -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/agent/chat",
+        json={"userId": str(uuid4()), "message": message, "lang": lang},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    print(json.dumps(body, ensure_ascii=False, indent=2))
+    assert body["cards"], body["answer"]
+    # 카드 금액은 web 순위표(calc.ts와 같은 calc.py)의 그 병원 행과 같아야 한다.
+    rows = {r.place.id: r for r in rank_rows(get_catalog(), "rejuran-2cc")}
+    for card in body["cards"]:
+        assert card["menuId"] == "rejuran-2cc"
+        row = rows[card["placeId"]]
+        assert card["totalKrw"] == row.total_krw
+        assert card["totalJpy"] == row.total_jpy
+        assert card["savingsJpy"] == row.savings_jpy
+        assert card["jpAverageJpy"] == row.jp_benchmark_jpy
+        assert card["reason"]

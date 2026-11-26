@@ -1,6 +1,6 @@
 """에이전트 그래프: load_context → safety_check → agent ⇄ tools → finalize (설계 문서 8장).
 
-T1에서는 safety_check가 그대로 통과하고, 도구는 T2부터 추가한다.
+safety_check는 아직 그대로 통과한다(T6에서 추가).
 
 Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을 그 블록이 만들어질 때와 요청 앞부분이 같은
 대화에서만 받아들인다. 그래서 대화 기록은 덧붙이기만 하고, 시스템 프롬프트는 턴마다 바뀌는
@@ -13,14 +13,25 @@ from collections.abc import Sequence
 from typing import Literal
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 
-from api.agent.schemas import AgentReply, Lang
+from api.agent.schemas import (
+    AgentReply,
+    Lang,
+    RecommendationCard,
+    RecommendationCardData,
+)
 
 LANG_NAME: dict[Lang, str] = {"ja": "Japanese", "ko": "Korean"}
 
@@ -30,6 +41,8 @@ skincare and dermatology treatments in Seoul at prices cheaper than in Japan.
 Help the user decide what treatment to get, when, where, and for how much, up to the \
 clinic's booking channel. Do not diagnose and do not book or pay on the user's behalf.
 Never state prices or savings that did not come from a tool result.
+To show clinics from a tool result as cards, list each one in card_reasons with its \
+card_id and a one-line reason. The app fills in the card's prices from the tool result.
 Write every field of your reply in the language named by the note at the end of the \
 latest user message."""
 
@@ -44,11 +57,48 @@ class AgentState(MessagesState):
     lang: Lang
     # 대화 기억에 저장되므로 모델 객체 대신 일반 데이터로 둔다. 읽을 때는 read_reply를 쓴다.
     reply: dict | None
+    cards: list[dict]
 
 
 def read_reply(state: AgentState) -> AgentReply:
     """그래프 결과에서 이번 턴의 응답 칸을 꺼낸다."""
     return AgentReply.model_validate(state["reply"])
+
+
+def read_cards(state: AgentState) -> list[RecommendationCard]:
+    """그래프 결과에서 이번 턴의 카드를 꺼낸다."""
+    return [RecommendationCard.model_validate(c) for c in state.get("cards") or []]
+
+
+def assemble_cards(
+    messages: Sequence[BaseMessage], reply: AgentReply
+) -> list[RecommendationCard]:
+    """이번 턴 도구 결과의 카드 데이터에 LLM이 고른 추천 이유를 붙인다(ADR 0009).
+
+    - 금액은 도구 결과 그대로다. LLM은 card_id와 이유만 고른다.
+    - 이번 턴(마지막 사용자 메시지 뒤)의 도구 결과만 쓴다. 이전 턴의 카드는 다시 나가지 않는다.
+    - LLM이 이유를 붙인 카드만, 도구 결과의 순서(코드가 정한 순위)대로 내보낸다.
+    - 도구 결과에 없는 card_id는 버린다.
+    """
+    start = max(
+        (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
+    )
+    data: dict[str, RecommendationCardData] = {}
+    for message in messages[start + 1 :]:
+        if not isinstance(message, ToolMessage) or message.status == "error":
+            continue
+        for item in message.artifact or []:
+            card = RecommendationCardData.model_validate(item)
+            data.setdefault(card.card_id, card)
+
+    reasons = {r.card_id: r.reason for r in reply.card_reasons}
+    return [
+        RecommendationCard(
+            **card.model_dump(), kind="recommendation", reason=reasons[card_id]
+        )
+        for card_id, card in data.items()
+        if card_id in reasons
+    ]
 
 
 def build_graph(
@@ -94,7 +144,8 @@ def build_graph(
             reply = AgentReply.model_validate_json(last.text)
         except ValueError as error:
             raise AgentOutputError("응답이 응답 칸 형식에 맞지 않습니다") from error
-        return {"reply": reply.model_dump()}
+        cards = assemble_cards(state["messages"], reply)
+        return {"reply": reply.model_dump(), "cards": [c.model_dump() for c in cards]}
 
     graph = StateGraph(AgentState)
     graph.add_node("load_context", load_context)

@@ -26,15 +26,28 @@ def fake_model(*responses: AIMessage) -> FakeChatModel:
     return FakeChatModel(messages=iter(responses))
 
 
-def reply_message(answer: str = "답변") -> AIMessage:
+def reply_message(
+    answer: str = "답변", card_reasons: dict[str, str] | None = None
+) -> AIMessage:
+    """응답 칸 JSON을 내는 AI 메시지. card_reasons는 {card_id: 추천 이유}."""
     reply = {
         "condition_summary": "",
         "answer": answer,
+        "card_reasons": [
+            {"card_id": card_id, "reason": reason}
+            for card_id, reason in (card_reasons or {}).items()
+        ],
         "questions": [],
         "suggestions": ["a", "b", "c"],
         "cautions": [],
     }
     return AIMessage(content=json.dumps(reply, ensure_ascii=False))
+
+
+def tool_call(name: str, args: dict, call_id: str = "c1") -> AIMessage:
+    return AIMessage(
+        content="", tool_calls=[{"name": name, "args": args, "id": call_id}]
+    )
 
 
 def user_texts(messages: list[BaseMessage]) -> list[str]:

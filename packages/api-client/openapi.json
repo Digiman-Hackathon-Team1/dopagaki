@@ -131,6 +131,13 @@
             "type": "string",
             "title": "Answer"
           },
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationCard"
+            },
+            "type": "array",
+            "title": "Cards"
+          },
           "questions": {
             "items": {
               "$ref": "#/components/schemas/Question"
@@ -163,6 +170,7 @@
           "threadId",
           "conditionSummary",
           "answer",
+          "cards",
           "questions",
           "suggestions",
           "cautions",
@@ -223,6 +231,213 @@
           "multiSelect"
         ],
         "title": "Question"
+      },
+      "RecommendationCard": {
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "title": "Cardid",
+            "description": "병원 ID와 시술 ID를 묶은 카드 ID"
+          },
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "menuNameJa": {
+            "type": "string",
+            "title": "Menunameja"
+          },
+          "menuNameKo": {
+            "type": "string",
+            "title": "Menunameko"
+          },
+          "area": {
+            "type": "string",
+            "enum": [
+              "sinchon",
+              "hongdae",
+              "myeongdong",
+              "yongsan",
+              "gangnam",
+              "jamsil",
+              "seongsu",
+              "yeouido",
+              "magok",
+              "nowon",
+              "cheonho",
+              "gwanak"
+            ],
+            "title": "Area"
+          },
+          "stationJa": {
+            "type": "string",
+            "title": "Stationja"
+          },
+          "stationKo": {
+            "type": "string",
+            "title": "Stationko"
+          },
+          "japaneseSupport": {
+            "type": "boolean",
+            "title": "Japanesesupport"
+          },
+          "baseKrw": {
+            "type": "integer",
+            "title": "Basekrw",
+            "description": "병원 표시 가격(원)"
+          },
+          "vatKrw": {
+            "type": "integer",
+            "title": "Vatkrw",
+            "description": "더한 부가세(원). 표시 가격에 이미 포함돼 있으면 0"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "부가세 포함 가격(원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy",
+            "description": "부가세 포함 가격의 엔화 환산"
+          },
+          "krwPer100Jpy": {
+            "type": "number",
+            "title": "Krwper100Jpy",
+            "description": "환산에 쓴 환율(100엔당 원)"
+          },
+          "jpAverageJpy": {
+            "type": "integer",
+            "title": "Jpaveragejpy",
+            "description": "일본 주요 병원 세금 포함 공식가 평균"
+          },
+          "jpMinJpy": {
+            "type": "integer",
+            "title": "Jpminjpy"
+          },
+          "jpMaxJpy": {
+            "type": "integer",
+            "title": "Jpmaxjpy"
+          },
+          "jpClinicCount": {
+            "type": "integer",
+            "title": "Jpcliniccount",
+            "description": "일본 평균에 쓴 병원 수"
+          },
+          "savingsJpy": {
+            "type": "integer",
+            "title": "Savingsjpy",
+            "description": "일본 평균 대비 절약액(엔). 음수면 더 비쌈"
+          },
+          "savingsPct": {
+            "type": "integer",
+            "title": "Savingspct"
+          },
+          "distanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancemeters",
+            "description": "기준 위치에서의 직선거리. 기준 위치가 없으면 null"
+          },
+          "walkMinutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walkminutes"
+          },
+          "priceConditionJa": {
+            "type": "string",
+            "title": "Priceconditionja",
+            "description": "가격 조건(첫 방문 한정, 이벤트가 등)"
+          },
+          "priceConditionKo": {
+            "type": "string",
+            "title": "Priceconditionko"
+          },
+          "priceNoteJa": {
+            "type": "string",
+            "title": "Pricenoteja",
+            "description": "가격 출처 메모"
+          },
+          "priceNoteKo": {
+            "type": "string",
+            "title": "Pricenoteko"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl",
+            "description": "병원 공식 가격 출처"
+          },
+          "kind": {
+            "type": "string",
+            "const": "recommendation",
+            "title": "Kind"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "LLM이 쓴 추천 이유 한 줄"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cardId",
+          "placeId",
+          "menuId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "menuNameJa",
+          "menuNameKo",
+          "area",
+          "stationJa",
+          "stationKo",
+          "japaneseSupport",
+          "baseKrw",
+          "vatKrw",
+          "totalKrw",
+          "totalJpy",
+          "krwPer100Jpy",
+          "jpAverageJpy",
+          "jpMinJpy",
+          "jpMaxJpy",
+          "jpClinicCount",
+          "savingsJpy",
+          "savingsPct",
+          "distanceMeters",
+          "walkMinutes",
+          "priceConditionJa",
+          "priceConditionKo",
+          "priceNoteJa",
+          "priceNoteKo",
+          "sourceUrl",
+          "kind",
+          "reason"
+        ],
+        "title": "RecommendationCard"
       },
       "ValidationError": {
         "properties": {

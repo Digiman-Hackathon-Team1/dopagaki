@@ -78,6 +78,8 @@ export interface components {
             conditionSummary: string;
             /** Answer */
             answer: string;
+            /** Cards */
+            cards: components["schemas"]["RecommendationCard"][];
             /** Questions */
             questions: components["schemas"]["Question"][];
             /** Suggestions */
@@ -108,6 +110,119 @@ export interface components {
             options: string[];
             /** Multiselect */
             multiSelect: boolean;
+        };
+        /** RecommendationCard */
+        RecommendationCard: {
+            /**
+             * Cardid
+             * @description 병원 ID와 시술 ID를 묶은 카드 ID
+             */
+            cardId: string;
+            /** Placeid */
+            placeId: string;
+            /** Menuid */
+            menuId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /**
+             * Basekrw
+             * @description 병원 표시 가격(원)
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 더한 부가세(원). 표시 가격에 이미 포함돼 있으면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /**
+             * Krwper100Jpy
+             * @description 환산에 쓴 환율(100엔당 원)
+             */
+            krwPer100Jpy: number;
+            /**
+             * Jpaveragejpy
+             * @description 일본 주요 병원 세금 포함 공식가 평균
+             */
+            jpAverageJpy: number;
+            /** Jpminjpy */
+            jpMinJpy: number;
+            /** Jpmaxjpy */
+            jpMaxJpy: number;
+            /**
+             * Jpcliniccount
+             * @description 일본 평균에 쓴 병원 수
+             */
+            jpClinicCount: number;
+            /**
+             * Savingsjpy
+             * @description 일본 평균 대비 절약액(엔). 음수면 더 비쌈
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            /**
+             * Distancemeters
+             * @description 기준 위치에서의 직선거리. 기준 위치가 없으면 null
+             */
+            distanceMeters: number | null;
+            /** Walkminutes */
+            walkMinutes: number | null;
+            /**
+             * Priceconditionja
+             * @description 가격 조건(첫 방문 한정, 이벤트가 등)
+             */
+            priceConditionJa: string;
+            /** Priceconditionko */
+            priceConditionKo: string;
+            /**
+             * Pricenoteja
+             * @description 가격 출처 메모
+             */
+            priceNoteJa: string;
+            /** Pricenoteko */
+            priceNoteKo: string;
+            /**
+             * Sourceurl
+             * @description 병원 공식 가격 출처
+             */
+            sourceUrl: string;
+            /**
+             * Kind
+             * @constant
+             */
+            kind: "recommendation";
+            /**
+             * Reason
+             * @description LLM이 쓴 추천 이유 한 줄
+             */
+            reason: string;
         };
         /** ValidationError */
         ValidationError: {
