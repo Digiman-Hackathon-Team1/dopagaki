@@ -3,7 +3,10 @@ from typing import Literal
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from api.agent.router import router as agent_router
+
 app = FastAPI(title="API")
+app.include_router(agent_router)
 
 
 class Health(BaseModel):
