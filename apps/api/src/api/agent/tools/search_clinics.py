@@ -5,14 +5,17 @@
 """
 
 from collections import Counter
+from functools import lru_cache
 from typing import Literal
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+from api.agent.config import get_settings
 from api.agent.schemas import ExcludeReason, Exclusion, RecommendationCardData
 from api.domain.calc import PriceRow, SortId, is_point_in_south_korea, rank_rows
-from api.domain.catalog import AreaId, GeoPoint, get_catalog
+from api.domain.catalog import AreaId, Fx, GeoPoint, get_catalog
+from api.domain.fx import FxProvider
 from api.domain.price_tags import price_tags
 
 MenuId = Literal[
@@ -124,7 +127,13 @@ DESCRIPTION = f"""\
 {_menu_lines()}"""
 
 
-def _card(row: PriceRow, show_distance: bool) -> RecommendationCardData:
+@lru_cache
+def get_fx_provider() -> FxProvider:
+    """배포된 web의 환율 파일을 읽는 조회기(ADR 0010). 설정이 없으면 스냅샷 환율만 쓴다."""
+    return FxProvider(get_settings().web_fx_url, get_catalog().fx)
+
+
+def _card(row: PriceRow, show_distance: bool, fx: Fx) -> RecommendationCardData:
     jp_prices = [b.price_jpy for b in row.menu.jp_benchmarks]
     return RecommendationCardData(
         card_id=f"{row.place.id}:{row.menu.id}",
@@ -142,8 +151,8 @@ def _card(row: PriceRow, show_distance: bool) -> RecommendationCardData:
         vat_krw=row.vat_krw,
         total_krw=row.total_krw,
         total_jpy=row.total_jpy,
-        krw_per_100_jpy=get_catalog().fx.krw_per_100_jpy,
-        fx_date_label=get_catalog().fx.date_label,
+        krw_per_100_jpy=fx.krw_per_100_jpy,
+        fx_date_label=fx.date_label,
         jp_average_jpy=row.jp_benchmark_jpy,
         jp_min_jpy=min(jp_prices),
         jp_max_jpy=max(jp_prices),
@@ -199,6 +208,7 @@ def search_clinics(
     limit: int = 3,
 ) -> tuple[str, dict]:
     catalog = get_catalog()
+    fx = get_fx_provider().current()
     menu = catalog.menu(menu_id)
     name = f"{menu.name_ko} / {menu.name_ja}"
 
@@ -226,7 +236,10 @@ def search_clinics(
     # 병원 단위 거르기. 정렬된 순서를 유지하며 처음 걸린 이유를 센다.
     excluded: Counter[ExcludeReason] = Counter()
     kept: list[PriceRow] = []
-    for row in rank_rows(catalog, menu_id, sort=sort, origin=origin):
+    rows = rank_rows(
+        catalog, menu_id, sort=sort, origin=origin, krw_per_100_jpy=fx.krw_per_100_jpy
+    )
+    for row in rows:
         if area is not None and row.place.area != area:
             excluded["area"] += 1
         elif japanese_only and not row.place.japanese_support:
@@ -239,9 +252,8 @@ def search_clinics(
             kept.append(row)
 
     top = kept[:limit]
-    cards = [_card(row, has_origin) for row in top]
+    cards = [_card(row, has_origin, fx) for row in top]
     jp_prices = [b.price_jpy for b in menu.jp_benchmarks]
-    fx = catalog.fx
     benchmark = (
         f"Japan benchmark: average of {len(jp_prices)} major Japanese clinics "
         f"(tax incl.) ¥{menu.jp_benchmark_jpy:,} "

@@ -145,9 +145,16 @@ def rank_rows(
     origin: GeoPoint | None = None,
     japanese_only: bool = False,
     area: AreaId | None = None,
+    krw_per_100_jpy: float | None = None,
 ) -> list[PriceRow]:
-    """calc.ts `buildRankedRows`(부가세 포함)와 같은 거르기·정렬."""
+    """calc.ts `buildRankedRows`(부가세 포함)와 같은 거르기·정렬.
+
+    환율을 주지 않으면 스냅샷 환율을 쓴다.
+    """
     menu = catalog.menu(menu_id)
+    rate = (
+        krw_per_100_jpy if krw_per_100_jpy is not None else catalog.fx.krw_per_100_jpy
+    )
     base = origin if is_point_in_south_korea(origin) else DEFAULT_SEOUL_CENTER
     rows = []
     for place in catalog.places:
@@ -157,9 +164,7 @@ def rank_rows(
             continue
         if japanese_only and not place.japanese_support:
             continue
-        row = compute_row(
-            place, menu, catalog.fx.krw_per_100_jpy, catalog.meta.vat_rate, base
-        )
+        row = compute_row(place, menu, rate, catalog.meta.vat_rate, base)
         if row is not None:
             rows.append(row)
     return sorted(rows, key=_sort_key(sort))
