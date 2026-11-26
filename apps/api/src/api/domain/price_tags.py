@@ -27,7 +27,7 @@ _RULES: tuple[tuple[PriceTag, re.Pattern[str]], ...] = (
     ("anesthesia", re.compile(r"마취")),
     # "팁 30,000원 별도"처럼 팁과 별도 사이에 금액이 낄 수 있다. "팁 포함"은 추가 비용이 아니다.
     # 괄호나 가운뎃점에서 구절이 끝나므로 "모공팁 풀페이스 250,000원)"은 걸리지 않는다.
-    ("extra_fee", re.compile(r"팁(?!\s?포함)값?[^·()]*?(?:별도|미포함)")),
+    ("extra_fee", re.compile(r"팁값?(?!\s?포함)[^·()]*?(?:별도|미포함)")),
 )
 
 # 가격의 종류를 말하는 태그. 메모에 다른 가격이 함께 적혀 있으면 그 가격의 조건일 수 있다.
@@ -84,10 +84,12 @@ def _note_tags(note: str, krw: int) -> set[str]:
 
 
 def _caveat_tags(caveat: str, menu_id: str) -> set[str]:
+    """병원 문장의 태그. 문장이 다른 시술을 말하면 가격 종류 태그만 빼고, 마취비·팁 태그는 남긴다."""
+    tags = set(classify(caveat))
     named = [mid for mid, pattern in _MENU_WORDS.items() if pattern.search(caveat)]
     if named and menu_id not in named:
-        return set()
-    return set(classify(caveat))
+        return tags - _PRICE_KIND
+    return tags
 
 
 def price_tags(place: Place, menu_id: str, offer: Offer) -> list[PriceTag]:

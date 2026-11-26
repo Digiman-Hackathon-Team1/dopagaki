@@ -3,7 +3,7 @@
 import pytest
 
 from api.domain.catalog import get_catalog
-from api.domain.price_tags import _note_tags, classify, price_tags
+from api.domain.price_tags import _caveat_tags, _note_tags, classify, price_tags
 
 
 @pytest.mark.parametrize(
@@ -23,6 +23,15 @@ from api.domain.price_tags import _note_tags, classify, price_tags
             "홈페이지 포텐자 1회 체험가 5.9만 원(팁값 별도)",
             ["first_visit", "extra_fee"],
         ),
+        # 팁과 별도 사이에 금액이 낀 실제 데이터 문장
+        ("N25 팁 30,000원 별도", ["extra_fee"]),
+        ("일반팁 50,000원/모공팁 100,000원 별도", ["extra_fee"]),
+        ("개인팁 50,000원/부가세 별도", ["extra_fee"]),
+        ("팁값 3.5만 별도", ["extra_fee"]),
+        # 팁 비용이 포함된 문장
+        ("포텐자 팁 포함 190,000원", []),
+        ("포텐자 1회 팁값 포함 150,000원", []),
+        ("팁값포함 150,000원", []),
         # 조건이 아닌 문장
         (
             "타임스퀘어 인접・마취비 확인",
@@ -68,3 +77,12 @@ def test_clinic_sentence_naming_treatments_applies_only_to_them() -> None:
     tagged = {m for m, o in place.prices.items() if "event" in price_tags(place, m, o)}
 
     assert tagged == {"potenza", "jaw-botox"}
+
+
+def test_clinic_sentence_naming_other_treatments_keeps_extra_cost_tags() -> None:
+    # 다른 시술을 말하는 문장이면 가격 종류 태그(특가)는 빼고, 마취비 태그는 남긴다.
+    assert _caveat_tags("포텐자 특가・마취비 별도", "rejuran-2cc") == {"anesthesia"}
+    assert _caveat_tags("포텐자 특가・마취비 별도", "potenza") == {
+        "event",
+        "anesthesia",
+    }
