@@ -16,7 +16,6 @@ Python 백엔드와 TypeScript 프론트엔드로 구성된 모노레포다. 실
 - 작업 브랜치를 `main`에 바로 머지하지 않는다.
 - `develop`과 `main`에 직접 push하지 않는다.
 - 머지는 사용자가 명시적으로 요청했을 때만 한다.
-- 브랜치, 커밋, PR 제목은 `docs/git-naming-convention.md`를 따른다.
 
 ## 작업 규칙
 
@@ -37,3 +36,7 @@ Python 백엔드와 TypeScript 프론트엔드로 구성된 모노레포다. 실
 - `pnpm check`와 `pnpm build`를 통과해야 한다.
 - 새 API 동작에는 `apps/api/tests`에 pytest 테스트를 추가한다.
 - 화면을 바꿨으면 브라우저에서 확인한다.
+
+## Git 네이밍
+
+- 브랜치, 커밋, PR 제목은 `docs/git-naming-convention.md`를 따른다.
