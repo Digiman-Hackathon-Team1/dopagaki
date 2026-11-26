@@ -84,6 +84,40 @@ def test_chat_returns_recommendation_cards(client: TestClient) -> None:
     assert card["distanceMeters"] is None
 
 
+def test_chat_returns_location_card_before_clinic_cards(client: TestClient) -> None:
+    model = fake_model(
+        tool_call("resolve_location", {"query": "홍대 숙소"}, "c1"),
+        tool_call(
+            "search_clinics",
+            {"menu_id": "shrink-300", "origin_id": "area:hongdae", "limit": 1},
+            "c2",
+        ),
+        reply_message("홍대 기준이에요"),
+    )
+    graph = build_graph(model, tools=TOOLS, checkpointer=InMemorySaver())
+    app.dependency_overrides[get_agent] = lambda: graph
+
+    response = client.post(
+        "/api/agent/chat",
+        json={"userId": USER_ID, "message": "홍대 숙소, 슈링크", "lang": "ko"},
+    )
+
+    assert response.status_code == 200
+    location, clinic = response.json()["cards"]
+    assert location == {
+        "kind": "location",
+        "locationId": "area:hongdae",
+        "locationType": "area",
+        "query": "홍대 숙소",
+        "nameJa": "弘大",
+        "nameKo": "홍대",
+        "lat": 37.5563,
+        "lng": 126.9228,
+    }
+    assert clinic["kind"] == "recommendation"
+    assert clinic["distanceMeters"] is not None
+
+
 def test_same_thread_id_continues_conversation(client: TestClient) -> None:
     model = use_fake("첫 답", "둘째 답")
 

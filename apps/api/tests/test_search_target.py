@@ -4,10 +4,10 @@ import pytest
 
 from api.agent.tools.search_clinics import SearchTarget
 from api.domain.calc import matches_place
-from api.domain.catalog import GeoPoint, get_catalog
+from api.domain.catalog import get_catalog
 
-HONGDAE = GeoPoint(lat=37.5563, lng=126.9228)
-GANGNAM = GeoPoint(lat=37.4979, lng=127.0276)
+HONGDAE = "area:hongdae"
+GANGNAM = "station:강남"
 
 
 def named(name: str, **kwargs) -> SearchTarget:
@@ -22,7 +22,7 @@ def named(name: str, **kwargs) -> SearchTarget:
     [
         # 비교: 서로 다른 대상
         (SearchTarget(area="hongdae"), SearchTarget(area="gangnam"), True),
-        (SearchTarget(origin=HONGDAE), SearchTarget(origin=GANGNAM), True),
+        (SearchTarget(origin_id=HONGDAE), SearchTarget(origin_id=GANGNAM), True),
         (named("밴스 홍대"), named("블리비 명동"), True),
         (named("밴스"), named("블리비"), True),
         (

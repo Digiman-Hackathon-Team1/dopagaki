@@ -184,15 +184,13 @@ def test_narrowing_the_branch_name_replaces_the_search() -> None:
 
 def test_same_clinic_in_two_comparisons_appears_in_each() -> None:
     # 기준 위치가 다른 두 검색에 같은 병원이 나오면 검색마다 한 장씩 낸다(거리가 다르다).
-    hongdae = {"lat": 37.5563, "lng": 126.9228}
-    gangnam = {"lat": 37.4979, "lng": 127.0276}
     graph = graph_with(
-        tool_call("search_clinics", {**REJURAN, "origin": hongdae}, "c1"),
-        tool_call("search_clinics", {**REJURAN, "origin": gangnam}, "c2"),
+        tool_call("search_clinics", {**REJURAN, "origin_id": "area:hongdae"}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "origin_id": "station:강남"}, "c2"),
         reply_message("비교"),
     )
 
-    cards = read_cards(run(graph))
+    cards = [c for c in read_cards(run(graph)) if c.kind == "recommendation"]
     first = [c for c in cards if c.search_id == "s1"]
     second = [c for c in cards if c.search_id == "s2"]
 

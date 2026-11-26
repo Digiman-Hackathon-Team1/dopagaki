@@ -29,6 +29,9 @@ AreaId = Literal[
     "gwanak",
 ]
 
+# 고민 분류 6개(web concierge.ts의 ConciergeConcernId). 설계 문서 8장 "정해진 고민 분류 6개".
+ConcernId = Literal["pores", "glow", "lift", "dry", "jaw", "skinbase"]
+
 
 class SnapshotModel(BaseModel):
     model_config = ConfigDict(
@@ -62,6 +65,13 @@ class Area(SnapshotModel):
     name_ko: str
     lat: float
     lng: float
+
+
+class Concern(SnapshotModel):
+    """고민별 시술표 한 줄(web concierge.ts의 CONCERN_MENUS). 시술은 가장 직접적인 순이다."""
+
+    id: ConcernId
+    menu_ids: tuple[str, ...]
 
 
 class JpBenchmark(SnapshotModel):
@@ -128,6 +138,7 @@ class Catalog(SnapshotModel):
     meta: Meta
     fx: Fx
     areas: tuple[Area, ...]
+    concerns: tuple[Concern, ...]
     menus: tuple[Menu, ...]
     places: tuple[Place, ...]
 
@@ -136,6 +147,12 @@ class Catalog(SnapshotModel):
             if menu.id == menu_id:
                 return menu
         raise KeyError(menu_id)
+
+    def concern(self, concern_id: str) -> Concern:
+        for concern in self.concerns:
+            if concern.id == concern_id:
+                return concern
+        raise KeyError(concern_id)
 
 
 def load_snapshot(path: Path = SNAPSHOT_PATH) -> Catalog:

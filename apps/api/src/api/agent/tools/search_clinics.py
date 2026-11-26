@@ -13,15 +13,10 @@ from pydantic import BaseModel, Field
 
 from api.agent.config import get_settings
 from api.agent.schemas import ExcludeReason, ExclusionData, RecommendationCardData
-from api.domain.calc import (
-    PriceRow,
-    SortId,
-    is_point_in_south_korea,
-    matches_place,
-    rank_rows,
-)
-from api.domain.catalog import AreaId, Fx, GeoPoint, get_catalog
+from api.domain.calc import PriceRow, SortId, matches_place, rank_rows
+from api.domain.catalog import AreaId, Fx, get_catalog
 from api.domain.fx import FxProvider
+from api.domain.locations import get_locations
 from api.domain.price_tags import price_tags
 
 MenuId = Literal[
@@ -60,7 +55,7 @@ class SearchClinicsInput(BaseModel):
         default="savings",
         description=(
             "정렬 기준. 기본 savings(일본 대비 절약액 큰 순). "
-            "사용자가 원할 때만 distance(가까운 순, origin 필요) 또는 rating(후기 평점 순)"
+            "사용자가 원할 때만 distance(가까운 순, origin_id 필요) 또는 rating(후기 평점 순)"
         ),
     )
     budget: Budget | None = Field(
@@ -81,11 +76,13 @@ class SearchClinicsInput(BaseModel):
     area: AreaId | None = Field(
         default=None, description="이 지역 병원만. 사용자가 지역을 정했을 때만"
     )
-    origin: GeoPoint | None = Field(
+    origin_id: str | None = Field(
         default=None,
+        max_length=40,
         description=(
-            "거리 계산 기준 좌표(숙소 등). 위치를 좌표로 바꾸는 도구의 결과만 쓰고 좌표를 "
-            "지어내지 않는다. 그런 도구가 없으면 null로 둔다. null이면 거리는 표시되지 않는다"
+            "거리 계산 기준 위치(숙소 등)의 위치 ID. resolve_location 결과의 location_id를 그대로 "
+            "넣는다(예: area:hongdae, station:홍대입구). ID를 지어내지 않는다. 사용자가 위치를 말하지 "
+            "않았거나 resolve_location이 찾지 못했으면 null. null이면 거리는 표시되지 않는다"
         ),
     )
     clinic_name: str | None = Field(
@@ -104,7 +101,8 @@ class SearchTarget(BaseModel):
     """검색이 무엇을 대상으로 했는지. 같은 턴의 검색이 비교인지 재검색인지 가릴 때 쓴다(ADR 0009)."""
 
     area: AreaId | None = None
-    origin: GeoPoint | None = None
+    # 기준 위치 ID. 같은 ID는 항상 같은 좌표이므로 ID로 같은 위치인지 판정한다.
+    origin_id: str | None = None
     clinic_tokens: list[str] = Field(default_factory=list)
     # 지점 이름으로 찾은 병원 ID(시술과 무관). 이름은 단어가 아니라 찾은 병원으로 비교한다.
     clinic_ids: list[str] = Field(default_factory=list)
@@ -113,7 +111,7 @@ class SearchTarget(BaseModel):
         """self가 other의 조건을 모두 지키면서 더 좁거나 같은 검색인지."""
         if other.area and self.area != other.area:
             return False
-        if other.origin and self.origin != other.origin:
+        if other.origin_id and self.origin_id != other.origin_id:
             return False
         if other.clinic_tokens:
             return bool(self.clinic_tokens) and set(self.clinic_ids) <= set(
@@ -178,10 +176,12 @@ DESCRIPTION = f"""\
 서울 병원 가격 데이터에서 시술 하나를 받는 병원을 찾아 상위 몇 곳을 돌려준다.
 가격·엔화 환산·일본 대비 절약액은 web 순위표와 같은 계산이다. 답변의 금액은 이 결과만 쓴다.
 필수 입력: menu_id. 기본값: 절약액 순, 상위 3곳, 예산·회복 기간·지역 제한 없음.
+사용자가 숙소·사는 곳·역을 말했으면 먼저 resolve_location을 부르고, 결과의 location_id를 origin_id에 넣는다.
 결과의 병원은 모두 카드로 화면에 나간다. card_reasons에 card_id마다 추천 이유 한 줄을 쓴다.
 같은 턴에 같은 시술을 범위만 좁히거나 넓혀 다시 부르면 마지막 결과의 카드만 나간다. 지역·기준 위치·
 지점(clinic_name)이 서로 다른 대상을 부르면 비교로 보고 모두 나간다. 비교할 때는 대상마다 한 번씩 부른다.
 쓰면 안 되는 경우: 아래 목록에 없는 시술(필러, 실 리프팅 등)이나 시술을 아직 정하지 않았을 때.
+시술명 없이 고민만 말했으면 recommend_treatments를 먼저 부른다.
 시술 목록:
 {_menu_lines()}"""
 
@@ -263,7 +263,7 @@ def search_clinics(
     avoid_needle: bool = False,
     japanese_only: bool = False,
     area: AreaId | None = None,
-    origin: GeoPoint | None = None,
+    origin_id: str | None = None,
     clinic_name: str | None = None,
     limit: int = 3,
 ) -> tuple[str, dict]:
@@ -271,11 +271,18 @@ def search_clinics(
     fx = get_fx_provider().current()
     menu = catalog.menu(menu_id)
     name = f"{menu.name_ko} / {menu.name_ja}"
-    has_origin = is_point_in_south_korea(origin)
+    location = get_locations().get(origin_id) if origin_id else None
+    if origin_id and location is None:
+        raise ValueError(
+            f"Unknown origin_id {origin_id!r}. Use the location_id from a resolve_location "
+            "result as is. If resolve_location did not find the place, search with origin_id=null."
+        )
+    origin = location.point if location else None
+    has_origin = origin is not None
     tokens = (clinic_name or "").strip().lower().split()
     target = SearchTarget(
         area=area,
-        origin=origin if has_origin else None,
+        origin_id=origin_id if location else None,
         clinic_tokens=tokens,
         clinic_ids=sorted(p.id for p in catalog.places if matches_place(p, tokens))
         if tokens
@@ -312,9 +319,9 @@ def search_clinics(
         )
     if sort == "distance" and not has_origin:
         raise ValueError(
-            "sort=distance needs an origin inside South Korea from a location tool. "
-            "Do not guess coordinates. If no location tool is available, search with "
-            "sort=savings and tell the user that sorting by distance is not available yet."
+            "sort=distance needs origin_id. Call resolve_location with the place the user "
+            "gave (hotel, home area or station) and pass its location_id. If the user has not "
+            "given a place, ask for it once and search with sort=savings meanwhile."
         )
 
     # 병원 단위 거르기. 정렬된 순서를 유지하며 처음 걸린 이유를 센다.
@@ -357,15 +364,16 @@ def search_clinics(
     lines = [
         f"search_clinics: {name}, sort={sort}"
         + (f", clinic_name={clinic_name!r}" if tokens else "")
+        + (
+            f", distances from {location.name_ko} / {location.name_ja}"
+            if location
+            else ""
+        )
         + ".",
         benchmark,
         f"FX: ₩{fx.krw_per_100_jpy} per ¥100 ({fx.bank_ko}, {fx.date_label}).",
         matched + ".",
     ]
-    if origin is not None and not has_origin:
-        lines.append(
-            "origin ignored: it is outside South Korea, so no distances are shown."
-        )
     if not rows and tokens:
         lines.append(_no_clinic_note(clinic_name or "", tokens, menu_id))
     if not top:

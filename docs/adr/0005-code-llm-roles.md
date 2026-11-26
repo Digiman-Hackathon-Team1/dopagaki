@@ -56,5 +56,5 @@
 
 **후속 작업**
 * T2 #5 가격 계산과 `search_clinics`
-* T3 #6 고민별 시술표와 `recommend_treatments`, `resolve_location`
+* T3 #6 고민별 시술표와 `recommend_treatments`, `resolve_location`(T3에서 처리, 위치는 ADR 0011)
 * T6 #9 응답 속 금액과 도구 결과 대조
