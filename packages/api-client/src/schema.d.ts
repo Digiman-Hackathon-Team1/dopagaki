@@ -55,7 +55,10 @@ export interface components {
              * @description 대화 ID. 없으면 새 대화를 시작한다
              */
             threadId?: string | null;
-            /** Message */
+            /**
+             * Message
+             * @description 이번 턴의 사용자 메시지. 앞뒤 공백을 지운 뒤 1~2000자
+             */
             message: string;
             /**
              * Lang

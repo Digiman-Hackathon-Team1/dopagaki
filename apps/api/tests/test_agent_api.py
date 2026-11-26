@@ -4,9 +4,8 @@ from collections.abc import Iterator
 from uuid import uuid4
 
 import pytest
-from agent_fakes import FakeChatModel, fake_model, reply_message
+from agent_fakes import FakeChatModel, fake_model, reply_message, user_texts
 from fastapi.testclient import TestClient
-from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from api.agent.config import AgentSettings, get_settings
@@ -70,8 +69,7 @@ def test_same_thread_id_continues_conversation(client: TestClient) -> None:
     ).json()
 
     assert second["threadId"] == first["threadId"]
-    humans = [m.content for m in model.calls[1] if isinstance(m, HumanMessage)]
-    assert humans == ["예산은 3만 엔", "예산 얼마였지?"]
+    assert user_texts(model.calls[1]) == ["예산은 3만 엔", "예산 얼마였지?"]
 
 
 def test_other_user_cannot_continue_thread(client: TestClient) -> None:
@@ -90,8 +88,7 @@ def test_other_user_cannot_continue_thread(client: TestClient) -> None:
         },
     )
 
-    humans = [m.content for m in model.calls[1] if isinstance(m, HumanMessage)]
-    assert humans == ["앞에서 뭐라고 했어?"]
+    assert user_texts(model.calls[1]) == ["앞에서 뭐라고 했어?"]
 
 
 def test_without_api_key_returns_503(client: TestClient) -> None:
@@ -106,11 +103,19 @@ def test_without_api_key_returns_503(client: TestClient) -> None:
     assert response.status_code == 503
 
 
-def test_invalid_request_returns_422(client: TestClient) -> None:
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"userId": "not-a-uuid", "message": "안녕", "lang": "ko"},
+        {"userId": USER_ID, "message": "", "lang": "ko"},
+        {"userId": USER_ID, "message": "   ", "lang": "ko"},
+        {"userId": USER_ID, "message": "가" * 2001, "lang": "ko"},
+        {"userId": USER_ID, "message": "안녕", "lang": "en"},
+    ],
+)
+def test_invalid_request_returns_422(client: TestClient, body: dict) -> None:
     use_fake()
 
-    response = client.post(
-        "/api/agent/chat", json={"userId": "not-a-uuid", "message": "", "lang": "en"}
-    )
+    response = client.post("/api/agent/chat", json=body)
 
     assert response.status_code == 422

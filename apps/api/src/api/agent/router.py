@@ -12,7 +12,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from api.agent.config import AgentSettings, get_settings
 from api.agent.graph import build_graph, read_reply
-from api.agent.schemas import ChatRequest, ChatResponse, Lang, Question
+from api.agent.schemas import ChatRequest, ChatResponse, Lang
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -74,10 +74,6 @@ def post_agent_chat(
     reply = read_reply(state)
     return ChatResponse(
         thread_id=thread_id,
-        condition_summary=reply.condition_summary,
-        answer=reply.answer,
-        questions=[Question.model_validate(q.model_dump()) for q in reply.questions],
-        suggestions=reply.suggestions,
-        cautions=reply.cautions,
         disclaimer=DISCLAIMER[body.lang],
+        **reply.model_dump(),
     )

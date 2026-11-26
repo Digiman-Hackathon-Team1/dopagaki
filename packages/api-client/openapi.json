@@ -95,7 +95,8 @@
             "type": "string",
             "maxLength": 2000,
             "minLength": 1,
-            "title": "Message"
+            "title": "Message",
+            "description": "이번 턴의 사용자 메시지. 앞뒤 공백을 지운 뒤 1~2000자"
           },
           "lang": {
             "type": "string",
@@ -156,6 +157,7 @@
             "title": "Disclaimer"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "threadId",
@@ -213,6 +215,7 @@
             "title": "Multiselect"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "question",

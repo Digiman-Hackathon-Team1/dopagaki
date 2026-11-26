@@ -5,10 +5,10 @@
 응답 칸은 설계 문서 4.8을 따른다. 카드 칸은 도구가 생기는 T2부터 추가한다.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pydantic.alias_generators import to_camel
 
 Lang = Literal["ja", "ko"]
@@ -51,17 +51,24 @@ class ChatRequest(CamelModel):
     thread_id: UUID | None = Field(
         default=None, description="대화 ID. 없으면 새 대화를 시작한다"
     )
-    message: str = Field(min_length=1, max_length=2000)
+    message: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)
+    ] = Field(description="이번 턴의 사용자 메시지. 앞뒤 공백을 지운 뒤 1~2000자")
     lang: Lang = Field(description="응답 언어")
 
 
-class Question(CamelModel):
+class ResponseModel(CamelModel):
+    # AgentReply에 필드가 늘었는데 응답 모델에 없으면 조용히 버리지 않고 오류를 낸다.
+    model_config = ConfigDict(extra="forbid")
+
+
+class Question(ResponseModel):
     question: str
     options: list[str]
     multi_select: bool
 
 
-class ChatResponse(CamelModel):
+class ChatResponse(ResponseModel):
     thread_id: UUID
     condition_summary: str
     answer: str
