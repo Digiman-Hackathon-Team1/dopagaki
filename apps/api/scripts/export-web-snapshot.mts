@@ -5,7 +5,7 @@
  *
  * 만드는 파일
  * - src/api/domain/data/web-snapshot.json: 에이전트가 읽는 병원·가격·환율 데이터.
- *   prices.json에 web 코드에만 있는 값(회복 기간, 바늘 여부, AI 평점)을 덧붙인다.
+ *   prices.json에 web 코드에만 있는 값(회복 기간, 바늘 여부, AI 평점, 고민별 시술표)을 덧붙인다.
  * - tests/fixtures/calc-expected.json: web calc.ts로 계산한 기대값. calc.py 대조 테스트(설계 13장)에 쓴다.
  *
  * web 파일은 읽기만 한다. web 데이터나 환율이 바뀌면 이 스크립트를 다시 실행한다.
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import type { AreaId, GeoPoint, NaverFxSnapshot, PriceDataset, SortId } from '../../web/src/types.ts';
 import { buildRankedRows } from '../../web/src/lib/calc.ts';
 import { getClinicAiRating } from '../../web/src/lib/ai-rating.ts';
-import { DOWNTIME_MAX_DAYS, NEEDLE_MENUS } from '../../web/src/lib/concierge.ts';
+import { CONCERN_MENUS, DOWNTIME_MAX_DAYS, NEEDLE_MENUS } from '../../web/src/lib/concierge.ts';
 
 const apiDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const webData = path.resolve(apiDir, '../web/src/data');
@@ -31,6 +31,12 @@ const krwPer100Jpy = fx.krwPer100Jpy || dataset.meta.defaultKrwPer100Jpy;
 for (const menu of dataset.menus) {
   if (!(menu.id in DOWNTIME_MAX_DAYS)) {
     throw new Error(`DOWNTIME_MAX_DAYS에 ${menu.id}가 없습니다`);
+  }
+}
+const menuIds = new Set(dataset.menus.map((menu) => menu.id));
+for (const [concern, ids] of Object.entries(CONCERN_MENUS)) {
+  for (const id of ids) {
+    if (!menuIds.has(id)) throw new Error(`CONCERN_MENUS.${concern}의 ${id}가 prices.json에 없습니다`);
   }
 }
 
@@ -65,6 +71,8 @@ const snapshot = {
     sourceUrl: fx.sourceUrl
   },
   areas: dataset.areas,
+  // 고민 분류 → 시술 ID 목록(가장 직접적인 순). 설계 문서 9장의 고민별 시술표.
+  concerns: Object.entries(CONCERN_MENUS).map(([id, menuIds]) => ({ id, menuIds })),
   menus: dataset.menus.map((menu) => ({
     ...menu,
     downtimeMaxDays: DOWNTIME_MAX_DAYS[menu.id],
