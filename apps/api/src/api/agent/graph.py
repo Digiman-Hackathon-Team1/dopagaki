@@ -25,13 +25,19 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
+from pydantic import TypeAdapter
 
 from api.agent.schemas import (
     AgentReply,
+    Card,
     Exclusion,
     Lang,
+    LocationCard,
+    LocationCardData,
     RecommendationCard,
 )
+from api.agent.tools.resolve_location import TOOL_NAME as RESOLVE_LOCATION
+from api.agent.tools.resolve_location import ResolveLocationArtifact
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
 from api.agent.tools.search_clinics import SearchClinicsArtifact
 
@@ -45,6 +51,10 @@ clinic's booking channel. Do not diagnose and do not book or pay on the user's b
 Never state prices or savings that did not come from a tool result.
 Clinics returned by search_clinics are shown to the user as cards. Give each card a \
 one-line reason in card_reasons, by card_id. The app fills in the card's prices.
+When the user names a concern instead of a treatment, call recommend_treatments first, \
+explain the choice and any exclusions, then call search_clinics. When the user mentions \
+where they stay or live, call resolve_location first and pass its location_id as origin_id. \
+A location it finds is shown as a card; mention it in condition_summary.
 Write every field of your reply in the language named by the note at the end of the \
 latest user message."""
 
@@ -68,9 +78,39 @@ def read_reply(state: AgentState) -> AgentReply:
     return AgentReply.model_validate(state["reply"])
 
 
-def read_cards(state: AgentState) -> list[RecommendationCard]:
-    """그래프 결과에서 이번 턴의 카드를 꺼낸다."""
-    return [RecommendationCard.model_validate(c) for c in state.get("cards") or []]
+CARDS = TypeAdapter(list[Card])
+
+
+def read_cards(state: AgentState) -> list[Card]:
+    """그래프 결과에서 이번 턴의 카드를 꺼낸다. 종류는 kind로 구분한다."""
+    return CARDS.validate_python(state.get("cards") or [])
+
+
+def _this_turn(messages: Sequence[BaseMessage], tool_name: str) -> list[ToolMessage]:
+    """이번 턴(마지막 사용자 메시지 뒤)의 성공한 도구 결과."""
+    start = max(
+        (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
+    )
+    return [
+        m
+        for m in messages[start + 1 :]
+        if isinstance(m, ToolMessage) and m.name == tool_name and m.status != "error"
+    ]
+
+
+def location_results(messages: Sequence[BaseMessage]) -> list[LocationCardData]:
+    """이번 턴에 resolve_location이 찾은 기준 위치. 같은 위치는 처음 찾은 것 하나만 둔다.
+
+    찾지 못한 결과(unknown, ambiguous)는 카드가 되지 않는다. 비교처럼 위치가 여럿이면 모두 낸다.
+    """
+    found: list[LocationCardData] = []
+    for message in _this_turn(messages, RESOLVE_LOCATION):
+        result = ResolveLocationArtifact.model_validate(message.artifact)
+        if result.location and all(
+            f.location_id != result.location.location_id for f in found
+        ):
+            found.append(result.location)
+    return found
 
 
 def read_exclusions(state: AgentState) -> list[Exclusion]:
@@ -87,19 +127,8 @@ def search_results(messages: Sequence[BaseMessage]) -> list[SearchClinicsArtifac
     - 이전 턴 결과, 다른 도구의 결과, 오류 난 호출은 읽지 않는다.
     - 검색 번호(search_id)는 이번 턴의 검색 순서(s1, s2, ...)다. 도구 호출 ID는 응답에 내보내지 않는다.
     """
-    start = max(
-        (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
-    )
     results: list[SearchClinicsArtifact] = []
-    calls = 0
-    for message in messages[start + 1 :]:
-        if (
-            not isinstance(message, ToolMessage)
-            or message.name != SEARCH_CLINICS
-            or message.status == "error"
-        ):
-            continue
-        calls += 1
+    for calls, message in enumerate(_this_turn(messages, SEARCH_CLINICS), start=1):
         new = SearchClinicsArtifact.model_validate(message.artifact).model_copy(
             update={"search_id": f"s{calls}"}
         )
@@ -192,7 +221,11 @@ def build_graph(
         except ValueError as error:
             raise AgentOutputError("응답이 응답 칸 형식에 맞지 않습니다") from error
         results = search_results(state["messages"])
-        cards = assemble_cards(results, reply)
+        locations = [
+            LocationCard(**loc.model_dump(), kind="location")
+            for loc in location_results(state["messages"])
+        ]
+        cards = [*locations, *assemble_cards(results, reply)]
         exclusions = assemble_exclusions(results)
         return {
             "reply": reply.model_dump(),

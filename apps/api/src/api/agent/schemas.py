@@ -171,11 +171,39 @@ class RecommendationCard(RecommendationCardData):
     )
 
 
+class LocationCardData(ResponseModel):
+    """resolve_location이 찾은 기준 위치(설계 문서 4.3, 9장, FR-16). 거리는 이 좌표에서 잰 직선거리다."""
+
+    location_id: str = Field(
+        description="위치 ID. 예: area:hongdae(지역), station:홍대입구(역)"
+    )
+    location_type: Literal["area", "station"] = Field(
+        description="area 지역 중심 좌표, station 역 좌표"
+    )
+    query: str = Field(description="위치를 찾은 사용자 표현. 예: 홍대 숙소")
+    name_ja: str
+    name_ko: str
+    lat: float
+    lng: float
+
+
+class LocationCard(LocationCardData):
+    kind: Literal["location"]
+
+
+Card = Annotated[RecommendationCard | LocationCard, Field(discriminator="kind")]
+
+
 class ChatResponse(ResponseModel):
     thread_id: UUID
     condition_summary: str
     answer: str
-    cards: list[RecommendationCard]
+    cards: list[Card] = Field(
+        description=(
+            "kind로 종류를 구분한다. location(이번 턴에 찾은 기준 위치)이 먼저, "
+            "recommendation(병원 추천)이 뒤에 온다"
+        )
+    )
     exclusions: list[Exclusion] = Field(
         description="이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열"
     )

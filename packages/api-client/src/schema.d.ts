@@ -78,8 +78,11 @@ export interface components {
             conditionSummary: string;
             /** Answer */
             answer: string;
-            /** Cards */
-            cards: components["schemas"]["RecommendationCard"][];
+            /**
+             * Cards
+             * @description kind로 종류를 구분한다. location(이번 턴에 찾은 기준 위치)이 먼저, recommendation(병원 추천)이 뒤에 온다
+             */
+            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"])[];
             /**
              * Exclusions
              * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
@@ -127,6 +130,38 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** LocationCard */
+        LocationCard: {
+            /**
+             * Locationid
+             * @description 위치 ID. 예: area:hongdae(지역), station:홍대입구(역)
+             */
+            locationId: string;
+            /**
+             * Locationtype
+             * @description area 지역 중심 좌표, station 역 좌표
+             * @enum {string}
+             */
+            locationType: "area" | "station";
+            /**
+             * Query
+             * @description 위치를 찾은 사용자 표현. 예: 홍대 숙소
+             */
+            query: string;
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "location";
         };
         /** Question */
         Question: {
@@ -250,8 +285,8 @@ export interface components {
              */
             sourceUrl: string;
             /**
-             * Kind
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
             kind: "recommendation";
             /**
