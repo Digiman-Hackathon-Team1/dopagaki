@@ -80,9 +80,9 @@ export interface components {
             answer: string;
             /**
              * Cards
-             * @description kind로 종류를 구분한다. location(이번 턴에 찾은 기준 위치)이 먼저, recommendation(병원 추천)이 뒤에 온다
+             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천) 순서로 온다
              */
-            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"])[];
+            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"])[];
             /**
              * Exclusions
              * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
@@ -130,6 +130,102 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /**
+         * JpClinicPrice
+         * @description 사용자가 다니던 일본 병원의 가격. 데이터의 일본 벤치마크 병원 한 곳이다(설계 문서 4.7).
+         */
+        JpClinicPrice: {
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /**
+             * Planja
+             * @description 일본 병원의 플랜명. 단위(샷 수, cc, 단위 수)가 들어 있고 한국 메뉴와 단위가 다를 수 있다. 예: ウルトラスキンハイフ 全顔 (650ショット)
+             */
+            planJa: string;
+            /** Planko */
+            planKo: string;
+            /**
+             * Pricejpy
+             * @description 세금 포함 공식가(엔)
+             */
+            priceJpy: number;
+            /**
+             * Sourceurl
+             * @description 일본 병원 공식 가격 출처
+             */
+            sourceUrl: string;
+        };
+        /** JpClinicSavings */
+        JpClinicSavings: {
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /**
+             * Planja
+             * @description 일본 병원의 플랜명. 단위(샷 수, cc, 단위 수)가 들어 있고 한국 메뉴와 단위가 다를 수 있다. 예: ウルトラスキンハイフ 全顔 (650ショット)
+             */
+            planJa: string;
+            /** Planko */
+            planKo: string;
+            /**
+             * Pricejpy
+             * @description 세금 포함 공식가(엔)
+             */
+            priceJpy: number;
+            /**
+             * Sourceurl
+             * @description 일본 병원 공식 가격 출처
+             */
+            sourceUrl: string;
+            /**
+             * Savingsjpy
+             * @description 이 일본 병원 가격 대비 절약액(엔). 음수면 한국이 더 비쌈
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+        };
+        /** JpMatchCard */
+        JpMatchCard: {
+            /**
+             * Query
+             * @description 사용자가 말한 일본 시술명. 예: ハイフ
+             */
+            query: string;
+            /**
+             * Menuid
+             * @description 대응하는 한국 시술 ID
+             */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Reasonja
+             * @description 한국과 일본에서 이름이 다른 이유 한 줄
+             */
+            reasonJa: string;
+            /** Reasonko */
+            reasonKo: string;
+            /**
+             * Unitnoteja
+             * @description 한국·일본의 단위 차이. 예: 300샷과 650샷
+             */
+            unitNoteJa: string;
+            /** Unitnoteko */
+            unitNoteKo: string;
+            /** @description 사용자가 말한 일본 병원의 이 시술 가격. 말하지 않았거나 데이터에 없으면 null */
+            jpClinic: components["schemas"]["JpClinicPrice"] | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "jp_match";
         };
         /** LocationCard */
         LocationCard: {
@@ -253,6 +349,8 @@ export interface components {
             savingsJpy: number;
             /** Savingspct */
             savingsPct: number;
+            /** @description 사용자가 다니던 일본 병원과 직접 비교한 가격과 절약액. 그 병원의 이 시술 가격이 데이터에 있을 때만 채우고, 없으면 null(일본 평균 대비만 표시) */
+            jpClinic: components["schemas"]["JpClinicSavings"] | null;
             /**
              * Distancemeters
              * @description 기준 위치에서의 직선거리. 기준 위치가 없으면 null

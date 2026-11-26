@@ -93,6 +93,18 @@ class PriceRow:
     walk_minutes: int
 
 
+def savings_against(reference_jpy: int, total_jpy: int) -> tuple[int, int]:
+    """일본 가격 대비 절약액(엔)과 절약률(%). calc.ts의 savingsJpy·savingsPct와 같은 식이다.
+
+    일본 평균(compute_row)과 사용자가 다니던 일본 병원 가격(설계 4.7) 모두 이 식으로 비교한다.
+    """
+    savings_jpy = reference_jpy - total_jpy
+    savings_pct = (
+        js_round(savings_jpy / reference_jpy * 100) if reference_jpy > 0 else 0
+    )
+    return savings_jpy, savings_pct
+
+
 def compute_row(
     place: Place,
     menu: Menu,
@@ -109,8 +121,7 @@ def compute_row(
     total_krw = offer.krw + vat_krw
     total_jpy = krw_to_jpy(total_krw, krw_per_100_jpy)
     benchmark = menu.jp_benchmark_jpy
-    savings_jpy = benchmark - total_jpy
-    savings_pct = js_round(savings_jpy / benchmark * 100) if benchmark > 0 else 0
+    savings_jpy, savings_pct = savings_against(benchmark, total_jpy)
     distance = haversine_meters(origin.lat, origin.lng, place.lat, place.lng)
 
     return PriceRow(

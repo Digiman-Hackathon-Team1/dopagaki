@@ -31,11 +31,15 @@ from api.agent.schemas import (
     AgentReply,
     Card,
     Exclusion,
+    JpMatchCard,
+    JpMatchCardData,
     Lang,
     LocationCard,
     LocationCardData,
     RecommendationCard,
 )
+from api.agent.tools.match_jp_treatment import TOOL_NAME as MATCH_JP_TREATMENT
+from api.agent.tools.match_jp_treatment import MatchJpTreatmentArtifact
 from api.agent.tools.resolve_location import TOOL_NAME as RESOLVE_LOCATION
 from api.agent.tools.resolve_location import ResolveLocationArtifact, location_card
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
@@ -53,7 +57,12 @@ Never state prices or savings that did not come from a tool result.
 Clinics returned by search_clinics are shown to the user as cards. Give each card a \
 one-line reason in card_reasons, by card_id. The app fills in the card's prices.
 When the user names a concern instead of a treatment, call recommend_treatments first, \
-explain the choice and any exclusions, then call search_clinics. When the user mentions \
+explain the choice and any exclusions, then call search_clinics. When the user names a \
+treatment by a Japanese name that is not in the search_clinics list (ハイフ, HIFU, ブナジュ and \
+so on), call match_jp_treatment first and never map the name yourself. If it finds a match, \
+say the Korean name and why the names differ before showing clinics. If it is ambiguous, ask \
+which one; if there is no match, say so instead of offering a different treatment as the same. \
+When the user names the Japanese clinic they went to, pass it as jp_clinic. When the user mentions \
 where they stay or live, call resolve_location first and pass its location_id as origin_id. \
 A location it finds is shown as a card; mention it in condition_summary.
 Write every field of your reply in the language named by the note at the end of the \
@@ -144,6 +153,19 @@ def location_cards(
         if card is not None:
             cards.append(card)
     return cards
+
+
+def jp_match_cards(messages: Sequence[BaseMessage]) -> list[JpMatchCardData]:
+    """이번 턴에 match_jp_treatment가 찾은 대응(설계 문서 4.3, 9장). 확인 필요·대응 없음은 카드가 없다.
+
+    같은 시술을 두 번 찾으면(예: 일본 병원 이름을 붙여 다시 부름) 한 장만 내고, 마지막 결과를 쓴다.
+    """
+    found: dict[str, JpMatchCardData] = {}
+    for message in _this_turn(messages, MATCH_JP_TREATMENT):
+        match = MatchJpTreatmentArtifact.model_validate(message.artifact).match
+        if match:
+            found[match.menu_id] = match
+    return list(found.values())
 
 
 def read_exclusions(state: AgentState) -> list[Exclusion]:
@@ -258,7 +280,11 @@ def build_graph(
             LocationCard(**loc.model_dump(), kind="location")
             for loc in location_cards(state["messages"], results)
         ]
-        cards = [*locations, *assemble_cards(results, reply)]
+        jp_matches = [
+            JpMatchCard(**m.model_dump(), kind="jp_match")
+            for m in jp_match_cards(state["messages"])
+        ]
+        cards = [*jp_matches, *locations, *assemble_cards(results, reply)]
         exclusions = assemble_exclusions(results)
         return {
             "reply": reply.model_dump(),
