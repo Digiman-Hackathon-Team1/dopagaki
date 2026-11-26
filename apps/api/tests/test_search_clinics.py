@@ -11,8 +11,7 @@ from api.agent.tools import TOOLS
 from api.agent.tools.search_clinics import MenuId, search_clinics
 from api.domain.calc import rank_rows
 from api.domain.catalog import get_catalog
-
-HONGDAE = {"lat": 37.5563, "lng": 126.9228}
+from api.domain.locations import get_locations
 
 
 def call(**args) -> ToolMessage:
@@ -140,27 +139,44 @@ def test_no_needle_treatment_passes_needle_filter() -> None:
     assert cards(call(menu_id="shrink-300", avoid_needle=True, max_downtime_days=0))
 
 
-def test_distance_sort_with_origin() -> None:
-    result = cards(call(menu_id="shrink-300", sort="distance", origin=HONGDAE))
+def test_distance_sort_with_origin_id() -> None:
+    message = call(menu_id="shrink-300", sort="distance", origin_id="area:hongdae")
+    result = cards(message)
 
-    distances = [c.distance_meters for c in result]
-    assert None not in distances
-    assert distances == sorted(distances)
+    hongdae = get_locations().get("area:hongdae")
+    expected = rank_rows(
+        get_catalog(), "shrink-300", sort="distance", origin=hongdae.point
+    )
+    assert [c.place_id for c in result] == [r.place.id for r in expected[:3]]
+    assert [c.distance_meters for c in result] == [
+        r.distance_meters for r in expected[:3]
+    ]
+    assert "distances from 홍대 / 弘大" in message.content
 
 
-def test_origin_outside_korea_is_ignored_and_reported() -> None:
-    message = call(menu_id="shrink-300", origin={"lat": 35.6812, "lng": 139.7671})
+def test_station_origin_uses_station_coordinates() -> None:
+    message = call(menu_id="rejuran-2cc", origin_id="station:홍대입구")
 
-    assert all(c.distance_meters is None for c in cards(message))
-    assert "origin ignored" in message.content
+    station = get_locations().get("station:홍대입구")
+    expected = rank_rows(get_catalog(), "rejuran-2cc", origin=station.point)[:3]
+    assert [c.distance_meters for c in cards(message)] == [
+        r.distance_meters for r in expected
+    ]
+
+
+def test_unknown_origin_id_is_an_error_for_the_model() -> None:
+    message = call_in_graph(menu_id="shrink-300", origin_id="area:itaewon")
+
+    assert message.status == "error"
+    assert "Unknown origin_id" in message.content
+    assert "resolve_location" in message.content
 
 
 def test_distance_sort_without_origin_is_an_error_for_the_model() -> None:
     message = call_in_graph(menu_id="shrink-300", sort="distance")
 
     assert message.status == "error"
-    assert "location tool" in message.content
-    assert "Do not guess coordinates" in message.content
+    assert "Call resolve_location" in message.content
 
 
 def test_rating_sort_follows_web_rating() -> None:
@@ -228,7 +244,7 @@ def test_search_target_is_recorded() -> None:
 
     assert message.artifact["target"] == {
         "area": "hongdae",
-        "origin": None,
+        "origin_id": None,
         "clinic_tokens": ["밴스", "홍대"],
         "clinic_ids": ["vands-hongdae"],
     }

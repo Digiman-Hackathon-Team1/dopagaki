@@ -25,15 +25,22 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
+from pydantic import TypeAdapter
 
 from api.agent.schemas import (
     AgentReply,
+    Card,
     Exclusion,
     Lang,
+    LocationCard,
+    LocationCardData,
     RecommendationCard,
 )
+from api.agent.tools.resolve_location import TOOL_NAME as RESOLVE_LOCATION
+from api.agent.tools.resolve_location import ResolveLocationArtifact, location_card
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
 from api.agent.tools.search_clinics import SearchClinicsArtifact
+from api.domain.locations import get_locations
 
 LANG_NAME: dict[Lang, str] = {"ja": "Japanese", "ko": "Korean"}
 
@@ -45,6 +52,10 @@ clinic's booking channel. Do not diagnose and do not book or pay on the user's b
 Never state prices or savings that did not come from a tool result.
 Clinics returned by search_clinics are shown to the user as cards. Give each card a \
 one-line reason in card_reasons, by card_id. The app fills in the card's prices.
+When the user names a concern instead of a treatment, call recommend_treatments first, \
+explain the choice and any exclusions, then call search_clinics. When the user mentions \
+where they stay or live, call resolve_location first and pass its location_id as origin_id. \
+A location it finds is shown as a card; mention it in condition_summary.
 Write every field of your reply in the language named by the note at the end of the \
 latest user message."""
 
@@ -68,9 +79,71 @@ def read_reply(state: AgentState) -> AgentReply:
     return AgentReply.model_validate(state["reply"])
 
 
-def read_cards(state: AgentState) -> list[RecommendationCard]:
-    """그래프 결과에서 이번 턴의 카드를 꺼낸다."""
-    return [RecommendationCard.model_validate(c) for c in state.get("cards") or []]
+CARDS = TypeAdapter(list[Card])
+
+
+def read_cards(state: AgentState) -> list[Card]:
+    """그래프 결과에서 이번 턴의 카드를 꺼낸다. 종류는 kind로 구분한다."""
+    return CARDS.validate_python(state.get("cards") or [])
+
+
+def _turn_start(messages: Sequence[BaseMessage]) -> int:
+    return max(
+        (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
+    )
+
+
+def _tool_results(messages: Sequence[BaseMessage], tool_name: str) -> list[ToolMessage]:
+    return [
+        m
+        for m in messages
+        if isinstance(m, ToolMessage) and m.name == tool_name and m.status != "error"
+    ]
+
+
+def _this_turn(messages: Sequence[BaseMessage], tool_name: str) -> list[ToolMessage]:
+    """이번 턴(마지막 사용자 메시지 뒤)의 성공한 도구 결과."""
+    return _tool_results(messages[_turn_start(messages) + 1 :], tool_name)
+
+
+def _found_locations(messages: Sequence[BaseMessage]) -> list[LocationCardData]:
+    found: list[LocationCardData] = []
+    for message in _tool_results(messages, RESOLVE_LOCATION):
+        location = ResolveLocationArtifact.model_validate(message.artifact).location
+        if location:
+            found.append(location)
+    return found
+
+
+def location_cards(
+    messages: Sequence[BaseMessage], results: Sequence[SearchClinicsArtifact]
+) -> list[LocationCardData]:
+    """이번 턴에 보여 줄 기준 위치(설계 문서 4.3, ADR 0011).
+
+    - 이번 턴에 병원을 검색했으면, 낸 검색 결과(`results`)가 쓴 기준 위치만 낸다. 위치 카드가 있는데
+      병원 카드에 거리가 없는 일이 없게 하고, 앞 턴에 정한 위치로 검색해도 카드가 나오게 하기 위해서다.
+    - 검색이 없었으면 이번 턴에 resolve_location이 찾은 위치를 낸다.
+    - 같은 위치는 한 장이다. 사용자 표현(query)은 이번 턴, 없으면 가장 최근 턴에 찾은 결과의 것을 쓰고,
+      어느 턴에서도 찾지 않은 ID면 null이다.
+    """
+    this_turn = _found_locations(messages[_turn_start(messages) + 1 :])
+    if results:
+        ids = [r.target.origin_id for r in results if r.target.origin_id]
+    else:
+        ids = [loc.location_id for loc in this_turn]
+    earlier = _found_locations(messages)
+    cards: list[LocationCardData] = []
+    for location_id in dict.fromkeys(ids):
+        card = next(
+            (c for c in this_turn if c.location_id == location_id),
+            next((c for c in reversed(earlier) if c.location_id == location_id), None),
+        )
+        location = get_locations().get(location_id)
+        if card is None and location is not None:
+            card = location_card(location, query=None)
+        if card is not None:
+            cards.append(card)
+    return cards
 
 
 def read_exclusions(state: AgentState) -> list[Exclusion]:
@@ -87,19 +160,8 @@ def search_results(messages: Sequence[BaseMessage]) -> list[SearchClinicsArtifac
     - 이전 턴 결과, 다른 도구의 결과, 오류 난 호출은 읽지 않는다.
     - 검색 번호(search_id)는 이번 턴의 검색 순서(s1, s2, ...)다. 도구 호출 ID는 응답에 내보내지 않는다.
     """
-    start = max(
-        (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
-    )
     results: list[SearchClinicsArtifact] = []
-    calls = 0
-    for message in messages[start + 1 :]:
-        if (
-            not isinstance(message, ToolMessage)
-            or message.name != SEARCH_CLINICS
-            or message.status == "error"
-        ):
-            continue
-        calls += 1
+    for calls, message in enumerate(_this_turn(messages, SEARCH_CLINICS), start=1):
         new = SearchClinicsArtifact.model_validate(message.artifact).model_copy(
             update={"search_id": f"s{calls}"}
         )
@@ -192,7 +254,11 @@ def build_graph(
         except ValueError as error:
             raise AgentOutputError("응답이 응답 칸 형식에 맞지 않습니다") from error
         results = search_results(state["messages"])
-        cards = assemble_cards(results, reply)
+        locations = [
+            LocationCard(**loc.model_dump(), kind="location")
+            for loc in location_cards(state["messages"], results)
+        ]
+        cards = [*locations, *assemble_cards(results, reply)]
         exclusions = assemble_exclusions(results)
         return {
             "reply": reply.model_dump(),

@@ -133,10 +133,25 @@
           },
           "cards": {
             "items": {
-              "$ref": "#/components/schemas/RecommendationCard"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RecommendationCard"
+                },
+                {
+                  "$ref": "#/components/schemas/LocationCard"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "location": "#/components/schemas/LocationCard",
+                  "recommendation": "#/components/schemas/RecommendationCard"
+                }
+              }
             },
             "type": "array",
-            "title": "Cards"
+            "title": "Cards",
+            "description": "kind로 종류를 구분한다. location(이번 턴에 찾은 기준 위치)이 먼저, recommendation(병원 추천)이 뒤에 온다"
           },
           "exclusions": {
             "items": {
@@ -252,6 +267,70 @@
           "status"
         ],
         "title": "Health"
+      },
+      "LocationCard": {
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "title": "Locationid",
+            "description": "위치 ID. 예: area:hongdae(지역), station:홍대입구(역)"
+          },
+          "locationType": {
+            "type": "string",
+            "enum": [
+              "area",
+              "station"
+            ],
+            "title": "Locationtype",
+            "description": "area 지역 중심 좌표, station 역 좌표"
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query",
+            "description": "위치를 찾은 사용자 표현. 예: 홍대 숙소. resolve_location을 거치지 않은 위치 ID로 검색했으면 null"
+          },
+          "nameJa": {
+            "type": "string",
+            "title": "Nameja"
+          },
+          "nameKo": {
+            "type": "string",
+            "title": "Nameko"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "kind": {
+            "type": "string",
+            "const": "location",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "locationId",
+          "locationType",
+          "query",
+          "nameJa",
+          "nameKo",
+          "lat",
+          "lng",
+          "kind"
+        ],
+        "title": "LocationCard"
       },
       "Question": {
         "properties": {
