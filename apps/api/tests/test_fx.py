@@ -1,12 +1,14 @@
 """환율 조회(ADR 0010): web 파일 → 마지막으로 읽은 값 → 스냅샷 값."""
 
 import importlib
+import threading
 
 import httpx
 import pytest
 from langchain_core.messages import ToolMessage
 
 from api.agent.schemas import RecommendationCardData
+from api.domain import fx as fx_module
 from api.domain.calc import rank_rows
 from api.domain.catalog import get_catalog
 from api.domain.fx import FxProvider
@@ -98,6 +100,10 @@ def test_reads_again_only_after_ttl() -> None:
         {"krwPer100Jpy": "abc"},  # 형식 오류
         ["not", "an", "object"],
         web_fx(5000),  # 범위 밖
+        {**web_fx(0), "krwPer100Jpy": "900"},  # 문자열은 web도 거부한다
+        {**web_fx(0), "krwPer100Jpy": True},
+        httpx.InvalidURL("bad url"),
+        OSError("network"),
     ],
 )
 def test_failure_keeps_last_value(failure: object) -> None:
@@ -153,3 +159,61 @@ def test_search_clinics_uses_current_rate(monkeypatch: pytest.MonkeyPatch) -> No
     assert "₩844.1 per ¥100" in message.content
     # 스냅샷 환율(843.68)과 엔화 금액이 다르다.
     assert cards[0].total_jpy != rank_rows(get_catalog(), "rejuran-2cc")[0].total_jpy
+
+
+def test_file_with_only_the_rate_fills_other_fields_from_snapshot() -> None:
+    # web은 {...prev, ...fresh}로 합치므로 환율만 있어도 쓴다. 같게 맞춘다.
+    fx = provider(FakeWeb({"krwPer100Jpy": 844.1})).current()
+
+    assert fx.krw_per_100_jpy == 844.1
+    assert fx.bank_ko == SNAPSHOT.bank_ko
+
+
+def test_invalid_url_does_not_raise() -> None:
+    fx = FxProvider("http://[::1", SNAPSHOT)
+
+    assert fx.current() == SNAPSHOT
+
+
+def test_fetch_follows_redirects_and_keeps_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen = {}
+
+    def fake_get(url, **kwargs):
+        seen["url"] = str(url)
+        seen.update(kwargs)
+        return httpx.Response(
+            200, json=web_fx(844.1), request=httpx.Request("GET", url)
+        )
+
+    monkeypatch.setattr(fx_module.httpx, "get", fake_get)
+
+    assert (
+        fx_module.fetch_json("https://web.example/naver-fx.json?sig=abc", 2)[
+            "krwPer100Jpy"
+        ]
+        == 844.1
+    )
+    assert seen["follow_redirects"] is True
+    assert "sig=abc" in seen["url"] and "v=" in seen["url"]
+
+
+def test_other_requests_do_not_wait_while_reading() -> None:
+    started, release = threading.Event(), threading.Event()
+
+    def slow(url: str, timeout: float) -> object:
+        started.set()
+        release.wait(5)
+        return web_fx(844.1)
+
+    fx = FxProvider(URL, SNAPSHOT, fetch=slow)
+    reader = threading.Thread(target=fx.current)
+    reader.start()
+    started.wait(5)
+
+    # 첫 요청이 web을 읽는 동안 다른 요청은 기다리지 않고 이전 값(스냅샷)을 쓴다.
+    assert fx.current() == SNAPSHOT
+    release.set()
+    reader.join(5)
+    assert fx.current().krw_per_100_jpy == 844.1
