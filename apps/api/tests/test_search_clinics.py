@@ -159,7 +159,8 @@ def test_distance_sort_without_origin_is_an_error_for_the_model() -> None:
     message = call_in_graph(menu_id="shrink-300", sort="distance")
 
     assert message.status == "error"
-    assert "resolve_location" in message.content
+    assert "location tool" in message.content
+    assert "Do not guess coordinates" in message.content
 
 
 def test_rating_sort_follows_web_rating() -> None:

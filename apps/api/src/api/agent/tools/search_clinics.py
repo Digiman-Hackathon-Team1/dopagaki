@@ -75,8 +75,8 @@ class SearchClinicsInput(BaseModel):
     origin: GeoPoint | None = Field(
         default=None,
         description=(
-            "거리 계산 기준 좌표(숙소 등). resolve_location 결과만 쓰고 좌표를 지어내지 않는다. "
-            "없으면 null이고 거리는 표시되지 않는다"
+            "거리 계산 기준 좌표(숙소 등). 위치를 좌표로 바꾸는 도구의 결과만 쓰고 좌표를 "
+            "지어내지 않는다. 그런 도구가 없으면 null로 둔다. null이면 거리는 표시되지 않는다"
         ),
     )
     limit: int = Field(default=3, ge=1, le=10, description="돌려줄 병원 수. 기본 3")
@@ -152,7 +152,7 @@ def _card(row: PriceRow, show_distance: bool) -> RecommendationCardData:
         savings_pct=row.savings_pct,
         distance_meters=row.distance_meters if show_distance else None,
         walk_minutes=row.walk_minutes if show_distance else None,
-        price_tags=price_tags(row.place, row.offer),
+        price_tags=price_tags(row.place, row.menu.id, row.offer),
         price_condition_ja=row.place.caveat_ja,
         price_condition_ko=row.place.caveat_ko,
         price_note_ja=row.offer.note_ja,
@@ -202,22 +202,25 @@ def search_clinics(
     menu = catalog.menu(menu_id)
     name = f"{menu.name_ko} / {menu.name_ja}"
 
-    # 시술 단위 거르기: 맞지 않으면 이 시술을 하는 병원이 모두 빠진다.
-    offered = len(rank_rows(catalog, menu_id))
+    # 시술 단위 거르기: 맞지 않으면 지역·일본어 조건에 맞는 이 시술 병원이 모두 빠진다.
+    def offered() -> int:
+        return len(rank_rows(catalog, menu_id, japanese_only=japanese_only, area=area))
+
     if avoid_needle and menu.uses_needle:
         message = f"{name} uses a needle, so it is excluded. No clinics returned."
-        return message, _artifact(menu_id, [], Counter(needle=offered))
+        return message, _artifact(menu_id, [], Counter(needle=offered()))
     if max_downtime_days is not None and menu.downtime_max_days > max_downtime_days:
         reason = (
             f"{name} can show visible downtime for up to {menu.downtime_max_days} days, "
             f"more than the allowed {max_downtime_days}. No clinics returned."
         )
-        return reason, _artifact(menu_id, [], Counter(downtime=offered))
+        return reason, _artifact(menu_id, [], Counter(downtime=offered()))
     has_origin = is_point_in_south_korea(origin)
     if sort == "distance" and not has_origin:
         raise ValueError(
-            "sort=distance needs an origin inside South Korea. Get one from "
-            "resolve_location or ask the user where they are staying."
+            "sort=distance needs an origin inside South Korea from a location tool. "
+            "Do not guess coordinates. If no location tool is available, search with "
+            "sort=savings and tell the user that sorting by distance is not available yet."
         )
 
     # 병원 단위 거르기. 정렬된 순서를 유지하며 처음 걸린 이유를 센다.
