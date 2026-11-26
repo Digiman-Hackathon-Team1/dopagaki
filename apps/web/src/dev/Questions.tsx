@@ -105,7 +105,7 @@ export function Questions({ items, send, lang }: {
           {ja ? '戻る' : '이전'}
         </button>}
         <button type="button" className="agent-question-next"
-          disabled={!answers[step].answer || tooLong || (last && answers.some(answer => !answer.answer))}
+          disabled={!answers[step].answer || (last && (tooLong || answers.some(answer => !answer.answer)))}
           onClick={advance}>{last ? (ja ? '回答を送信' : '답변 보내기') : (ja ? '次へ' : '다음으로')}</button>
       </div>
     </VaulSheet>
