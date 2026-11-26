@@ -36,3 +36,7 @@ Python 백엔드와 TypeScript 프론트엔드로 구성된 모노레포다. 실
 - `pnpm check`와 `pnpm build`를 통과해야 한다.
 - 새 API 동작에는 `apps/api/tests`에 pytest 테스트를 추가한다.
 - 화면을 바꿨으면 브라우저에서 확인한다.
+
+## Git 네이밍
+
+- 브랜치, 커밋, PR 제목은 `docs/git-naming-convention.md`를 따른다.
