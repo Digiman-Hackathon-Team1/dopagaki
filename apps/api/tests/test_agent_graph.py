@@ -1,45 +1,12 @@
 """가짜 LLM으로 그래프 흐름을 검사한다. API 키 없이 동작한다."""
 
-import json
-from collections.abc import Sequence
-from typing import Any
-
 import pytest
-from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from agent_fakes import fake_model, reply_message
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
-from pydantic import Field
 
 from api.agent.graph import AgentOutputError, build_graph
-
-
-class FakeChatModel(GenericFakeChatModel):
-    """정해진 응답을 차례로 내고, 받은 메시지 목록을 기록하는 가짜 LLM."""
-
-    calls: list[list[BaseMessage]] = Field(default_factory=list)
-
-    def bind_tools(self, tools: Sequence[Any], **kwargs: Any):
-        return self.bind(tools=tools, **kwargs)
-
-    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-        self.calls.append(list(messages))
-        return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
-
-
-def fake_model(*responses: AIMessage) -> FakeChatModel:
-    return FakeChatModel(messages=iter(responses))
-
-
-def reply_message(answer: str = "답변") -> AIMessage:
-    reply = {
-        "condition_summary": "",
-        "answer": answer,
-        "questions": [],
-        "suggestions": ["a", "b", "c"],
-        "cautions": [],
-    }
-    return AIMessage(content=json.dumps(reply, ensure_ascii=False))
 
 
 @tool
