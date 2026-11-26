@@ -80,6 +80,11 @@ export interface components {
             answer: string;
             /** Cards */
             cards: components["schemas"]["RecommendationCard"][];
+            /**
+             * Exclusions
+             * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
+             */
+            exclusions: components["schemas"]["Exclusion"][];
             /** Questions */
             questions: components["schemas"]["Question"][];
             /** Suggestions */
@@ -88,6 +93,25 @@ export interface components {
             cautions: string[];
             /** Disclaimer */
             disclaimer: string;
+        };
+        /**
+         * Exclusion
+         * @description search_clinics 거르기로 빠진 병원 수(설계 문서 9장, FR-03).
+         */
+        Exclusion: {
+            /** Menuid */
+            menuId: string;
+            /**
+             * Reason
+             * @description needle 바늘 시술 기피, downtime 회복 기간 초과(이 둘은 시술 전체가 빠짐), area 다른 지역, japanese 일본어 미지원, budget 예산 초과
+             * @enum {string}
+             */
+            reason: "needle" | "downtime" | "area" | "japanese" | "budget";
+            /**
+             * Cliniccount
+             * @description 이 사유로 빠진 병원 수
+             */
+            clinicCount: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -199,6 +223,11 @@ export interface components {
             distanceMeters: number | null;
             /** Walkminutes */
             walkMinutes: number | null;
+            /**
+             * Pricetags
+             * @description 가격 조건 태그(설계 4.7). first_visit 첫 방문·체험가, event 이벤트가·특가, day_limited 요일 한정, app_benefit 앱·카카오 혜택가, anesthesia 마취비 별도·확인, extra_fee 시술 팁 별도. 절약액 계산에는 반영하지 않는다
+             */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
             /**
              * Priceconditionja
              * @description 가격 조건(첫 방문 한정, 이벤트가 등)

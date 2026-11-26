@@ -46,6 +46,7 @@ def test_chat_returns_reply_slots_in_camel_case(client: TestClient) -> None:
         "conditionSummary",
         "answer",
         "cards",
+        "exclusions",
         "questions",
         "suggestions",
         "cautions",

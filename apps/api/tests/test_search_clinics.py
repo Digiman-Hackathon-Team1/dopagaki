@@ -89,6 +89,23 @@ def test_filters_japanese_area_and_budget() -> None:
         assert card.area == "myeongdong"
         assert card.total_jpy <= 20000
     assert "excluded:" in message.content
+    # 사유별 제외 수와 남은 병원 수를 더하면 이 시술을 하는 병원 수와 같다.
+    counts = {e["reason"]: e["clinic_count"] for e in message.artifact["exclusions"]}
+    # 사유는 처음 걸린 하나만 센다(지역 → 일본어 → 예산). 명동 리쥬란 병원은 모두 일본어가 된다.
+    assert set(counts) == {"area", "budget"}
+    matched = int(message.content.split(" clinics matched")[0].rsplit("\n", 1)[-1])
+    assert sum(counts.values()) + matched == len(
+        rank_rows(get_catalog(), "rejuran-2cc")
+    )
+
+
+def test_cards_carry_price_tags() -> None:
+    # 밴스의원 홍대점: "체험 이벤트가・마취비 별도 확인 필요"
+    message = call(menu_id="rejuran-2cc", area="hongdae", limit=10)
+    vands = next(c for c in cards(message) if c.place_id == "vands-hongdae")
+
+    assert vands.price_tags == ["first_visit", "event", "anesthesia"]
+    assert "price tags: first_visit, event, anesthesia" in message.content
 
 
 def test_budget_in_krw_compares_vat_included_price() -> None:
@@ -101,16 +118,21 @@ def test_budget_in_krw_compares_vat_included_price() -> None:
 
 
 @pytest.mark.parametrize(
-    "args",
+    ("args", "reason"),
     [
-        {"menu_id": "rejuran-2cc", "avoid_needle": True},  # 바늘 시술
-        {"menu_id": "inmode-fx", "max_downtime_days": 2},  # 회복 최대 5일
+        ({"menu_id": "rejuran-2cc", "avoid_needle": True}, "needle"),  # 바늘 시술
+        ({"menu_id": "inmode-fx", "max_downtime_days": 2}, "downtime"),  # 회복 최대 5일
     ],
 )
-def test_treatment_level_exclusion_returns_no_cards(args: dict) -> None:
+def test_treatment_level_exclusion_returns_no_cards(args: dict, reason: str) -> None:
     message = call(**args)
 
-    assert message.artifact == {"menu_id": args["menu_id"], "cards": []}
+    offered = len(rank_rows(get_catalog(), args["menu_id"]))
+    assert message.artifact["cards"] == []
+    # 시술 전체가 빠지므로 그 시술을 하는 병원 전부가 같은 사유로 빠진다.
+    assert message.artifact["exclusions"] == [
+        {"menu_id": args["menu_id"], "reason": reason, "clinic_count": offered}
+    ]
     assert "No clinics returned" in message.content
 
 

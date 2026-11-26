@@ -138,6 +138,14 @@
             "type": "array",
             "title": "Cards"
           },
+          "exclusions": {
+            "items": {
+              "$ref": "#/components/schemas/Exclusion"
+            },
+            "type": "array",
+            "title": "Exclusions",
+            "description": "이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열"
+          },
           "questions": {
             "items": {
               "$ref": "#/components/schemas/Question"
@@ -171,12 +179,47 @@
           "conditionSummary",
           "answer",
           "cards",
+          "exclusions",
           "questions",
           "suggestions",
           "cautions",
           "disclaimer"
         ],
         "title": "ChatResponse"
+      },
+      "Exclusion": {
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "needle",
+              "downtime",
+              "area",
+              "japanese",
+              "budget"
+            ],
+            "title": "Reason",
+            "description": "needle 바늘 시술 기피, downtime 회복 기간 초과(이 둘은 시술 전체가 빠짐), area 다른 지역, japanese 일본어 미지원, budget 예산 초과"
+          },
+          "clinicCount": {
+            "type": "integer",
+            "title": "Cliniccount",
+            "description": "이 사유로 빠진 병원 수"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "menuId",
+          "reason",
+          "clinicCount"
+        ],
+        "title": "Exclusion",
+        "description": "search_clinics 거르기로 빠진 병원 수(설계 문서 9장, FR-03)."
       },
       "HTTPValidationError": {
         "properties": {
@@ -373,6 +416,22 @@
             ],
             "title": "Walkminutes"
           },
+          "priceTags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "first_visit",
+                "event",
+                "day_limited",
+                "app_benefit",
+                "anesthesia",
+                "extra_fee"
+              ]
+            },
+            "type": "array",
+            "title": "Pricetags",
+            "description": "가격 조건 태그(설계 4.7). first_visit 첫 방문·체험가, event 이벤트가·특가, day_limited 요일 한정, app_benefit 앱·카카오 혜택가, anesthesia 마취비 별도·확인, extra_fee 시술 팁 별도. 절약액 계산에는 반영하지 않는다"
+          },
           "priceConditionJa": {
             "type": "string",
             "title": "Priceconditionja",
@@ -442,6 +501,7 @@
           "savingsPct",
           "distanceMeters",
           "walkMinutes",
+          "priceTags",
           "priceConditionJa",
           "priceConditionKo",
           "priceNoteJa",

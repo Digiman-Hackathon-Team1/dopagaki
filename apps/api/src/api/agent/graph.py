@@ -26,7 +26,7 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 
-from api.agent.schemas import AgentReply, Lang, RecommendationCard
+from api.agent.schemas import AgentReply, Exclusion, Lang, RecommendationCard
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
 from api.agent.tools.search_clinics import SearchClinicsArtifact
 
@@ -55,6 +55,7 @@ class AgentState(MessagesState):
     # 대화 기억에 저장되므로 모델 객체 대신 일반 데이터로 둔다. 읽을 때는 read_reply를 쓴다.
     reply: dict | None
     cards: list[dict]
+    exclusions: list[dict]
 
 
 def read_reply(state: AgentState) -> AgentReply:
@@ -67,16 +68,15 @@ def read_cards(state: AgentState) -> list[RecommendationCard]:
     return [RecommendationCard.model_validate(c) for c in state.get("cards") or []]
 
 
-def assemble_cards(
-    messages: Sequence[BaseMessage], reply: AgentReply
-) -> list[RecommendationCard]:
-    """이번 턴 search_clinics 결과로 카드를 만들고 LLM이 쓴 추천 이유를 붙인다(ADR 0009).
+def read_exclusions(state: AgentState) -> list[Exclusion]:
+    """그래프 결과에서 이번 턴 검색의 제외 사유를 꺼낸다."""
+    return [Exclusion.model_validate(e) for e in state.get("exclusions") or []]
 
-    - 금액과 순서는 도구 결과 그대로다. LLM은 카드마다 이유만 쓴다.
-    - 이번 턴(마지막 사용자 메시지 뒤)의 결과만 쓴다. 이전 턴의 카드는 다시 나가지 않는다.
-    - 성공한 search_clinics 결과의 카드는 모두 내보낸다(설계 문서 4.7). 같은 시술을 다시
-      검색했으면 마지막 결과만 쓴다. 다른 시술 검색 결과는 함께 나간다.
-    - 이유가 없는 카드는 reason이 null이다. 도구 결과에 없는 card_id의 이유는 버린다.
+
+def search_results(messages: Sequence[BaseMessage]) -> list[SearchClinicsArtifact]:
+    """이번 턴(마지막 사용자 메시지 뒤)의 성공한 search_clinics 결과. 시술마다 마지막 결과만 남긴다.
+
+    이전 턴 결과, 다른 도구의 결과, 오류 난 호출은 읽지 않는다.
     """
     start = max(
         (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
@@ -93,7 +93,18 @@ def assemble_cards(
         # 마지막 검색 결과가 그 시술의 자리를 차지하도록 지웠다가 다시 넣는다.
         results.pop(result.menu_id, None)
         results[result.menu_id] = result
+    return list(results.values())
 
+
+def assemble_cards(
+    results: Sequence[SearchClinicsArtifact], reply: AgentReply
+) -> list[RecommendationCard]:
+    """검색 결과로 카드를 만들고 LLM이 쓴 추천 이유를 붙인다(ADR 0009).
+
+    - 금액과 순서는 도구 결과 그대로다. LLM은 카드마다 이유만 쓴다.
+    - 검색 결과의 카드는 모두 내보낸다(설계 문서 4.7). 다른 시술 검색 결과는 함께 나간다.
+    - 이유가 없는 카드는 reason이 null이다. 도구 결과에 없는 card_id의 이유는 버린다.
+    """
     reasons: dict[str, str] = {}
     for r in reply.card_reasons:
         reasons.setdefault(r.card_id, r.reason)
@@ -103,7 +114,7 @@ def assemble_cards(
             kind="recommendation",
             reason=reasons.get(card.card_id),
         )
-        for result in results.values()
+        for result in results
         for card in result.cards
     ]
 
@@ -151,8 +162,14 @@ def build_graph(
             reply = AgentReply.model_validate_json(last.text)
         except ValueError as error:
             raise AgentOutputError("응답이 응답 칸 형식에 맞지 않습니다") from error
-        cards = assemble_cards(state["messages"], reply)
-        return {"reply": reply.model_dump(), "cards": [c.model_dump() for c in cards]}
+        results = search_results(state["messages"])
+        cards = assemble_cards(results, reply)
+        exclusions = [e for r in results for e in r.exclusions]
+        return {
+            "reply": reply.model_dump(),
+            "cards": [c.model_dump() for c in cards],
+            "exclusions": [e.model_dump() for e in exclusions],
+        }
 
     graph = StateGraph(AgentState)
     graph.add_node("load_context", load_context)

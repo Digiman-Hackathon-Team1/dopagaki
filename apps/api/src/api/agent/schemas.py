@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pydantic.alias_generators import to_camel
 
 from api.domain.catalog import AreaId
+from api.domain.price_tags import PriceTag
 
 Lang = Literal["ja", "ko"]
 
@@ -121,11 +122,34 @@ class RecommendationCardData(ResponseModel):
         description="기준 위치에서의 직선거리. 기준 위치가 없으면 null"
     )
     walk_minutes: int | None
+    price_tags: list[PriceTag] = Field(
+        description=(
+            "가격 조건 태그(설계 4.7). first_visit 첫 방문·체험가, event 이벤트가·특가, "
+            "day_limited 요일 한정, app_benefit 앱·카카오 혜택가, anesthesia 마취비 별도·확인, "
+            "extra_fee 시술 팁 별도. 절약액 계산에는 반영하지 않는다"
+        )
+    )
     price_condition_ja: str = Field(description="가격 조건(첫 방문 한정, 이벤트가 등)")
     price_condition_ko: str
     price_note_ja: str = Field(description="가격 출처 메모")
     price_note_ko: str
     source_url: str = Field(description="병원 공식 가격 출처")
+
+
+ExcludeReason = Literal["needle", "downtime", "area", "japanese", "budget"]
+
+
+class Exclusion(ResponseModel):
+    """search_clinics 거르기로 빠진 병원 수(설계 문서 9장, FR-03)."""
+
+    menu_id: str
+    reason: ExcludeReason = Field(
+        description=(
+            "needle 바늘 시술 기피, downtime 회복 기간 초과(이 둘은 시술 전체가 빠짐), "
+            "area 다른 지역, japanese 일본어 미지원, budget 예산 초과"
+        )
+    )
+    clinic_count: int = Field(description="이 사유로 빠진 병원 수")
 
 
 class RecommendationCard(RecommendationCardData):
@@ -140,6 +164,9 @@ class ChatResponse(ResponseModel):
     condition_summary: str
     answer: str
     cards: list[RecommendationCard]
+    exclusions: list[Exclusion] = Field(
+        description="이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열"
+    )
     questions: list[Question]
     suggestions: list[str]
     cautions: list[str]

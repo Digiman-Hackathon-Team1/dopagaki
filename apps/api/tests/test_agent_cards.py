@@ -5,7 +5,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
 
-from api.agent.graph import build_graph, read_cards
+from api.agent.graph import build_graph, read_cards, read_exclusions
 from api.agent.tools import TOOLS
 from api.domain.calc import rank_rows
 from api.domain.catalog import get_catalog
@@ -126,3 +126,20 @@ def test_failed_tool_call_produces_no_cards() -> None:
     )
 
     assert read_cards(run(graph)) == []
+
+
+def test_exclusions_follow_the_last_search_per_treatment() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "japanese_only": True}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "area": "gangnam"}, "c2"),
+        tool_call("search_clinics", {"menu_id": "potenza", "avoid_needle": True}, "c3"),
+        reply_message("끝"),
+    )
+
+    exclusions = read_exclusions(run(graph))
+
+    # 리쥬란은 마지막 검색(강남만)의 제외 사유만, 포텐자는 바늘로 시술 전체가 빠진다.
+    assert [(e.menu_id, e.reason) for e in exclusions] == [
+        ("rejuran-2cc", "area"),
+        ("potenza", "needle"),
+    ]

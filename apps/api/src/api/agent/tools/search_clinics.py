@@ -10,9 +10,10 @@ from typing import Literal
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
-from api.agent.schemas import RecommendationCardData
+from api.agent.schemas import ExcludeReason, Exclusion, RecommendationCardData
 from api.domain.calc import PriceRow, SortId, is_point_in_south_korea, rank_rows
 from api.domain.catalog import AreaId, GeoPoint, get_catalog
+from api.domain.price_tags import price_tags
 
 MenuId = Literal[
     "rejuran-2cc",
@@ -28,8 +29,9 @@ MenuId = Literal[
 
 TOOL_NAME = "search_clinics"
 
-ExcludeReason = Literal["area", "japanese", "budget"]
 EXCLUDE_LABEL: dict[ExcludeReason, str] = {
+    "needle": "the treatment uses a needle",
+    "downtime": "the treatment's downtime is too long",
     "area": "outside the requested area",
     "japanese": "no Japanese support",
     "budget": "over budget",
@@ -85,11 +87,22 @@ class SearchClinicsArtifact(BaseModel):
 
     menu_id: str
     cards: list[RecommendationCardData]
+    exclusions: list[Exclusion]
 
 
-def _artifact(menu_id: str, cards: list[RecommendationCardData]) -> dict:
+def _artifact(
+    menu_id: str,
+    cards: list[RecommendationCardData],
+    excluded: Counter[ExcludeReason],
+) -> dict:
     # 대화 기억(체크포인터)에 저장되므로 일반 데이터로 둔다.
-    return SearchClinicsArtifact(menu_id=menu_id, cards=cards).model_dump()
+    exclusions = [
+        Exclusion(menu_id=menu_id, reason=reason, clinic_count=count)
+        for reason, count in excluded.items()
+    ]
+    return SearchClinicsArtifact(
+        menu_id=menu_id, cards=cards, exclusions=exclusions
+    ).model_dump()
 
 
 def _menu_lines() -> str:
@@ -139,6 +152,7 @@ def _card(row: PriceRow, show_distance: bool) -> RecommendationCardData:
         savings_pct=row.savings_pct,
         distance_meters=row.distance_meters if show_distance else None,
         walk_minutes=row.walk_minutes if show_distance else None,
+        price_tags=price_tags(row.place, row.offer),
         price_condition_ja=row.place.caveat_ja,
         price_condition_ko=row.place.caveat_ko,
         price_note_ja=row.offer.note_ja,
@@ -158,6 +172,8 @@ def _summary_line(rank: int, card: RecommendationCardData, rating: float) -> str
     ]
     if card.distance_meters is not None:
         parts.append(f"{card.distance_meters:,} m (walk ~{card.walk_minutes} min)")
+    if card.price_tags:
+        parts.append(f"price tags: {', '.join(card.price_tags)}")
     if card.price_condition_ko:
         parts.append(
             f"price condition: {card.price_condition_ko} / {card.price_condition_ja}"
@@ -186,16 +202,17 @@ def search_clinics(
     menu = catalog.menu(menu_id)
     name = f"{menu.name_ko} / {menu.name_ja}"
 
-    # 시술 단위 거르기: 맞지 않으면 병원을 찾지 않는다.
+    # 시술 단위 거르기: 맞지 않으면 이 시술을 하는 병원이 모두 빠진다.
+    offered = len(rank_rows(catalog, menu_id))
     if avoid_needle and menu.uses_needle:
         message = f"{name} uses a needle, so it is excluded. No clinics returned."
-        return message, _artifact(menu_id, [])
+        return message, _artifact(menu_id, [], Counter(needle=offered))
     if max_downtime_days is not None and menu.downtime_max_days > max_downtime_days:
         reason = (
             f"{name} can show visible downtime for up to {menu.downtime_max_days} days, "
             f"more than the allowed {max_downtime_days}. No clinics returned."
         )
-        return reason, _artifact(menu_id, [])
+        return reason, _artifact(menu_id, [], Counter(downtime=offered))
     has_origin = is_point_in_south_korea(origin)
     if sort == "distance" and not has_origin:
         raise ValueError(
@@ -250,4 +267,4 @@ def search_clinics(
             _summary_line(i, card, row.place.ai_rating)
             for i, (card, row) in enumerate(zip(cards, top, strict=True), start=1)
         ]
-    return "\n".join(lines), _artifact(menu_id, cards)
+    return "\n".join(lines), _artifact(menu_id, cards, excluded)
