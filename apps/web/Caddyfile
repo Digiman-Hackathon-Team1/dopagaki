@@ -1,0 +1,23 @@
+{
+	admin off
+	persist_config off
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:{$PORT:3000} {
+	encode gzip
+
+	# 같은 주소로 API를 호출하도록 /api 요청을 api 서비스로 넘긴다.
+	handle /api/* {
+		reverse_proxy {$API_URL:http://localhost:8000}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} {path}/index.html /index.html
+		file_server
+	}
+}

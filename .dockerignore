@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/dist
+**/.turbo
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.env
+**/.env.*
+!**/.env.example
+**/.dev.vars
+apps/web/public/official-proofs
+apps/web/public/official-proofs-ja
