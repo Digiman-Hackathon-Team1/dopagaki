@@ -6,7 +6,7 @@
     "apps/web/src/lib/ai-rating.ts": "7beff55d6e9ddf42a704035c0f19661203507e12caba45aec8b880eee65478b8",
     "apps/web/src/data/brand-reviews.ts": "8a631e620af9be852f5491c95bf1d8601426a3919c32a62316abb70c28e37fe9",
     "apps/web/src/data/branch-reviews.ts": "4a73a60154b10bcf58b00b80ffcbca1af2b9f8998007fcac9929e7814f935a9d",
-    "apps/api/scripts/export-web-snapshot.mts": "684dd4488d879e61c782d13eba1858375302481f58507d2be6b9575f0ddc2909"
+    "apps/api/scripts/export-web-snapshot.mts": "85e921063b867498f4283d3150bd12ead6866a2b2a9e1a996137d477e3429131"
   },
   "meta": {
     "checkedDate": "2026-11-23",

@@ -58,6 +58,7 @@ def test_rows_match_calc_ts(case: dict) -> None:
     EXPECTED["orders"],
     ids=lambda c: (
         f"{c['menuId']}-{c['sort']}-{c['origin']}-jp{c['japaneseOnly']}-{c['area']}"
+        f"-{c.get('searchQuery', '')}"
     ),
 )
 def test_order_matches_calc_ts(case: dict) -> None:
@@ -68,6 +69,7 @@ def test_order_matches_calc_ts(case: dict) -> None:
         origin=ORIGINS[case["origin"]],
         japanese_only=case["japaneseOnly"],
         area=None if case["area"] == "all" else case["area"],
+        search_query=case.get("searchQuery"),
     )
 
     assert [r.place.id for r in rows] == case["placeIds"]

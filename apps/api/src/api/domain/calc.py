@@ -138,6 +138,19 @@ def _sort_key(sort: SortId) -> Callable[[PriceRow], tuple[float, ...]]:
     return lambda r: (-r.savings_jpy, r.distance_meters)
 
 
+def matches_place(place: Place, tokens: list[str]) -> bool:
+    fields = (
+        place.name_ja,
+        place.name_ko,
+        place.brand_ja,
+        place.address_ko,
+        place.station_ja,
+        place.station_ko,
+    )
+    haystack = " ".join(fields).lower()
+    return all(token in haystack for token in tokens)
+
+
 def rank_rows(
     catalog: Catalog,
     menu_id: str,
@@ -146,11 +159,15 @@ def rank_rows(
     japanese_only: bool = False,
     area: AreaId | None = None,
     krw_per_100_jpy: float | None = None,
+    search_query: str | None = None,
 ) -> list[PriceRow]:
     """calc.ts `buildRankedRows`(부가세 포함)와 같은 거르기·정렬.
 
-    환율을 주지 않으면 스냅샷 환율을 쓴다.
+    환율을 주지 않으면 스냅샷 환율을 쓴다. `search_query`는 web 검색창(`searchQuery`)과 같은
+    칸(병원 이름, 브랜드, 주소, 역)에서 찾는다. 한 단어면 web과 같고, 여러 단어면 모든 단어가
+    들어간 병원만 남긴다("밴스 홍대"가 "밴스의원 홍대점"에 걸리게 하기 위해서다).
     """
+    tokens = (search_query or "").strip().lower().split()
     menu = catalog.menu(menu_id)
     rate = (
         krw_per_100_jpy if krw_per_100_jpy is not None else catalog.fx.krw_per_100_jpy
@@ -163,6 +180,8 @@ def rank_rows(
         if area is not None and place.area != area:
             continue
         if japanese_only and not place.japanese_support:
+            continue
+        if tokens and not matches_place(place, tokens):
             continue
         row = compute_row(place, menu, rate, catalog.meta.vat_rate, base)
         if row is not None:

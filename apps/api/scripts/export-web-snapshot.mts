@@ -130,6 +130,24 @@ for (const menuId of ['rejuran-2cc', 'shrink-300', 'aquapeel']) {
   }
 }
 
+// 이름 검색 대조: web 검색창(searchQuery)과 같은 결과인지 한 단어 검색으로 확인한다.
+for (const menuId of ['rejuran-2cc', 'shrink-300']) {
+  for (const searchQuery of ['밴스', 'バンス', '홍대입구', '강남', 'GANGNAM', '없는병원']) {
+    const ranked = buildRankedRows(dataset, menuId, 'all', 'savings', krwPer100Jpy, true, {
+      searchQuery
+    });
+    orders.push({
+      menuId,
+      sort: 'savings',
+      origin: 'none',
+      japaneseOnly: false,
+      area: 'all',
+      searchQuery,
+      placeIds: ranked.map((row) => row.place.id)
+    });
+  }
+}
+
 const expected = { krwPer100Jpy, origins: ORIGINS, rows, orders };
 
 function write(relative: string, data: unknown, pretty = true) {
