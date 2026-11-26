@@ -65,14 +65,18 @@ load_context → safety_check → agent ⇄ tools → finalize
 | max_tokens | 기본값이 128000이라 스트리밍이 아닌 요청에 맞게 16000으로 지정한다 |
 
 * 도구가 없을 때 `bind_tools([])`는 빈 `tools` 배열을 보내므로, 응답 형식만 붙이는 `bind(response_format=...)`를 쓴다.
-* 실제 API 확인: 두 모델 모두 도구 호출(effort `medium`) → 도구 결과 → 구조화 출력 응답이 오고, 같은 대화 ID의 2턴째에 앞 내용을 기억했다. Haiku 5.5는 thinking 블록을 돌려줬고 2턴째에 그대로 다시 보내도 받아들여졌다.
+* 실제 API 확인: 두 모델 모두 도구 호출(effort `medium`) → 도구 결과 → 구조화 출력 응답이 오고, 같은 대화 ID의 2턴째에 앞 내용을 기억했다. Haiku 5.5가 돌려준 thinking 블록을 2턴째에 그대로 다시 보내도 받아들여졌다.
+* 서버 도구(웹 검색 등)를 그대로 넘기는지는 확인하지 않았다. 서버 도구를 쓰는 P1 `check_clinic_site`를 만들 때 확인한다.
 
 ### 대화 기록은 덧붙이기만 한다
 
-Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을, 그 블록이 만들어질 때와 요청 앞부분이 같은 대화에서만 받아들인다. 처음에는 응답 언어를 시스템 프롬프트에 넣었는데, 2턴째에 언어를 바꾸자 Haiku 5.5가 400(`Invalid signature in thinking block. The block is bound to a different conversation`)을 돌려줬다.
+Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을, 그 블록이 만들어질 때와 요청 앞부분이 같은 대화에서만 받아들인다. 앞부분이 다르면 400(`Invalid signature in thinking block. The block is bound to a different conversation`)을 돌려준다.
 
 * 시스템 프롬프트는 턴마다 바뀌는 값이 없는 고정 문장으로 둔다.
-* 응답 언어처럼 턴마다 바뀌는 지시는 `load_context`가 그 턴의 사용자 메시지 뒤에 시스템 메시지로 덧붙이고 대화 기록에 남긴다.
+* 응답 언어처럼 턴마다 바뀌는 지시는 `load_context`가 그 턴의 사용자 메시지에 두 번째 텍스트 블록으로 붙인다. LLM에 보내기 전이라 앞부분을 바꾸지 않는다.
+* 대화 중간 시스템 메시지는 쓰지 않는다. 그 턴의 LLM 호출이 실패하면 답 없는 시스템 메시지가 기록에 남는데, `ChatAnthropic`은 user 턴이 뒤따르는 시스템 메시지를 맨 앞 시스템 프롬프트로 옮기려다 오류를 내 그 대화의 이후 요청이 모두 실패한다. 이 방식은 모델 프로필에 `mid_conversation_system_messages`가 있는 모델에서만 쓸 수 있다는 제약도 있다.
+* 실패한 턴의 사용자 메시지가 답 없이 남아도, 다음 턴의 사용자 메시지와 연달아 보내지므로 요청은 만들어진다.
+* 도구 예외는 `ToolNode(handle_tool_errors=True)`로 모두 오류 메시지로 바꿔 모델에 돌려준다. 결과 없는 `tool_use`가 기록에 남으면 다음 턴이 400이 되기 때문이다.
 * 대화 기록을 고치거나 지우는 기능(요약, 오래된 턴 자르기 등)을 넣을 때는 이 조건을 다시 확인한다.
 
 **후속 작업**

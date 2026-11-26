@@ -1,5 +1,10 @@
-"""실제 Claude로 멀티턴을 확인한다. API 키가 없으면 건너뛴다(CI는 건너뜀)."""
+"""실제 Claude로 멀티턴을 확인한다.
 
+API 키가 있고 `AGENT_LIVE_TESTS=1`일 때만 실행한다. 키가 `.env`에 있어도 평소 `pnpm check`에서는
+실제 호출(비용)이 일어나지 않는다. 실행: `cd apps/api && AGENT_LIVE_TESTS=1 uv run pytest tests/test_agent_live.py`
+"""
+
+import os
 from uuid import uuid4
 
 import pytest
@@ -9,9 +14,14 @@ from api.agent.config import get_settings
 from api.main import app
 
 key = get_settings().anthropic_api_key
-pytestmark = pytest.mark.skipif(
-    key is None or not key.get_secret_value(), reason="ANTHROPIC_API_KEY 없음"
-)
+pytestmark = [
+    pytest.mark.skipif(
+        key is None or not key.get_secret_value(), reason="ANTHROPIC_API_KEY 없음"
+    ),
+    pytest.mark.skipif(
+        os.environ.get("AGENT_LIVE_TESTS") != "1", reason="AGENT_LIVE_TESTS=1이 아님"
+    ),
+]
 
 
 def test_live_second_turn_remembers_first_turn() -> None:
