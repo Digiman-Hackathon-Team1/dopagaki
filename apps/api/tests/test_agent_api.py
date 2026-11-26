@@ -4,13 +4,16 @@ from collections.abc import Iterator
 from uuid import uuid4
 
 import pytest
-from agent_fakes import FakeChatModel, fake_model, reply_message, user_texts
+from agent_fakes import FakeChatModel, fake_model, reply_message, tool_call, user_texts
 from fastapi.testclient import TestClient
 from langgraph.checkpoint.memory import InMemorySaver
 
 from api.agent.config import AgentSettings, get_settings
 from api.agent.graph import build_graph
 from api.agent.router import get_agent
+from api.agent.tools import TOOLS
+from api.domain.calc import rank_rows
+from api.domain.catalog import get_catalog
 from api.main import app
 
 USER_ID = str(uuid4())
@@ -42,6 +45,8 @@ def test_chat_returns_reply_slots_in_camel_case(client: TestClient) -> None:
         "threadId",
         "conditionSummary",
         "answer",
+        "cards",
+        "exclusions",
         "questions",
         "suggestions",
         "cautions",
@@ -49,6 +54,34 @@ def test_chat_returns_reply_slots_in_camel_case(client: TestClient) -> None:
     }
     assert body["answer"] == "안녕하세요"
     assert body["disclaimer"].startswith("AI 답변은")
+
+
+def test_chat_returns_recommendation_cards(client: TestClient) -> None:
+    top = rank_rows(get_catalog(), "rejuran-2cc")[0]
+    card_id = f"{top.place.id}:rejuran-2cc"
+    model = fake_model(
+        tool_call("search_clinics", {"menu_id": "rejuran-2cc", "limit": 1}),
+        reply_message("가장 싼 곳이에요", {card_id: "가장 싸요"}),
+    )
+    graph = build_graph(model, tools=TOOLS, checkpointer=InMemorySaver())
+    app.dependency_overrides[get_agent] = lambda: graph
+
+    response = client.post(
+        "/api/agent/chat",
+        json={"userId": USER_ID, "message": "리쥬란 싼 곳", "lang": "ko"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "cardReasons" not in body
+    [card] = body["cards"]
+    assert card["kind"] == "recommendation"
+    assert card["cardId"] == card_id
+    assert card["reason"] == "가장 싸요"
+    assert card["totalKrw"] == top.total_krw
+    assert card["totalJpy"] == top.total_jpy
+    assert card["savingsJpy"] == top.savings_jpy
+    assert card["distanceMeters"] is None
 
 
 def test_same_thread_id_continues_conversation(client: TestClient) -> None:

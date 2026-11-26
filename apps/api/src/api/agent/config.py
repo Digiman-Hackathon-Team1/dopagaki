@@ -20,6 +20,8 @@ class AgentSettings(BaseSettings):
     agent_model: str = "claude-sonnet-5-5"
     agent_effort: Effort = "medium"
     agent_max_tokens: int = 16000
+    # 배포된 web의 환율 파일(예: https://<web 주소>/naver-fx.json). 없으면 스냅샷 환율을 쓴다(ADR 0010).
+    web_fx_url: str | None = None
 
 
 @lru_cache

@@ -73,6 +73,7 @@ source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "httpx" },
     { name = "langchain-anthropic" },
     { name = "langgraph" },
     { name = "pydantic-settings" },
@@ -88,6 +89,7 @@ dev = [
 requires-dist = [
     { name = "anthropic", specifier = ">=2.14.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.165.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-anthropic", specifier = ">=1.7.13" },
     { name = "langgraph", specifier = ">=1.2.24" },
     { name = "pydantic-settings", specifier = ">=2.16.3" },

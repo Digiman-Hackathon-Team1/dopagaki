@@ -78,6 +78,13 @@ export interface components {
             conditionSummary: string;
             /** Answer */
             answer: string;
+            /** Cards */
+            cards: components["schemas"]["RecommendationCard"][];
+            /**
+             * Exclusions
+             * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
+             */
+            exclusions: components["schemas"]["Exclusion"][];
             /** Questions */
             questions: components["schemas"]["Question"][];
             /** Suggestions */
@@ -86,6 +93,27 @@ export interface components {
             cautions: string[];
             /** Disclaimer */
             disclaimer: string;
+        };
+        /** Exclusion */
+        Exclusion: {
+            /** Menuid */
+            menuId: string;
+            /**
+             * Reason
+             * @description needle 바늘 시술 기피, downtime 회복 기간 초과(이 둘은 시술 전체가 빠짐), area 다른 지역, japanese 일본어 미지원, budget 예산 초과
+             * @enum {string}
+             */
+            reason: "needle" | "downtime" | "area" | "japanese" | "budget";
+            /**
+             * Cliniccount
+             * @description 이 사유로 빠진 병원 수
+             */
+            clinicCount: number;
+            /**
+             * Searchid
+             * @description 어느 검색의 제외 사유인지. 같은 턴의 카드 searchId와 같다
+             */
+            searchId: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -108,6 +136,134 @@ export interface components {
             options: string[];
             /** Multiselect */
             multiSelect: boolean;
+        };
+        /** RecommendationCard */
+        RecommendationCard: {
+            /**
+             * Cardid
+             * @description 병원 ID와 시술 ID를 묶은 카드 ID
+             */
+            cardId: string;
+            /** Placeid */
+            placeId: string;
+            /** Menuid */
+            menuId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /**
+             * Basekrw
+             * @description 병원 표시 가격(원)
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 더한 부가세(원). 표시 가격에 이미 포함돼 있으면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /**
+             * Krwper100Jpy
+             * @description 환산에 쓴 환율(100엔당 원)
+             */
+            krwPer100Jpy: number;
+            /**
+             * Fxdatelabel
+             * @description 환율 기준일. 예: 2026.11.25
+             */
+            fxDateLabel: string;
+            /**
+             * Jpaveragejpy
+             * @description 일본 주요 병원 세금 포함 공식가 평균
+             */
+            jpAverageJpy: number;
+            /** Jpminjpy */
+            jpMinJpy: number;
+            /** Jpmaxjpy */
+            jpMaxJpy: number;
+            /**
+             * Jpcliniccount
+             * @description 일본 평균에 쓴 병원 수
+             */
+            jpClinicCount: number;
+            /**
+             * Savingsjpy
+             * @description 일본 평균 대비 절약액(엔). 음수면 더 비쌈
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            /**
+             * Distancemeters
+             * @description 기준 위치에서의 직선거리. 기준 위치가 없으면 null
+             */
+            distanceMeters: number | null;
+            /** Walkminutes */
+            walkMinutes: number | null;
+            /**
+             * Pricetags
+             * @description 가격 조건 태그(설계 4.7). first_visit 첫 방문·체험가, event 이벤트가·특가, day_limited 요일 한정, app_benefit 앱·카카오 혜택가, anesthesia 마취비 별도·확인, extra_fee 시술 팁 별도. 절약액 계산에는 반영하지 않는다
+             */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
+            /**
+             * Priceconditionja
+             * @description 가격 조건(첫 방문 한정, 이벤트가 등)
+             */
+            priceConditionJa: string;
+            /** Priceconditionko */
+            priceConditionKo: string;
+            /**
+             * Pricenoteja
+             * @description 가격 출처 메모
+             */
+            priceNoteJa: string;
+            /** Pricenoteko */
+            priceNoteKo: string;
+            /**
+             * Sourceurl
+             * @description 병원 공식 가격 출처
+             */
+            sourceUrl: string;
+            /**
+             * Kind
+             * @constant
+             */
+            kind: "recommendation";
+            /**
+             * Searchid
+             * @description 어느 검색의 카드인지(이번 턴 검색 순서, 예: s1). 지점·지역을 비교하면 검색마다 값이 다르므로 화면이 묶어 보여 줄 수 있다. 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다
+             */
+            searchId: string;
+            /**
+             * Reason
+             * @description LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null
+             */
+            reason: string | null;
         };
         /** ValidationError */
         ValidationError: {

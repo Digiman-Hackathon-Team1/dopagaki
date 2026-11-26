@@ -11,8 +11,9 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
 from api.agent.config import AgentSettings, get_settings
-from api.agent.graph import build_graph, read_reply
+from api.agent.graph import build_graph, read_cards, read_exclusions, read_reply
 from api.agent.schemas import ChatRequest, ChatResponse, Lang
+from api.agent.tools import TOOLS
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -35,7 +36,7 @@ def _graph_for(
         effort=effort,
         max_tokens=max_tokens,
     )
-    return build_graph(chat_model, checkpointer=checkpointer)
+    return build_graph(chat_model, tools=TOOLS, checkpointer=checkpointer)
 
 
 def get_agent(
@@ -75,5 +76,8 @@ def post_agent_chat(
     return ChatResponse(
         thread_id=thread_id,
         disclaimer=DISCLAIMER[body.lang],
-        **reply.model_dump(),
+        cards=read_cards(state),
+        exclusions=read_exclusions(state),
+        # card_reasons는 cards에 합쳐졌으므로 응답에 따로 내보내지 않는다.
+        **reply.model_dump(exclude={"card_reasons"}),
     )
