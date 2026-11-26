@@ -65,10 +65,58 @@ def test_resolve_found(query: str, location_id: str) -> None:
     assert [loc.id for loc in result.locations] == [location_id]
 
 
-@pytest.mark.parametrize("query", ["이태원", "도쿄", "ホンデ", "숙소"])
+@pytest.mark.parametrize(
+    ("query", "location_id"),
+    [
+        ("홍대숙소", "area:hongdae"),
+        ("弘大周辺", "area:hongdae"),
+        ("강남이랑", "area:gangnam"),
+        # '역'·'駅'으로 끝나는 이름은 뒤를 보지 않는다.
+        ("江南駅三番出口", "station:강남"),
+        ("신용산역", "station:신용산"),
+        # 뒤에 '구'가 오면 구 이름으로 보고 지역에만 맞춘다.
+        ("강남구의 호텔", "area:gangnam"),
+        ("영등포구 여의도동", "area:yeouido"),
+        ("노원구", "area:nowon"),
+        # 지역과 그 지역 안의 역이 함께 나오면 더 좁은 역이다.
+        ("강남구 역삼동", "station:역삼"),
+        ("송파구 문정동", "station:문정"),
+        ("강남 신사동", "station:신사"),
+    ],
+)
+def test_resolve_respects_word_boundaries(query: str, location_id: str) -> None:
+    result = get_locations().resolve(query)
+    assert (result.status, [loc.id for loc in result.locations]) == (
+        "found",
+        [location_id],
+    )
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "이태원",
+        "도쿄",
+        "ホンデ",
+        "숙소",
+        # 다른 단어의 일부인 이름은 쓰지 않는다.
+        "중구의 호텔",  # '구의'
+        "서울대병원 근처",  # '서울대'
+        "서울 대학로",
+        "강북삼성병원",  # '강북', '삼성'
+        # 마포는 데이터에 역만 있고 지역이 없다. '마포구'를 마포역으로 보지 않는다.
+        "마포구 연남동",
+        "서울 마포구 서교동",
+    ],
+)
 def test_resolve_unknown(query: str) -> None:
     result = get_locations().resolve(query)
     assert (result.status, result.locations) == ("unknown", [])
+
+
+def test_station_area_is_the_area_most_clinics_list() -> None:
+    assert get_locations().get("station:역삼").area == "gangnam"
+    assert get_locations().get("station:홍대입구").area == "hongdae"
 
 
 def test_resolve_two_places_is_ambiguous_in_sentence_order() -> None:

@@ -13,12 +13,12 @@ web 데이터에 새 역이 생기면 tests/test_locations.py가 이 스크립�
 """
 
 import json
-import math
 import re
 import sys
 from collections import defaultdict
 from pathlib import Path
 
+from api.domain.calc import haversine_meters
 from api.domain.catalog import get_catalog
 from api.domain.locations import STATIONS_PATH, station_names
 
@@ -28,12 +28,6 @@ SOURCE = {
     "license": "이용허락범위 제한 없음",
 }
 SAME_STATION_METERS = 500
-
-
-def meters(a: tuple[float, float], b: tuple[float, float]) -> float:
-    lat1, lng1, lat2, lng2 = map(math.radians, (*a, *b))
-    x = (lng2 - lng1) * math.cos((lat1 + lat2) / 2)
-    return 6371000 * math.hypot(x, lat2 - lat1)
 
 
 def main(master_path: str, downloaded_date: str) -> None:
@@ -47,7 +41,10 @@ def main(master_path: str, downloaded_date: str) -> None:
     clinics: dict[str, list[tuple[float, float]]] = defaultdict(list)
     for place in catalog.places:
         for ko, ja in station_names(place):
-            ja_names.setdefault(ko, ja)
+            if ja_names.setdefault(ko, ja) != ja:
+                raise SystemExit(
+                    f"{ko}역의 일본어 표기가 둘입니다: {ja_names[ko]}, {ja}"
+                )
             clinics[ko].append((place.lat, place.lng))
 
     stations = []
@@ -63,8 +60,12 @@ def main(master_path: str, downloaded_date: str) -> None:
             sum(p[0] for p in here) / len(here),
             sum(p[1] for p in here) / len(here),
         )
-        anchor = min(points, key=lambda p: meters(p[:2], centroid))
-        same = [p for p in points if meters(p[:2], anchor[:2]) <= SAME_STATION_METERS]
+        anchor = min(points, key=lambda p: haversine_meters(*p[:2], *centroid))
+        same = [
+            p
+            for p in points
+            if haversine_meters(*p[:2], *anchor[:2]) <= SAME_STATION_METERS
+        ]
         stations.append(
             {
                 "nameKo": ko,
