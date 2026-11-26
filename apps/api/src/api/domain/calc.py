@@ -151,6 +151,8 @@ def rank_rows(
     base = origin if is_point_in_south_korea(origin) else DEFAULT_SEOUL_CENTER
     rows = []
     for place in catalog.places:
+        if place.category != menu.category:
+            continue
         if area is not None and place.area != area:
             continue
         if japanese_only and not place.japanese_support:

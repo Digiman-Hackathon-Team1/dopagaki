@@ -1,5 +1,6 @@
 """데이터 조회 계층과 web 스냅샷 검사."""
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -8,9 +9,8 @@ import pytest
 from api.domain.calc import js_round
 from api.domain.catalog import SNAPSHOT_PATH, get_catalog
 
-WEB_PRICES = (
-    Path(__file__).resolve().parents[2] / "web" / "src" / "data" / "prices.json"
-)
+WEB_DIR = Path(__file__).resolve().parents[2] / "web"
+WEB_PRICES = WEB_DIR / "src" / "data" / "prices.json"
 
 
 @pytest.mark.skipif(not WEB_PRICES.exists(), reason="web 데이터가 없는 환경")
@@ -33,6 +33,20 @@ def test_snapshot_matches_web_prices_json() -> None:
     assert [
         {k: v for k, v in p.items() if k != "aiRating"} for p in snapshot["places"]
     ] == web["places"]
+
+
+@pytest.mark.skipif(not WEB_PRICES.exists(), reason="web 데이터가 없는 환경")
+def test_snapshot_sources_are_unchanged() -> None:
+    """회복 기간·바늘(concierge.ts), 후기 평점(ai-rating.ts·후기 데이터), calc.ts가 바뀌면 실패한다.
+
+    스냅샷과 calc 기대값이 그 원본으로 만들어졌으므로 다시 내보내야 한다.
+    고치는 법: `pnpm --filter @repo/api export:web-data`
+    """
+    sources = get_catalog().sources
+    assert sources
+    for file, digest in sources.items():
+        actual = hashlib.sha256((WEB_DIR / file).read_bytes()).hexdigest()
+        assert actual == digest, f"{file}이 바뀌었습니다. 스냅샷을 다시 내보내세요"
 
 
 def test_catalog_loads_every_menu_and_place() -> None:

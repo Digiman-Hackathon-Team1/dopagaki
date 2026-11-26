@@ -77,6 +77,7 @@ class JpBenchmark(SnapshotModel):
 
 class Menu(SnapshotModel):
     id: str
+    category: str
     name_ja: str
     name_ko: str
     short_ja: str
@@ -100,6 +101,7 @@ class Offer(SnapshotModel):
 
 class Place(SnapshotModel):
     id: str
+    category: str
     area: AreaId
     name_ja: str
     name_ko: str
@@ -121,6 +123,8 @@ class Place(SnapshotModel):
 
 
 class Catalog(SnapshotModel):
+    # 스냅샷을 만든 web 원본 파일의 SHA-256. 원본이 바뀌었는지 테스트가 비교한다.
+    sources: dict[str, str]
     meta: Meta
     fx: Fx
     areas: tuple[Area, ...]

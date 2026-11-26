@@ -10,6 +10,7 @@
  *
  * web 파일은 읽기만 한다. web 데이터나 환율이 바뀌면 이 스크립트를 다시 실행한다.
  */
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,7 +34,26 @@ for (const menu of dataset.menus) {
   }
 }
 
+// 스냅샷 값을 만든 web 원본. 이 중 하나라도 바뀌면 tests/test_catalog.py가 다시 내보내라고 실패한다.
+// 환율(naver-fx.json)은 pnpm build마다 바뀌므로 넣지 않는다.
+const SOURCE_FILES = [
+  'src/data/prices.json',
+  'src/lib/calc.ts',
+  'src/lib/concierge.ts',
+  'src/lib/ai-rating.ts',
+  'src/data/brand-reviews.ts',
+  'src/data/branch-reviews.ts'
+];
+const webDir = path.resolve(apiDir, '../web');
+const sources = Object.fromEntries(
+  SOURCE_FILES.map((file) => [
+    file,
+    createHash('sha256').update(fs.readFileSync(path.join(webDir, file))).digest('hex')
+  ])
+);
+
 const snapshot = {
+  sources,
   meta: dataset.meta,
   fx: {
     krwPer100Jpy,
