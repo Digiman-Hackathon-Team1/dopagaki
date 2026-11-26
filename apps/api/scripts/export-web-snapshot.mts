@@ -34,22 +34,24 @@ for (const menu of dataset.menus) {
   }
 }
 
-// 스냅샷 값을 만든 web 원본. 이 중 하나라도 바뀌면 tests/test_catalog.py가 다시 내보내라고 실패한다.
-// 환율(naver-fx.json)은 pnpm build마다 바뀌므로 넣지 않는다.
+// 스냅샷 값을 만든 원본(레포 루트 기준 경로). 이 중 하나라도 바뀌면 tests/test_catalog.py가
+// 다시 내보내라고 실패한다. 환율(naver-fx.json)은 pnpm build마다 바뀌므로 넣지 않는다.
+// 줄바꿈을 LF로 맞춘 뒤 해시해, Windows에서 CRLF로 받아도 같은 값이 나오게 한다.
 const SOURCE_FILES = [
-  'src/data/prices.json',
-  'src/lib/calc.ts',
-  'src/lib/concierge.ts',
-  'src/lib/ai-rating.ts',
-  'src/data/brand-reviews.ts',
-  'src/data/branch-reviews.ts'
+  'apps/web/src/data/prices.json',
+  'apps/web/src/lib/calc.ts',
+  'apps/web/src/lib/concierge.ts',
+  'apps/web/src/lib/ai-rating.ts',
+  'apps/web/src/data/brand-reviews.ts',
+  'apps/web/src/data/branch-reviews.ts',
+  'apps/api/scripts/export-web-snapshot.mts'
 ];
-const webDir = path.resolve(apiDir, '../web');
+const repoRoot = path.resolve(apiDir, '../..');
 const sources = Object.fromEntries(
-  SOURCE_FILES.map((file) => [
-    file,
-    createHash('sha256').update(fs.readFileSync(path.join(webDir, file))).digest('hex')
-  ])
+  SOURCE_FILES.map((file) => {
+    const text = fs.readFileSync(path.join(repoRoot, file), 'utf8').replace(/\r\n/g, '\n');
+    return [file, createHash('sha256').update(text, 'utf8').digest('hex')];
+  })
 );
 
 const snapshot = {

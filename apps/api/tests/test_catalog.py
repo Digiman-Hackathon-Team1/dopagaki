@@ -9,8 +9,8 @@ import pytest
 from api.domain.calc import js_round
 from api.domain.catalog import SNAPSHOT_PATH, get_catalog
 
-WEB_DIR = Path(__file__).resolve().parents[2] / "web"
-WEB_PRICES = WEB_DIR / "src" / "data" / "prices.json"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+WEB_PRICES = REPO_ROOT / "apps" / "web" / "src" / "data" / "prices.json"
 
 
 @pytest.mark.skipif(not WEB_PRICES.exists(), reason="web 데이터가 없는 환경")
@@ -37,15 +37,18 @@ def test_snapshot_matches_web_prices_json() -> None:
 
 @pytest.mark.skipif(not WEB_PRICES.exists(), reason="web 데이터가 없는 환경")
 def test_snapshot_sources_are_unchanged() -> None:
-    """회복 기간·바늘(concierge.ts), 후기 평점(ai-rating.ts·후기 데이터), calc.ts가 바뀌면 실패한다.
+    """회복 기간·바늘(concierge.ts), 후기 평점(ai-rating.ts·후기 데이터), calc.ts,
+    내보내기 스크립트가 바뀌면 실패한다.
 
     스냅샷과 calc 기대값이 그 원본으로 만들어졌으므로 다시 내보내야 한다.
+    줄바꿈을 LF로 맞춘 뒤 비교하므로 CRLF로 받은 환경에서도 같은 결과가 나온다.
     고치는 법: `pnpm --filter @repo/api export:web-data`
     """
     sources = get_catalog().sources
     assert sources
     for file, digest in sources.items():
-        actual = hashlib.sha256((WEB_DIR / file).read_bytes()).hexdigest()
+        text = (REPO_ROOT / file).read_bytes().replace(b"\r\n", b"\n")
+        actual = hashlib.sha256(text).hexdigest()
         assert actual == digest, f"{file}이 바뀌었습니다. 스냅샷을 다시 내보내세요"
 
 
