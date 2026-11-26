@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/agent/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post Agent Chat */
+        post: operations["postAgentChat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -25,6 +42,56 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ChatRequest */
+        ChatRequest: {
+            /**
+             * Userid
+             * Format: uuid
+             * @description 브라우저가 만든 익명 사용자 ID
+             */
+            userId: string;
+            /**
+             * Threadid
+             * @description 대화 ID. 없으면 새 대화를 시작한다
+             */
+            threadId?: string | null;
+            /**
+             * Message
+             * @description 이번 턴의 사용자 메시지. 앞뒤 공백을 지운 뒤 1~2000자
+             */
+            message: string;
+            /**
+             * Lang
+             * @description 응답 언어
+             * @enum {string}
+             */
+            lang: "ja" | "ko";
+        };
+        /** ChatResponse */
+        ChatResponse: {
+            /**
+             * Threadid
+             * Format: uuid
+             */
+            threadId: string;
+            /** Conditionsummary */
+            conditionSummary: string;
+            /** Answer */
+            answer: string;
+            /** Questions */
+            questions: components["schemas"]["Question"][];
+            /** Suggestions */
+            suggestions: string[];
+            /** Cautions */
+            cautions: string[];
+            /** Disclaimer */
+            disclaimer: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** Health */
         Health: {
             /**
@@ -32,6 +99,28 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** Question */
+        Question: {
+            /** Question */
+            question: string;
+            /** Options */
+            options: string[];
+            /** Multiselect */
+            multiSelect: boolean;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;
@@ -42,6 +131,46 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    postAgentChat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description API 키가 없어 에이전트를 사용할 수 없음 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getHealth: {
         parameters: {
             query?: never;
