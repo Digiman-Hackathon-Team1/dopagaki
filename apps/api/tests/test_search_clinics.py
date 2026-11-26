@@ -131,12 +131,7 @@ def test_treatment_level_exclusion_returns_no_cards(args: dict, reason: str) -> 
     assert message.artifact["cards"] == []
     # 시술 전체가 빠지므로 그 시술을 하는 병원 전부가 같은 사유로 빠진다.
     assert message.artifact["exclusions"] == [
-        {
-            "menu_id": args["menu_id"],
-            "reason": reason,
-            "clinic_count": offered,
-            "search_id": "",
-        }
+        {"menu_id": args["menu_id"], "reason": reason, "clinic_count": offered}
     ]
     assert "No clinics returned" in message.content
 
@@ -235,4 +230,13 @@ def test_search_target_is_recorded() -> None:
         "area": "hongdae",
         "origin": None,
         "clinic_tokens": ["밴스", "홍대"],
+        "clinic_ids": ["vands-hongdae"],
     }
+
+
+def test_treatment_exclusion_with_unknown_clinic_has_no_zero_count() -> None:
+    message = call(menu_id="rejuran-2cc", avoid_needle=True, clinic_name="없는병원")
+
+    # 빠진 병원이 0곳인 사유는 내보내지 않고, 지점을 못 찾았다고 알린다.
+    assert message.artifact["exclusions"] == []
+    assert "No clinic in the data matches" in message.content

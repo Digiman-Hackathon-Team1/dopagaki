@@ -139,7 +139,7 @@ class RecommendationCardData(ResponseModel):
 ExcludeReason = Literal["needle", "downtime", "area", "japanese", "budget"]
 
 
-class Exclusion(ResponseModel):
+class ExclusionData(ResponseModel):
     """search_clinics 거르기로 빠진 병원 수(설계 문서 9장, FR-03)."""
 
     menu_id: str
@@ -150,9 +150,11 @@ class Exclusion(ResponseModel):
         )
     )
     clinic_count: int = Field(description="이 사유로 빠진 병원 수")
+
+
+class Exclusion(ExclusionData):
     search_id: str = Field(
-        default="",
-        description="어느 검색의 제외 사유인지. 같은 턴의 카드 searchId와 같다",
+        description="어느 검색의 제외 사유인지. 같은 턴의 카드 searchId와 같다"
     )
 
 
@@ -160,7 +162,8 @@ class RecommendationCard(RecommendationCardData):
     kind: Literal["recommendation"]
     search_id: str = Field(
         description=(
-            "어느 검색의 카드인지. 지점·지역을 비교하면 검색마다 값이 다르므로 화면이 묶어 보여 줄 수 있다"
+            "어느 검색의 카드인지(이번 턴 검색 순서, 예: s1). 지점·지역을 비교하면 검색마다 값이 "
+            "다르므로 화면이 묶어 보여 줄 수 있다. 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다"
         )
     )
     reason: str | None = Field(

@@ -31,7 +31,6 @@ from api.agent.schemas import (
     Exclusion,
     Lang,
     RecommendationCard,
-    RecommendationCardData,
 )
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
 from api.agent.tools.search_clinics import SearchClinicsArtifact
@@ -82,14 +81,17 @@ def read_exclusions(state: AgentState) -> list[Exclusion]:
 def search_results(messages: Sequence[BaseMessage]) -> list[SearchClinicsArtifact]:
     """이번 턴(마지막 사용자 메시지 뒤)의 성공한 search_clinics 결과(ADR 0009).
 
-    - 같은 시술을 다시 검색하면 앞 결과를 지우고 새 결과를 남긴다(범위를 좁힌 재검색).
-    - 단, 지역·기준 위치·지점을 서로 다르게 지정한 검색은 비교로 보고 앞 결과도 남긴다.
+    - 같은 시술을 범위만 좁히거나 넓혀 다시 검색하면 앞 결과를 지우고, 지운 자리에 새 결과를 둔다.
+    - 지역·기준 위치·지점이 서로 다른 대상을 검색하면 비교로 보고 앞 결과도 남긴다
+      (`SearchTarget.compares_with`).
     - 이전 턴 결과, 다른 도구의 결과, 오류 난 호출은 읽지 않는다.
+    - 검색 번호(search_id)는 이번 턴의 검색 순서(s1, s2, ...)다. 도구 호출 ID는 응답에 내보내지 않는다.
     """
     start = max(
         (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
     )
     results: list[SearchClinicsArtifact] = []
+    calls = 0
     for message in messages[start + 1 :]:
         if (
             not isinstance(message, ToolMessage)
@@ -97,15 +99,18 @@ def search_results(messages: Sequence[BaseMessage]) -> list[SearchClinicsArtifac
             or message.status == "error"
         ):
             continue
+        calls += 1
         new = SearchClinicsArtifact.model_validate(message.artifact).model_copy(
-            update={"search_id": message.tool_call_id}
+            update={"search_id": f"s{calls}"}
         )
-        results = [
-            old
-            for old in results
-            if old.menu_id != new.menu_id or old.target.compares_with(new.target)
+        replaced = [
+            i
+            for i, old in enumerate(results)
+            if old.menu_id == new.menu_id and not old.target.compares_with(new.target)
         ]
-        results.append(new)
+        position = replaced[0] if replaced else len(results)
+        results = [r for i, r in enumerate(results) if i not in replaced]
+        results.insert(position, new)
     return results
 
 
@@ -116,6 +121,8 @@ def assemble_cards(
 
     - 금액과 순서는 도구 결과 그대로다. LLM은 카드마다 이유만 쓴다.
     - 검색 결과의 카드는 모두 내보낸다(설계 문서 4.7). 다른 시술 검색 결과는 함께 나간다.
+    - 비교 검색 두 곳에 같은 병원이 나오면 검색마다 한 장씩 낸다. 기준 위치가 다르면 거리가
+      다르고, 검색별로 묶어 보여 줄 때 빠지면 안 되기 때문이다. 이유는 card_id로 함께 쓴다.
     - 이유가 없는 카드는 reason이 null이다. 도구 결과에 없는 card_id의 이유는 버린다.
     """
     reasons: dict[str, str] = {}
@@ -125,33 +132,20 @@ def assemble_cards(
         RecommendationCard(
             **card.model_dump(),
             kind="recommendation",
-            search_id=search_id,
+            search_id=result.search_id,
             reason=reasons.get(card.card_id),
         )
-        for search_id, card in _unique_cards(results)
+        for result in results
+        for card in result.cards
     ]
 
 
 def assemble_exclusions(results: Sequence[SearchClinicsArtifact]) -> list[Exclusion]:
     return [
-        e.model_copy(update={"search_id": r.search_id})
+        Exclusion(**e.model_dump(), search_id=r.search_id)
         for r in results
         for e in r.exclusions
     ]
-
-
-def _unique_cards(
-    results: Sequence[SearchClinicsArtifact],
-) -> list[tuple[str, RecommendationCardData]]:
-    """비교 검색에서 같은 병원이 두 번 나오면 처음 것만 남긴다."""
-    seen: set[str] = set()
-    cards = []
-    for result in results:
-        for card in result.cards:
-            if card.card_id not in seen:
-                seen.add(card.card_id)
-                cards.append((result.search_id, card))
-    return cards
 
 
 def build_graph(

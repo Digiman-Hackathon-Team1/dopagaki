@@ -156,8 +156,8 @@ def test_area_comparison_keeps_both_searches() -> None:
     cards = read_cards(result)
 
     assert [c.area for c in cards] == ["hongdae"] * 3 + ["gangnam"] * 3
-    assert [c.search_id for c in cards] == ["c1"] * 3 + ["c2"] * 3
-    assert {e.search_id for e in read_exclusions(result)} == {"c1", "c2"}
+    assert [c.search_id for c in cards] == ["s1"] * 3 + ["s2"] * 3
+    assert {e.search_id for e in read_exclusions(result)} == {"s1", "s2"}
 
 
 def test_branch_comparison_keeps_both_branches() -> None:
@@ -182,19 +182,83 @@ def test_narrowing_the_branch_name_replaces_the_search() -> None:
     assert [c.place_id for c in read_cards(run(graph))] == ["vands-hongdae"]
 
 
-def test_overlapping_comparison_shows_each_clinic_once() -> None:
-    # "밴스"와 "홍대입구" 검색 모두에 밴스의원 홍대점이 들어갈 수 있다.
+def test_same_clinic_in_two_comparisons_appears_in_each() -> None:
+    # 기준 위치가 다른 두 검색에 같은 병원이 나오면 검색마다 한 장씩 낸다(거리가 다르다).
+    hongdae = {"lat": 37.5563, "lng": 126.9228}
+    gangnam = {"lat": 37.4979, "lng": 127.0276}
     graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "origin": hongdae}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "origin": gangnam}, "c2"),
+        reply_message("비교"),
+    )
+
+    cards = read_cards(run(graph))
+    first = [c for c in cards if c.search_id == "s1"]
+    second = [c for c in cards if c.search_id == "s2"]
+
+    assert len(first) == len(second) == 3
+    shared = {c.card_id for c in first} & {c.card_id for c in second}
+    assert shared
+    for card_id in shared:
+        a = next(c for c in first if c.card_id == card_id)
+        b = next(c for c in second if c.card_id == card_id)
+        assert a.distance_meters != b.distance_meters
+
+
+def test_narrowing_with_different_words_replaces_the_search() -> None:
+    # "밴스" → "밴스의원"+명동: 단어는 다르지만 명동 밴스는 밴스 지점 안에 있으므로 재검색이다.
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "밴스"}, "c1"),
         tool_call(
-            "search_clinics", {**REJURAN, "clinic_name": "밴스", "limit": 10}, "c1"
+            "search_clinics",
+            {**REJURAN, "clinic_name": "밴스의원", "area": "myeongdong"},
+            "c2",
         ),
+        reply_message("명동"),
+    )
+
+    cards = read_cards(run(graph))
+
+    assert cards
+    assert all(c.area == "myeongdong" for c in cards)
+
+
+def test_area_and_branch_are_compared() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "area": "gangnam"}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "밴스 홍대"}, "c2"),
+        reply_message("비교"),
+    )
+
+    cards = read_cards(run(graph))
+
+    assert [c.search_id for c in cards] == ["s1"] * 3 + ["s2"]
+    assert cards[-1].place_id == "vands-hongdae"
+
+
+def test_research_keeps_the_position_of_the_replaced_search() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "area": "hongdae"}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "area": "gangnam"}, "c2"),
         tool_call(
-            "search_clinics", {**REJURAN, "clinic_name": "홍대입구", "limit": 10}, "c2"
+            "search_clinics",
+            {**REJURAN, "area": "hongdae", "japanese_only": True},
+            "c3",
         ),
         reply_message("비교"),
     )
 
-    ids = [c.card_id for c in read_cards(run(graph))]
+    areas = [c.area for c in read_cards(run(graph))]
 
-    assert "vands-hongdae:rejuran-2cc" in ids
-    assert len(ids) == len(set(ids))
+    # 홍대 검색을 좁혀 다시 해도 홍대 카드가 앞에 남는다.
+    assert areas[0] == "hongdae" and areas[-1] == "gangnam"
+
+
+def test_unmatched_branch_search_does_not_remove_earlier_cards() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "밴스 홍대"}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "없는병원"}, "c2"),
+        reply_message("없음"),
+    )
+
+    assert [c.place_id for c in read_cards(run(graph))] == ["vands-hongdae"]

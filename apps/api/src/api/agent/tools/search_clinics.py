@@ -12,7 +12,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from api.agent.config import get_settings
-from api.agent.schemas import ExcludeReason, Exclusion, RecommendationCardData
+from api.agent.schemas import ExcludeReason, ExclusionData, RecommendationCardData
 from api.domain.calc import (
     PriceRow,
     SortId,
@@ -106,29 +106,46 @@ class SearchTarget(BaseModel):
     area: AreaId | None = None
     origin: GeoPoint | None = None
     clinic_tokens: list[str] = Field(default_factory=list)
+    # 지점 이름으로 찾은 병원 ID(시술과 무관). 이름은 단어가 아니라 찾은 병원으로 비교한다.
+    clinic_ids: list[str] = Field(default_factory=list)
+
+    def _narrows(self, other: "SearchTarget") -> bool:
+        """self가 other의 조건을 모두 지키면서 더 좁거나 같은 검색인지."""
+        if other.area and self.area != other.area:
+            return False
+        if other.origin and self.origin != other.origin:
+            return False
+        if other.clinic_tokens:
+            return bool(self.clinic_tokens) and set(self.clinic_ids) <= set(
+                other.clinic_ids
+            )
+        return True
 
     def compares_with(self, other: "SearchTarget") -> bool:
-        """서로 다른 지역·기준 위치·지점을 지정했으면 비교 검색이다.
+        """비교 검색이면 True, 범위를 좁히거나 넓힌 재검색이면 False.
 
-        한쪽만 지정했거나(전체 → 강남) 지점 이름이 더 좁아졌으면(밴스 → 밴스 홍대) 재검색이다.
+        - 재검색: 한쪽이 다른 쪽의 조건을 모두 지키는 경우. 예: 전체 → 강남, "밴스" → "밴스 홍대"
+          (밴스 홍대로 찾은 지점이 밴스로 찾은 지점 안에 있음), "밴스 홍대" → "밴스".
+        - 비교: 그 밖의 경우. 예: 홍대와 강남, "밴스 홍대"와 "블리비 명동", 강남과 "밴스"처럼
+          종류가 다른 대상.
+        - 지점 이름으로 아무 병원도 찾지 못한 검색은 앞 검색을 지우지 않도록 비교로 본다.
         """
-        if self.area and other.area and self.area != other.area:
+        if (self.clinic_tokens and not self.clinic_ids) or (
+            other.clinic_tokens and not other.clinic_ids
+        ):
             return True
-        if self.origin and other.origin and self.origin != other.origin:
-            return True
-        mine, theirs = set(self.clinic_tokens), set(other.clinic_tokens)
-        return bool(mine and theirs and not (mine <= theirs or theirs <= mine))
+        return not (self._narrows(other) or other._narrows(self))
 
 
 class SearchClinicsArtifact(BaseModel):
     """화면용 결과(LLM에는 보내지 않음). finalize가 이걸로 카드를 조립한다."""
 
     menu_id: str
-    # 검색을 구분하는 값. 그래프가 도구 호출 ID로 채운다.
+    # 검색을 구분하는 값. 그래프가 이번 턴의 검색 순서로 채운다(s1, s2, ...).
     search_id: str = ""
     target: SearchTarget = Field(default_factory=SearchTarget)
     cards: list[RecommendationCardData]
-    exclusions: list[Exclusion]
+    exclusions: list[ExclusionData]
 
 
 def _artifact(
@@ -138,9 +155,11 @@ def _artifact(
     excluded: Counter[ExcludeReason],
 ) -> dict:
     # 대화 기억(체크포인터)에 저장되므로 일반 데이터로 둔다.
+    # 빠진 병원이 없는 사유는 내보내지 않는다.
     exclusions = [
-        Exclusion(menu_id=menu_id, reason=reason, clinic_count=count)
+        ExclusionData(menu_id=menu_id, reason=reason, clinic_count=count)
         for reason, count in excluded.items()
+        if count > 0
     ]
     return SearchClinicsArtifact(
         menu_id=menu_id, target=target, cards=cards, exclusions=exclusions
@@ -160,8 +179,8 @@ DESCRIPTION = f"""\
 가격·엔화 환산·일본 대비 절약액은 web 순위표와 같은 계산이다. 답변의 금액은 이 결과만 쓴다.
 필수 입력: menu_id. 기본값: 절약액 순, 상위 3곳, 예산·회복 기간·지역 제한 없음.
 결과의 병원은 모두 카드로 화면에 나간다. card_reasons에 card_id마다 추천 이유 한 줄을 쓴다.
-같은 턴에 같은 시술을 다시 부르면 마지막 결과의 카드만 나간다. 단, 지역·기준 위치·지점(clinic_name)을
-서로 다르게 지정한 검색은 비교로 보고 모두 나간다. 지점이나 지역을 비교할 때는 대상마다 한 번씩 부른다.
+같은 턴에 같은 시술을 범위만 좁히거나 넓혀 다시 부르면 마지막 결과의 카드만 나간다. 지역·기준 위치·
+지점(clinic_name)이 서로 다른 대상을 부르면 비교로 보고 모두 나간다. 비교할 때는 대상마다 한 번씩 부른다.
 쓰면 안 되는 경우: 아래 목록에 없는 시술(필러, 실 리프팅 등)이나 시술을 아직 정하지 않았을 때.
 시술 목록:
 {_menu_lines()}"""
@@ -255,7 +274,12 @@ def search_clinics(
     has_origin = is_point_in_south_korea(origin)
     tokens = (clinic_name or "").strip().lower().split()
     target = SearchTarget(
-        area=area, origin=origin if has_origin else None, clinic_tokens=tokens
+        area=area,
+        origin=origin if has_origin else None,
+        clinic_tokens=tokens,
+        clinic_ids=sorted(p.id for p in catalog.places if matches_place(p, tokens))
+        if tokens
+        else [],
     )
 
     # 시술 단위 거르기: 맞지 않으면 지역·일본어·지점 조건에 맞는 이 시술 병원이 모두 빠진다.
@@ -270,15 +294,22 @@ def search_clinics(
             )
         )
 
+    def early(reason: ExcludeReason, message: str) -> tuple[str, dict]:
+        count = offered()
+        if count == 0 and tokens:
+            message += " " + _no_clinic_note(clinic_name or "", tokens, menu_id)
+        return message, _artifact(menu_id, target, [], Counter({reason: count}))
+
     if avoid_needle and menu.uses_needle:
-        message = f"{name} uses a needle, so it is excluded. No clinics returned."
-        return message, _artifact(menu_id, target, [], Counter(needle=offered()))
-    if max_downtime_days is not None and menu.downtime_max_days > max_downtime_days:
-        reason = (
-            f"{name} can show visible downtime for up to {menu.downtime_max_days} days, "
-            f"more than the allowed {max_downtime_days}. No clinics returned."
+        return early(
+            "needle", f"{name} uses a needle, so it is excluded. No clinics returned."
         )
-        return reason, _artifact(menu_id, target, [], Counter(downtime=offered()))
+    if max_downtime_days is not None and menu.downtime_max_days > max_downtime_days:
+        return early(
+            "downtime",
+            f"{name} can show visible downtime for up to {menu.downtime_max_days} days, "
+            f"more than the allowed {max_downtime_days}. No clinics returned.",
+        )
     if sort == "distance" and not has_origin:
         raise ValueError(
             "sort=distance needs an origin inside South Korea from a location tool. "
