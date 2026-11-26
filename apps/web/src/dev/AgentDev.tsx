@@ -3,12 +3,15 @@ import { api, type Schemas } from '@repo/api-client';
 import mark from '@/assets/dopagaki-mark.png';
 import { SvgIcon } from '@/components/SvgIcon';
 import { Reply } from './Reply';
+import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
+import { copy } from './copy';
 import './agent.css';
 
 type Turn = {
   id: number;
   message: string;
-  status: string;
+  status: 'waiting' | 'writing' | 'unavailable' | 'invalid' | 'offline' | null;
+  httpStatus?: number;
   reply?: Schemas['ChatResponse'];
 };
 
@@ -29,7 +32,9 @@ function anonymousId() {
 export default function AgentDev() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
-  const [lang, setLang] = useState<Schemas['ChatRequest']['lang']>('ko');
+  const [lang, setLang] = useState<Schemas['ChatRequest']['lang']>(() => readSiteLanguage(new URLSearchParams(location.search).get('lang')));
+  const t = copy[lang];
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
   const chain = useRef(Promise.resolve());
   const thread = useRef<string>(undefined);
   const sequence = useRef(0);
@@ -45,31 +50,40 @@ export default function AgentDev() {
     if (!message || [...message].length > 2000) return;
     const id = ++sequence.current;
     follow.current = true;
-    setTurns(previous => [...previous, { id, message, status: '대기 중' }]);
+    setTurns(previous => [...previous, { id, message, status: 'waiting' }]);
     function update(changes: Partial<Turn>) {
       setTurns(previous => previous.map(turn => turn.id === id ? { ...turn, ...changes } : turn));
     }
     chain.current = chain.current.then(async () => {
-      update({ status: '답변 작성 중…' });
+      update({ status: 'writing' });
       try {
         const { data, response } = await api.POST('/api/agent/chat', {
           body: { userId: anonymousId(), threadId: thread.current, message, lang }
         });
         if (!data) {
-          const detail = response.status === 503 ? 'API 설정을 확인해 주세요.' : '요청을 확인해 주세요.';
-          throw new Error(detail + ' (' + response.status + ')');
+          update({ status: response.status === 503 ? 'unavailable' : 'invalid', httpStatus: response.status });
+          return;
         }
         thread.current = data.threadId;
-        update({ reply: data, status: '' });
-      } catch (error) {
-        update({ status: error instanceof Error ? error.message : '서버에 연결할 수 없습니다.' });
+        update({ reply: data, status: null });
+      } catch {
+        update({ status: 'offline' });
       }
     });
   }
 
   return <main className="agent-dev">
-    <header><img src={mark} alt="" /><h1>도파가키 상담</h1><small>개발용</small>
-      <select aria-label="답변 언어" value={lang} onChange={e => setLang(e.target.value === 'ja' ? 'ja' : 'ko')}>
+    <header><img src={mark} alt="" /><h1>{t.title}</h1><small>{t.dev}</small>
+      <select aria-label={t.language} value={lang} onChange={e => {
+        const next = e.target.value === 'ko' ? 'ko' : 'ja';
+        setLang(next);
+        saveSiteLanguage(next);
+        const url = new URL(location.href);
+        if (url.searchParams.has('lang')) {
+          url.searchParams.set('lang', next);
+          history.replaceState(history.state, '', url);
+        }
+      }}>
         <option value="ko">한국어</option><option value="ja">日本語</option>
       </select>
     </header>
@@ -77,18 +91,18 @@ export default function AgentDev() {
       const el = e.currentTarget;
       follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     }}>
-      {!turns.length && <section className="agent-welcome"><img src={mark} alt="" /><h2>어떤 시술을 찾고 계세요?</h2>
-        <p>관심 있는 시술과 지역, 예산을 알려 주세요.</p>
-        <button onClick={() => send('강남에서 슈링크를 받을 수 있는 병원과 가격을 알려 주세요.')}>강남 슈링크 가격 알아보기 <SvgIcon name="chevronRight" /></button>
+      {!turns.length && <section className="agent-welcome"><img src={mark} alt="" /><h2>{t.welcome}</h2>
+        <p>{t.intro}</p>
+        <button onClick={() => send(t.prompt)}>{t.example} <SvgIcon name="chevronRight" /></button>
       </section>}
       {turns.map(turn => <section key={turn.id} className="agent-turn">
         <p className="agent-user">{turn.message}</p>
-        {turn.reply ? <Reply reply={turn.reply} send={send} /> : <small role="status">{turn.status}</small>}
+        {turn.reply ? <Reply lang={lang} reply={turn.reply} send={send} /> : <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>}
       </section>)}
     </div>
     <form className="agent-composer" onSubmit={e => { e.preventDefault(); send(draft); setDraft(''); }}>
-      <input aria-label="메시지" placeholder="궁금한 점을 입력하세요" maxLength={2000} value={draft} onChange={e => setDraft(e.target.value)} />
-      <button disabled={!draft.trim()}>보내기</button>
+      <input aria-label={t.message} placeholder={t.placeholder} maxLength={2000} value={draft} onChange={e => setDraft(e.target.value)} />
+      <button disabled={!draft.trim()}>{t.send}</button>
     </form>
   </main>;
 }

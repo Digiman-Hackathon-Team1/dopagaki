@@ -4,13 +4,16 @@ import remarkGfm from 'remark-gfm';
 import type { Schemas } from '@repo/api-client';
 import { SvgIcon } from '@/components/SvgIcon';
 
+type Lang = Schemas['ChatRequest']['lang'];
 type Send = (message: string) => void;
 const exclusions = { needle: '바늘 시술 기피', downtime: '회복 기간 초과', area: '다른 지역', japanese: '일본어 미지원', budget: '예산 초과' };
+
+const japaneseExclusions = { needle: '針を使う施術', downtime: 'ダウンタイム超過', area: 'エリア外', japanese: '日本語非対応', budget: '予算超過' };
 
 type Choice = { selected: string[]; direct: boolean; custom: string };
 const emptyChoice: Choice = { selected: [], direct: false, custom: '' };
 
-function Questions({ items, send }: { items: Schemas['Question'][]; send: Send }) {
+function Questions({ items, send, lang }: { lang: Lang; items: Schemas['Question'][]; send: Send }) {
   const [choices, setChoices] = useState<Record<number, Choice>>({});
   const grouped = items.length > 1;
   const answers = items.map((item, i) => {
@@ -35,13 +38,13 @@ function Questions({ items, send }: { items: Schemas['Question'][]; send: Send }
         onClick={() => select(option)}>{option}</button>)}
       <button aria-pressed={choice.direct} onClick={() => change(i, {
         direct: !choice.direct, selected: item.multiSelect ? choice.selected : []
-      })}>직접 입력</button>
-      {choice.direct && <input aria-label={item.question} placeholder="답변을 입력하세요" maxLength={2000} value={choice.custom}
+      })}>{lang === 'ja' ? '自由入力' : '직접 입력'}</button>
+      {choice.direct && <input aria-label={item.question} placeholder={lang === 'ja' ? '回答を入力してください' : '답변을 입력하세요'} maxLength={2000} value={choice.custom}
         onChange={e => change(i, { custom: e.target.value })} />}
     </fieldset>;
   })}
     {(grouped || items[0]?.multiSelect || choices[0]?.direct) &&
-      <button disabled={answers.some(answer => !answer) || [...message].length > 2000} onClick={() => send(message)}>답변 보내기</button>}
+      <button disabled={answers.some(answer => !answer) || [...message].length > 2000} onClick={() => send(message)}>{lang === 'ja' ? '回答を送信' : '답변 보내기'}</button>}
   </div>;
 }
 
@@ -50,35 +53,43 @@ const priceLabels = {
   app_benefit: '앱 혜택', anesthesia: '마취비 확인', extra_fee: '추가 비용'
 };
 
-function Card({ card }: { card: Schemas['RecommendationCard'] }) {
-  const n = (value: number) => value.toLocaleString('ko-KR');
-  return <article className="agent-card"><small>{card.stationKo} · {card.area}{card.japaneseSupport && ' · 일본어 지원'}</small>
-    <h3>{card.clinicNameKo} · {card.menuNameKo}</h3><strong>{n(card.totalKrw)}원</strong> · {n(card.totalJpy)}엔
-    <p>일본 평균 {n(card.jpAverageJpy)}엔 대비 {n(Math.abs(card.savingsJpy))}엔 ({Math.abs(card.savingsPct)}%) {card.savingsJpy < 0 ? '높음' : '절약'}</p>
-    {card.priceTags.length > 0 && <p className="agent-tags">{card.priceTags.map(tag => <span key={tag}>{priceLabels[tag]}</span>)}</p>}
+const japaneseTags = {
+  first_visit: '初回限定', event: 'キャンペーン', day_limited: '曜日限定',
+  app_benefit: 'アプリ特典', anesthesia: '麻酔料要確認', extra_fee: '追加料金'
+};
+
+function Card({ card, lang }: { lang: Lang; card: Schemas['RecommendationCard'] }) {
+  const ja = lang === 'ja';
+  const n = (value: number) => value.toLocaleString(lang);
+  const won = ja ? 'ウォン' : '원';
+  const yen = ja ? '円' : '엔';
+  return <article className="agent-card"><small>{ja ? card.stationJa : card.stationKo} · {card.area}{card.japaneseSupport && (ja ? ' · 日本語対応' : ' · 일본어 지원')}</small>
+    <h3>{ja ? card.clinicNameJa : card.clinicNameKo} · {ja ? card.menuNameJa : card.menuNameKo}</h3><strong>{n(card.totalKrw)}{won}</strong> · {n(card.totalJpy)}{yen}
+    <p>{ja ? '日本の平均' : '일본 평균'} {n(card.jpAverageJpy)}{ja ? '円より' : '엔 대비'} {n(Math.abs(card.savingsJpy))}{yen} ({Math.abs(card.savingsPct)}%) {card.savingsJpy < 0 ? (ja ? '割高' : '높음') : (ja ? 'お得' : '절약')}</p>
+    {card.priceTags.length > 0 && <p className="agent-tags">{card.priceTags.map(tag => <span key={tag}>{ja ? japaneseTags[tag] : priceLabels[tag]}</span>)}</p>}
     {card.reason && <p>{card.reason}</p>}
-    <details><summary>가격 조건과 비교 근거</summary>
-      <p>{card.clinicNameJa} · {card.menuNameJa} · {card.stationJa}</p>
-      <p>표시가 {n(card.baseKrw)}원 · 추가 부가세 {n(card.vatKrw)}원</p>
-      <p>일본 {card.jpClinicCount}곳 · {n(card.jpMinJpy)}~{n(card.jpMaxJpy)}엔 · 환율 {card.fxDateLabel} 기준 100엔당 {n(card.krwPer100Jpy)}원</p>
-      {card.distanceMeters !== null && <p>직선거리 {n(card.distanceMeters)}m {card.walkMinutes !== null && '· 도보 약 ' + card.walkMinutes + '분'}</p>}
-      <p>{card.priceConditionKo} {card.priceNoteKo}</p>
-      {/^https?:\/\//i.test(card.sourceUrl) && <a href={card.sourceUrl} target="_blank" rel="noreferrer">공식 가격 확인 <SvgIcon name="external" /></a>}
+    <details><summary>{ja ? '料金条件と比較の根拠' : '가격 조건과 비교 근거'}</summary>
+      <p>{ja ? card.clinicNameKo : card.clinicNameJa} · {ja ? card.menuNameKo : card.menuNameJa} · {ja ? card.stationKo : card.stationJa}</p>
+      <p>{ja ? '表示価格' : '표시가'} {n(card.baseKrw)}{won} · {ja ? '追加の付加価値税' : '추가 부가세'} {n(card.vatKrw)}{won}</p>
+      <p>{ja ? '日本' : '일본'} {card.jpClinicCount}{ja ? '院' : '곳'} · {n(card.jpMinJpy)}~{n(card.jpMaxJpy)}{yen} · {ja ? '為替' : '환율'} {card.fxDateLabel} {ja ? '時点、100円につき' : '기준 100엔당'} {n(card.krwPer100Jpy)}{won}</p>
+      {card.distanceMeters !== null && <p>{ja ? '直線距離' : '직선거리'} {n(card.distanceMeters)}m {card.walkMinutes !== null && (ja ? '· 徒歩約' : '· 도보 약 ') + card.walkMinutes + (ja ? '分' : '분')}</p>}
+      <p>{ja ? card.priceConditionJa : card.priceConditionKo} {ja ? card.priceNoteJa : card.priceNoteKo}</p>
+      {/^https?:\/\//i.test(card.sourceUrl) && <a href={card.sourceUrl} target="_blank" rel="noreferrer">{ja ? '公式料金を確認' : '공식 가격 확인'} <SvgIcon name="external" /></a>}
     </details>
   </article>;
 }
 
-export function Reply({ reply, send }: { reply: Schemas['ChatResponse']; send: Send }) {
+export function Reply({ reply, send, lang }: { lang: Lang; reply: Schemas['ChatResponse']; send: Send }) {
   return <div className="agent-reply">
     {reply.conditionSummary && <p className="agent-summary">{reply.conditionSummary}</p>}
     <div className="agent-markdown"><Markdown remarkPlugins={[remarkGfm]} skipHtml>{reply.answer}</Markdown></div>
-    {reply.cards.map(card => card.kind === 'recommendation' && <Card key={card.searchId + ':' + card.cardId} card={card} />)}
-    {reply.exclusions.length > 0 && <details><summary>추천에서 제외된 병원</summary>{reply.exclusions.map(e =>
-      <p key={[e.searchId,e.menuId,e.reason].join(':')}>{e.searchId} · {e.menuId} · {exclusions[e.reason]} · {e.clinicCount}곳</p>)}</details>}
-    {reply.questions.length > 0 && <Questions items={reply.questions} send={send} />}
+    {reply.cards.map(card => card.kind === 'recommendation' && <Card lang={lang} key={card.searchId + ':' + card.cardId} card={card} />)}
+    {reply.exclusions.length > 0 && <details><summary>{lang === 'ja' ? '候補から除外したクリニック' : '추천에서 제외된 병원'}</summary>{reply.exclusions.map(e =>
+      <p key={[e.searchId,e.menuId,e.reason].join(':')}>{e.searchId} · {e.menuId} · {lang === 'ja' ? japaneseExclusions[e.reason] : exclusions[e.reason]} · {e.clinicCount}{lang === 'ja' ? '院' : '곳'}</p>)}</details>}
+    {reply.questions.length > 0 && <Questions lang={lang} items={reply.questions} send={send} />}
     {reply.cautions.map(text => <p key={text}><SvgIcon name="info" /> {text}</p>)}
     <small>{reply.disclaimer}</small>
-    {reply.suggestions.length > 0 && <section><h3>이어서 물어보기</h3>{reply.suggestions.map(s =>
+    {reply.suggestions.length > 0 && <section><h3>{lang === 'ja' ? '続けて質問する' : '이어서 물어보기'}</h3>{reply.suggestions.map(s =>
       <button key={s} onClick={() => send(s)}>{s} <SvgIcon name="chevronRight" /></button>)}</section>}
   </div>;
 }

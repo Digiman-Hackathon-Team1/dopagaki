@@ -20,6 +20,7 @@ import {
   buildRankedRows,
   isPointInSouthKorea
 } from '@/lib/calc.ts';
+import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
 import { getCopy } from '@/lib/i18n.ts';
 import { triggerHaptic } from '@/lib/fluid.ts';
 import { createBrandDopamineBurst } from '@/components/dopamine-burst.ts';
@@ -61,7 +62,7 @@ const TOTAL_CLINIC_COUNT = dataset.places.length;
 const TOTAL_BRAND_COUNT = new Set(dataset.places.map((p) => p.brandJa)).size;
 const initialNaverFx = rawNaverFx as unknown as NaverFxSnapshot;
 
-const STORAGE_LANG_KEY = 'seoul_payback_lang';
+
 const SESSION_LOC_KEY = 'dopagaki_user_loc_v1';
 const APP_BASE_PATH = detectAppBasePath(window.location.pathname);
 
@@ -226,16 +227,7 @@ function ClinicApp() {
     initialNaverFx.krwPer100Jpy || dataset.meta.defaultKrwPer100Jpy
   );
 
-  const [lang, setLang] = useState<Lang>(() => {
-    if (initialQuery.langParam === 'ko' || initialQuery.langParam === 'ja') {
-      return initialQuery.langParam;
-    }
-    try {
-      return localStorage.getItem(STORAGE_LANG_KEY) === 'ko' ? 'ko' : 'ja';
-    } catch {
-      return 'ja';
-    }
-  });
+  const [lang, setLang] = useState<Lang>(() => readSiteLanguage(initialQuery.langParam));
   const [menuId, setMenuId] = useState<string>(initialQuery.menuId);
   const [area, setArea] = useState<AreaId>(initialQuery.area);
   const [sort, setSort] = useState<SortId>(initialQuery.sort);
@@ -662,11 +654,7 @@ function ClinicApp() {
     triggerHaptic(6);
     setLang(nextLang);
     setShareLang(nextLang);
-    try {
-      localStorage.setItem(STORAGE_LANG_KEY, nextLang);
-    } catch {
-      // ignore
-    }
+    saveSiteLanguage(nextLang);
   };
 
   const goToDefaultHome = () => {
