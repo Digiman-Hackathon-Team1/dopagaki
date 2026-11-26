@@ -300,6 +300,29 @@
             "type": "string",
             "title": "Sourceurl",
             "description": "일본 병원 공식 가격 출처"
+          },
+          "productNoteJa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteja",
+            "description": "이 일본 병원 가격이 한국 시술과 다른 제품일 때의 안내. 예: SBC 리쥬란은 힐러가 아니라 같은 성분 농도의 눈가용 리쥬란 i 가격이다. 같은 제품이면 null"
+          },
+          "productNoteKo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteko"
           }
         },
         "additionalProperties": false,
@@ -310,7 +333,9 @@
           "planJa",
           "planKo",
           "priceJpy",
-          "sourceUrl"
+          "sourceUrl",
+          "productNoteJa",
+          "productNoteKo"
         ],
         "title": "JpClinicPrice",
         "description": "사용자가 다니던 일본 병원의 가격. 데이터의 일본 벤치마크 병원 한 곳이다(설계 문서 4.7)."
@@ -344,6 +369,29 @@
             "title": "Sourceurl",
             "description": "일본 병원 공식 가격 출처"
           },
+          "productNoteJa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteja",
+            "description": "이 일본 병원 가격이 한국 시술과 다른 제품일 때의 안내. 예: SBC 리쥬란은 힐러가 아니라 같은 성분 농도의 눈가용 리쥬란 i 가격이다. 같은 제품이면 null"
+          },
+          "productNoteKo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteko"
+          },
           "savingsJpy": {
             "type": "integer",
             "title": "Savingsjpy",
@@ -363,6 +411,8 @@
           "planKo",
           "priceJpy",
           "sourceUrl",
+          "productNoteJa",
+          "productNoteKo",
           "savingsJpy",
           "savingsPct"
         ],

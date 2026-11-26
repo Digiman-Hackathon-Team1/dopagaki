@@ -18,6 +18,11 @@ from api.agent.schemas import (
     JpClinicSavings,
     RecommendationCardData,
 )
+from api.agent.tools.match_jp_treatment import (
+    jp_clinic_not_found,
+    jp_clinic_price,
+    product_note_line,
+)
 from api.domain.calc import (
     PriceRow,
     SortId,
@@ -111,7 +116,7 @@ class SearchClinicsInput(BaseModel):
         max_length=50,
         description=(
             "사용자가 다니던 일본 병원과 직접 비교할 때만 쓴다. match_jp_treatment 결과의 jp_clinic 이름을 "
-            "그대로 넣거나, 사용자가 말한 일본 병원 이름을 넣는다(예: '品川', 'SBC'). 그 병원의 이 시술 "
+            "그대로 넣거나, 사용자가 말한 일본 병원 이름을 지점 이름 없이 넣는다(예: '品川', 'SBC'). 그 병원의 이 시술 "
             "가격이 데이터에 있으면 카드마다 그 가격 대비 절약액이 붙는다. 말하지 않았으면 null"
         ),
     )
@@ -203,7 +208,7 @@ DESCRIPTION = f"""\
 지점(clinic_name)이 서로 다른 대상을 부르면 비교로 보고 모두 나간다. 비교할 때는 대상마다 한 번씩 부른다.
 쓰면 안 되는 경우: 아래 목록에 없는 시술(필러, 실 리프팅 등)이나 시술을 아직 정하지 않았을 때.
 시술명 없이 고민만 말했으면 recommend_treatments를 먼저 부른다. 아래 목록과 다른 일본 시술명(ハイフ, HIFU,
-ブナジュ 등)으로 물었으면 match_jp_treatment를 먼저 부르고, menu_id를 직접 짐작하지 않는다.
+ブナジュ, 하이후 등)으로 물었으면 match_jp_treatment를 먼저 부르고, menu_id를 직접 짐작하지 않는다.
 시술 목록:
 {_menu_lines()}"""
 
@@ -217,12 +222,7 @@ def get_fx_provider() -> FxProvider:
 def _jp_clinic_savings(benchmark: JpBenchmark, row: PriceRow) -> JpClinicSavings:
     savings_jpy, savings_pct = savings_against(benchmark.price_jpy, row.total_jpy)
     return JpClinicSavings(
-        name_ja=benchmark.name_ja,
-        name_ko=benchmark.name_ko,
-        plan_ja=benchmark.plan_ja,
-        plan_ko=benchmark.plan_ko,
-        price_jpy=benchmark.price_jpy,
-        source_url=benchmark.url,
+        **jp_clinic_price(benchmark).model_dump(),
         savings_jpy=savings_jpy,
         savings_pct=savings_pct,
     )
@@ -447,6 +447,7 @@ def _jp_reference(menu: Menu, jp_clinic: str | None) -> tuple[JpBenchmark | None
             f"Direct comparison: the user's Japanese clinic {b.name_ja} / {b.name_ko}, "
             f"{b.plan_ja} ¥{b.price_jpy:,} (tax incl.). Each card also shows savings against it. "
             f"Its unit may differ from {menu.name_ko}; if so, say so."
+            + product_note_line(b)
         )
     if result.status == "ambiguous":
         listed = "; ".join(f"{b.name_ja} ({b.plan_ja})" for b in result.benchmarks)
@@ -454,10 +455,7 @@ def _jp_reference(menu: Menu, jp_clinic: str | None) -> tuple[JpBenchmark | None
             f"jp_clinic {jp_clinic!r} matches several Japanese clinics: {listed}. No direct "
             "comparison; ask which one and compare with the Japan average meanwhile."
         )
-    return None, (
-        f"No price for this treatment at the Japanese clinic {jp_clinic!r} in the data, so "
-        "there is no direct comparison. Tell the user savings are against the Japan average."
-    )
+    return None, jp_clinic_not_found(menu, jp_clinic)
 
 
 def _no_clinic_note(clinic_name: str, tokens: list[str], menu_id: str) -> str:

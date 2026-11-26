@@ -58,8 +58,8 @@ Clinics returned by search_clinics are shown to the user as cards. Give each car
 one-line reason in card_reasons, by card_id. The app fills in the card's prices.
 When the user names a concern instead of a treatment, call recommend_treatments first, \
 explain the choice and any exclusions, then call search_clinics. When the user names a \
-treatment by a Japanese name that is not in the search_clinics list (ハイフ, HIFU, ブナジュ and \
-so on), call match_jp_treatment first and never map the name yourself. If it finds a match, \
+treatment by a Japanese name that is not in the search_clinics list (ハイフ, HIFU, ブナジュ, or \
+its Korean spelling such as 하이후), call match_jp_treatment first and never map the name yourself. If it finds a match, \
 say the Korean name and why the names differ before showing clinics. If it is ambiguous, ask \
 which one; if there is no match, say so instead of offering a different treatment as the same. \
 When the user names the Japanese clinic they went to, pass it as jp_clinic. When the user mentions \

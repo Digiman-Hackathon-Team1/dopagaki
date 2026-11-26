@@ -15,6 +15,7 @@ from api.agent.schemas import JpClinicPrice, JpMatchCardData
 from api.domain.catalog import JpBenchmark, Menu, get_catalog
 from api.domain.jp_names import (
     UNIT_NOTES,
+    compare_note,
     find_jp_clinic,
     get_jp_names,
     menus_with_jp_clinic,
@@ -36,8 +37,8 @@ class MatchJpTreatmentInput(BaseModel):
         default=None,
         max_length=50,
         description=(
-            "사용자가 다니던(가격을 아는) 일본 병원 이름. 사용자가 말한 그대로. 예: '品川', 'SBC', '湘南美容'. "
-            "말하지 않았으면 null"
+            "사용자가 다니던(가격을 아는) 일본 병원 이름. 지점 이름은 빼고 병원 이름만 넣는다. "
+            "예: '品川', 'SBC', '湘南美容クリニック'. 말하지 않았으면 null"
         ),
     )
 
@@ -51,6 +52,7 @@ class MatchJpTreatmentArtifact(BaseModel):
 
 
 def jp_clinic_price(benchmark: JpBenchmark) -> JpClinicPrice:
+    note = compare_note(benchmark)
     return JpClinicPrice(
         name_ja=benchmark.name_ja,
         name_ko=benchmark.name_ko,
@@ -58,7 +60,17 @@ def jp_clinic_price(benchmark: JpBenchmark) -> JpClinicPrice:
         plan_ko=benchmark.plan_ko,
         price_jpy=benchmark.price_jpy,
         source_url=benchmark.url,
+        product_note_ja=note.ja if note else None,
+        product_note_ko=note.ko if note else None,
     )
+
+
+def product_note_line(benchmark: JpBenchmark) -> str:
+    """직접 비교할 일본 병원 가격이 다른 제품이면 LLM이 답변에 함께 말하도록 알린다."""
+    note = compare_note(benchmark)
+    if note is None:
+        return ""
+    return f" Product difference, tell the user: {note.ko} / {note.ja}"
 
 
 def _menu_label(menu: Menu) -> str:
@@ -78,7 +90,8 @@ def _jp_clinic_lines(menu: Menu, name: str) -> tuple[list[str], JpClinicPrice | 
     if result.status == "found":
         benchmark = result.benchmarks[0]
         return [
-            f"User's Japanese clinic: {_clinic_label(benchmark)}.",
+            f"User's Japanese clinic: {_clinic_label(benchmark)}."
+            + product_note_line(benchmark),
             (
                 f"Pass jp_clinic={benchmark.name_ja!r} to search_clinics. Each clinic card will "
                 "then show savings against this clinic, calculated by the app. Do not calculate "
@@ -98,25 +111,44 @@ def _jp_clinic_lines(menu: Menu, name: str) -> tuple[list[str], JpClinicPrice | 
                 "the Japan average."
             )
         ], None
-    others = [m for m in menus_with_jp_clinic(name) if m.id != menu.id]
+    return [jp_clinic_not_found(menu, name)], None
+
+
+def jp_clinic_not_found(menu: Menu, name: str) -> str:
+    """사용자가 말한 일본 병원이 이 시술의 일본 벤치마크 병원에 없을 때 LLM에 줄 문장."""
+    listed = ", ".join(b.name_ja for b in menu.jp_benchmarks)
     line = (
-        f"The data has no price for {menu.name_ko} at the Japanese clinic {name!r}, "
-        "so a direct comparison is not possible. Compare with the Japan average and tell the user."
+        f"No Japanese clinic matching {name!r} is among the clinics with a {menu.name_ko} price "
+        f"in the data ({listed}), so a direct comparison is not possible. Compare with the Japan "
+        "average and tell the user. If the user may mean one of these clinics, ask."
     )
+    others = [m for m in menus_with_jp_clinic(name) if m.id != menu.id]
     if others:
         line += (
-            " That clinic has prices for: " + ", ".join(m.name_ko for m in others) + "."
+            f" A clinic matching {name!r} has prices for: "
+            + ", ".join(m.name_ko for m in others)
+            + "."
         )
-    return [line], None
+    return line
+
+
+def _pending_clinic(jp_clinic: str | None) -> str:
+    """시술이 정해지지 않아 일본 병원 가격을 아직 찾지 않았을 때, 다음 호출에 다시 넘기도록 알린다."""
+    if not jp_clinic or not jp_clinic.strip():
+        return ""
+    return (
+        f"\nThe user's Japanese clinic {jp_clinic!r} was not looked up because the treatment is "
+        "not settled. Pass it again as jp_clinic once the treatment is confirmed."
+    )
 
 
 DESCRIPTION = """\
-일본에서 쓰는 시술 이름(ハイフ, HIFU, ブナジュ, エラボトックス 등)을 서울 가격 데이터의 한국 시술로 바꾼다.
+일본에서 쓰는 시술 이름(ハイフ·하이후, HIFU, ブナジュ, エラボトックス 등)을 서울 가격 데이터의 한국 시술로 바꾼다.
 필수 입력: query(사용자가 말한 일본 시술명 그대로). 사용자가 다니던 일본 병원을 말했으면 jp_clinic에 넣는다(기본 null).
 시술명이 search_clinics 시술 목록의 이름과 다르면 search_clinics보다 먼저 부른다. 대응을 직접 짐작하지 않는다.
 결과가 found면 한국 이름과 이름이 다른 이유를 먼저 말하고, 결과의 menu_id로 search_clinics를 부른다.
 찾은 대응은 화면에 카드로 나간다. ambiguous면 search_clinics를 부르지 말고 후보를 빠른 답변 버튼으로
-"혹시 ○○를 말씀하시는 거예요?"라고 한 번 묻는다. unknown이면 대응 시술이 없다고 말하고, 고민 기준 추천으로
+"혹시 ○○를 말씀하시는 거예요?"라고 한 번 묻는다. 한 문장에 시술이 여러 개면 시술마다 따로 부른다. unknown이면 대응 시술이 없다고 말하고, 고민 기준 추천으로
 넘어갈지 묻는다.
 쓰면 안 되는 경우: 시술명이 아닌 고민만 말했을 때(recommend_treatments를 쓴다), 이미 이번 대화에서 확인한 시술."""
 
@@ -139,7 +171,9 @@ def match_jp_treatment(query: str, jp_clinic: str | None = None) -> tuple[str, d
             "matching treatment in Dopagaki's price data, and ask whether to recommend treatments by "
             "their concern instead (recommend_treatments)."
         )
-        return message, MatchJpTreatmentArtifact(status="unknown").model_dump()
+        return message + _pending_clinic(jp_clinic), MatchJpTreatmentArtifact(
+            status="unknown"
+        ).model_dump()
 
     if result.status == "ambiguous":
         candidates = [catalog.menu(i) for i in result.menu_ids]
@@ -169,7 +203,7 @@ def match_jp_treatment(query: str, jp_clinic: str | None = None) -> tuple[str, d
                     "quick answer option."
                 ),
             ]
-        return "\n".join(lines), MatchJpTreatmentArtifact(
+        return "\n".join(lines) + _pending_clinic(jp_clinic), MatchJpTreatmentArtifact(
             status="ambiguous", candidates=list(result.menu_ids)
         ).model_dump()
 

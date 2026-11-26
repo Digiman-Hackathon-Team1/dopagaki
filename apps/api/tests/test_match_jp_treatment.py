@@ -58,13 +58,16 @@ def test_found_with_jp_clinic_returns_that_clinic_price() -> None:
         "plan_ko": SHINAGAWA.plan_ko,
         "price_jpy": SHINAGAWA.price_jpy,
         "source_url": SHINAGAWA.url,
+        "product_note_ja": None,
+        "product_note_ko": None,
     }
 
 
 def test_jp_clinic_without_price_for_menu_says_no_direct_comparison() -> None:
     message = match(query="ハイフ", jp_clinic="TAクリニック")
 
-    assert "no price for" in message.content
+    assert "direct comparison is not possible" in message.content
+    assert "品川美容外科" in message.content  # 이 시술 가격이 있는 일본 병원 목록
     assert "Japan average" in message.content
     assert "사각턱 보톡스" in message.content  # 그 병원 가격이 있는 시술
     assert message.artifact["match"]["jp_clinic"] is None
@@ -141,7 +144,7 @@ def test_search_with_unknown_jp_clinic_keeps_average_only() -> None:
     message = search(menu_id="shrink-300", jp_clinic="TAクリニック")
 
     assert all(c.jp_clinic is None for c in cards(message))
-    assert "no direct comparison" in message.content
+    assert "direct comparison is not possible" in message.content
 
 
 def test_search_with_ambiguous_jp_clinic_keeps_average_only() -> None:
@@ -153,3 +156,43 @@ def test_search_with_ambiguous_jp_clinic_keeps_average_only() -> None:
 
 def test_search_without_jp_clinic_has_null_direct_comparison() -> None:
     assert all(c.jp_clinic is None for c in cards(search(menu_id="shrink-300")))
+
+
+def test_jp_clinic_is_kept_for_next_call_when_treatment_is_not_settled() -> None:
+    for query in ("ボトックス", "ダーマペン"):
+        message = match(query=query, jp_clinic="SBC")
+        assert "'SBC' was not looked up" in message.content
+        assert "Pass it again as jp_clinic" in message.content
+
+
+def test_search_with_wrong_clinic_name_does_not_compare_with_another_clinic() -> None:
+    """'Aクリニック'은 TAクリニック이 아니다. 다른 병원 가격으로 절약액을 내지 않는다."""
+    message = search(menu_id="jaw-botox", jp_clinic="Aクリニック")
+
+    assert all(c.jp_clinic is None for c in cards(message))
+    assert "TAクリニック" not in message.content.split("Top")[1]
+
+
+def test_sbc_rejuran_price_is_compared_with_product_note() -> None:
+    """SBC는 리쥬란 힐러가 없고 데이터 가격은 같은 PN 2%의 눈가용 リジュランi다. 비교하되 차이를 알린다."""
+    message = match(query="リジュラン", jp_clinic="SBC")
+
+    clinic = message.artifact["match"]["jp_clinic"]
+    assert (clinic["plan_ja"], clinic["price_jpy"]) == (
+        "リジュランi 1cc ¥27,800 × 2",
+        55600,
+    )
+    assert "눈가용 리쥬란 i" in clinic["product_note_ko"]
+    assert "Product difference, tell the user" in message.content
+
+    searched = search(menu_id="rejuran-2cc", jp_clinic=clinic["name_ja"])
+    assert all(
+        c.jp_clinic.product_note_ko == clinic["product_note_ko"]
+        for c in cards(searched)
+    )
+    assert "Product difference" in searched.content
+
+
+def test_same_product_has_no_product_note() -> None:
+    result = cards(search(menu_id="shrink-300", jp_clinic="品川"))
+    assert all(c.jp_clinic.product_note_ko is None for c in result)

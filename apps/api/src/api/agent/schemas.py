@@ -104,6 +104,13 @@ class JpClinicPrice(ResponseModel):
     plan_ko: str
     price_jpy: int = Field(description="세금 포함 공식가(엔)")
     source_url: str = Field(description="일본 병원 공식 가격 출처")
+    product_note_ja: str | None = Field(
+        description=(
+            "이 일본 병원 가격이 한국 시술과 다른 제품일 때의 안내. 예: SBC 리쥬란은 힐러가 아니라 "
+            "같은 성분 농도의 눈가용 리쥬란 i 가격이다. 같은 제품이면 null"
+        )
+    )
+    product_note_ko: str | None
 
 
 class JpClinicSavings(JpClinicPrice):
