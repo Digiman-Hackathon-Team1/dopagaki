@@ -11,7 +11,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
 from api.agent.config import AgentSettings, get_settings
-from api.agent.graph import build_graph
+from api.agent.graph import build_graph, read_reply
 from api.agent.schemas import ChatRequest, ChatResponse, Lang, Question
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -71,7 +71,7 @@ def post_agent_chat(
         {"messages": [HumanMessage(body.message)], "lang": body.lang},
         config,
     )
-    reply = state["reply"]
+    reply = read_reply(state)
     return ChatResponse(
         thread_id=thread_id,
         condition_summary=reply.condition_summary,
