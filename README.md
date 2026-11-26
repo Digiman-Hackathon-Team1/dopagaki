@@ -64,3 +64,24 @@ pnpm dev --filter=@repo/web
 4. 테스트가 끝나면 `develop`에서 `main`으로 PR을 만들어 머지합니다.
 
 작업 브랜치를 `main`에 바로 머지하지 않습니다.
+
+## 배포 (Railway)
+
+같은 레포에서 서비스 두 개를 만든다. 두 서비스 모두 Root Directory는 비워 두고(레포 루트), Config File Path만 지정한다.
+
+| 서비스 | Config File Path | 변수 |
+| --- | --- | --- |
+| `api` | `/apps/api/railway.json` | `PORT=8000` |
+| `web` | `/apps/web/railway.json` | `API_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
+
+- 두 서비스 모두 Settings → Networking → Generate Domain으로 `*.up.railway.app` 주소를 받는다.
+- web은 `/api` 요청을 내부 네트워크로 api 서비스에 넘긴다. 브라우저는 web 주소 하나만 쓰므로 CORS 설정이 필요 없다.
+- web 빌드는 병원 가격표 이미지를 원본 레포에서 받아 포함한다.
+- 선택 변수: web의 `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, `VITE_CONCIERGE_API` (빌드 때 들어간다).
+
+로컬에서 배포 이미지를 확인하려면:
+
+```bash
+docker build -f apps/api/Dockerfile -t dopagaki-api .
+docker build -f apps/web/Dockerfile -t dopagaki-web .
+```
