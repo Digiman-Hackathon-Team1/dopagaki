@@ -112,6 +112,12 @@ export interface components {
              * @description 이 사유로 빠진 병원 수
              */
             clinicCount: number;
+            /**
+             * Searchid
+             * @description 어느 검색의 제외 사유인지. 같은 턴의 카드 searchId와 같다
+             * @default
+             */
+            searchId: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -252,6 +258,11 @@ export interface components {
              * @constant
              */
             kind: "recommendation";
+            /**
+             * Searchid
+             * @description 어느 검색의 카드인지. 지점·지역을 비교하면 검색마다 값이 다르므로 화면이 묶어 보여 줄 수 있다
+             */
+            searchId: string;
             /**
              * Reason
              * @description LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null

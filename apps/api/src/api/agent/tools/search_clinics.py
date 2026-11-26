@@ -13,7 +13,13 @@ from pydantic import BaseModel, Field
 
 from api.agent.config import get_settings
 from api.agent.schemas import ExcludeReason, Exclusion, RecommendationCardData
-from api.domain.calc import PriceRow, SortId, is_point_in_south_korea, rank_rows
+from api.domain.calc import (
+    PriceRow,
+    SortId,
+    is_point_in_south_korea,
+    matches_place,
+    rank_rows,
+)
 from api.domain.catalog import AreaId, Fx, GeoPoint, get_catalog
 from api.domain.fx import FxProvider
 from api.domain.price_tags import price_tags
@@ -82,19 +88,52 @@ class SearchClinicsInput(BaseModel):
             "지어내지 않는다. 그런 도구가 없으면 null로 둔다. null이면 거리는 표시되지 않는다"
         ),
     )
+    clinic_name: str | None = Field(
+        default=None,
+        max_length=50,
+        description=(
+            "특정 병원·지점을 찾을 때만 쓴다. 병원 이름·브랜드·주소·역 이름의 단어를 공백으로 "
+            "나눠 적으면 모든 단어가 들어간 지점만 찾는다. 예: '밴스 홍대', 'バンス 明洞', '블리비'. "
+            "지점끼리 비교할 때는 지점마다 따로 부른다. 지점을 말하지 않았으면 null"
+        ),
+    )
     limit: int = Field(default=3, ge=1, le=10, description="돌려줄 병원 수. 기본 3")
+
+
+class SearchTarget(BaseModel):
+    """검색이 무엇을 대상으로 했는지. 같은 턴의 검색이 비교인지 재검색인지 가릴 때 쓴다(ADR 0009)."""
+
+    area: AreaId | None = None
+    origin: GeoPoint | None = None
+    clinic_tokens: list[str] = Field(default_factory=list)
+
+    def compares_with(self, other: "SearchTarget") -> bool:
+        """서로 다른 지역·기준 위치·지점을 지정했으면 비교 검색이다.
+
+        한쪽만 지정했거나(전체 → 강남) 지점 이름이 더 좁아졌으면(밴스 → 밴스 홍대) 재검색이다.
+        """
+        if self.area and other.area and self.area != other.area:
+            return True
+        if self.origin and other.origin and self.origin != other.origin:
+            return True
+        mine, theirs = set(self.clinic_tokens), set(other.clinic_tokens)
+        return bool(mine and theirs and not (mine <= theirs or theirs <= mine))
 
 
 class SearchClinicsArtifact(BaseModel):
     """화면용 결과(LLM에는 보내지 않음). finalize가 이걸로 카드를 조립한다."""
 
     menu_id: str
+    # 검색을 구분하는 값. 그래프가 도구 호출 ID로 채운다.
+    search_id: str = ""
+    target: SearchTarget = Field(default_factory=SearchTarget)
     cards: list[RecommendationCardData]
     exclusions: list[Exclusion]
 
 
 def _artifact(
     menu_id: str,
+    target: SearchTarget,
     cards: list[RecommendationCardData],
     excluded: Counter[ExcludeReason],
 ) -> dict:
@@ -104,7 +143,7 @@ def _artifact(
         for reason, count in excluded.items()
     ]
     return SearchClinicsArtifact(
-        menu_id=menu_id, cards=cards, exclusions=exclusions
+        menu_id=menu_id, target=target, cards=cards, exclusions=exclusions
     ).model_dump()
 
 
@@ -121,7 +160,8 @@ DESCRIPTION = f"""\
 가격·엔화 환산·일본 대비 절약액은 web 순위표와 같은 계산이다. 답변의 금액은 이 결과만 쓴다.
 필수 입력: menu_id. 기본값: 절약액 순, 상위 3곳, 예산·회복 기간·지역 제한 없음.
 결과의 병원은 모두 카드로 화면에 나간다. card_reasons에 card_id마다 추천 이유 한 줄을 쓴다.
-같은 턴에 같은 시술을 다시 부르면 마지막 결과의 카드만 나간다.
+같은 턴에 같은 시술을 다시 부르면 마지막 결과의 카드만 나간다. 단, 지역·기준 위치·지점(clinic_name)을
+서로 다르게 지정한 검색은 비교로 보고 모두 나간다. 지점이나 지역을 비교할 때는 대상마다 한 번씩 부른다.
 쓰면 안 되는 경우: 아래 목록에 없는 시술(필러, 실 리프팅 등)이나 시술을 아직 정하지 않았을 때.
 시술 목록:
 {_menu_lines()}"""
@@ -205,27 +245,40 @@ def search_clinics(
     japanese_only: bool = False,
     area: AreaId | None = None,
     origin: GeoPoint | None = None,
+    clinic_name: str | None = None,
     limit: int = 3,
 ) -> tuple[str, dict]:
     catalog = get_catalog()
     fx = get_fx_provider().current()
     menu = catalog.menu(menu_id)
     name = f"{menu.name_ko} / {menu.name_ja}"
+    has_origin = is_point_in_south_korea(origin)
+    tokens = (clinic_name or "").strip().lower().split()
+    target = SearchTarget(
+        area=area, origin=origin if has_origin else None, clinic_tokens=tokens
+    )
 
-    # 시술 단위 거르기: 맞지 않으면 지역·일본어 조건에 맞는 이 시술 병원이 모두 빠진다.
+    # 시술 단위 거르기: 맞지 않으면 지역·일본어·지점 조건에 맞는 이 시술 병원이 모두 빠진다.
     def offered() -> int:
-        return len(rank_rows(catalog, menu_id, japanese_only=japanese_only, area=area))
+        return len(
+            rank_rows(
+                catalog,
+                menu_id,
+                japanese_only=japanese_only,
+                area=area,
+                search_query=clinic_name,
+            )
+        )
 
     if avoid_needle and menu.uses_needle:
         message = f"{name} uses a needle, so it is excluded. No clinics returned."
-        return message, _artifact(menu_id, [], Counter(needle=offered()))
+        return message, _artifact(menu_id, target, [], Counter(needle=offered()))
     if max_downtime_days is not None and menu.downtime_max_days > max_downtime_days:
         reason = (
             f"{name} can show visible downtime for up to {menu.downtime_max_days} days, "
             f"more than the allowed {max_downtime_days}. No clinics returned."
         )
-        return reason, _artifact(menu_id, [], Counter(downtime=offered()))
-    has_origin = is_point_in_south_korea(origin)
+        return reason, _artifact(menu_id, target, [], Counter(downtime=offered()))
     if sort == "distance" and not has_origin:
         raise ValueError(
             "sort=distance needs an origin inside South Korea from a location tool. "
@@ -236,8 +289,14 @@ def search_clinics(
     # 병원 단위 거르기. 정렬된 순서를 유지하며 처음 걸린 이유를 센다.
     excluded: Counter[ExcludeReason] = Counter()
     kept: list[PriceRow] = []
+    # 지점 이름은 거르기 조건이 아니라 찾을 대상이므로, 이름에 맞지 않는 병원은 제외 수에 넣지 않는다.
     rows = rank_rows(
-        catalog, menu_id, sort=sort, origin=origin, krw_per_100_jpy=fx.krw_per_100_jpy
+        catalog,
+        menu_id,
+        sort=sort,
+        origin=origin,
+        krw_per_100_jpy=fx.krw_per_100_jpy,
+        search_query=clinic_name,
     )
     for row in rows:
         if area is not None and row.place.area != area:
@@ -265,7 +324,9 @@ def search_clinics(
             f"{n} {EXCLUDE_LABEL[r]}" for r, n in excluded.items()
         )
     lines = [
-        f"search_clinics: {name}, sort={sort}.",
+        f"search_clinics: {name}, sort={sort}"
+        + (f", clinic_name={clinic_name!r}" if tokens else "")
+        + ".",
         benchmark,
         f"FX: ₩{fx.krw_per_100_jpy} per ¥100 ({fx.bank_ko}, {fx.date_label}).",
         matched + ".",
@@ -274,6 +335,8 @@ def search_clinics(
         lines.append(
             "origin ignored: it is outside South Korea, so no distances are shown."
         )
+    if not rows and tokens:
+        lines.append(_no_clinic_note(clinic_name or "", tokens, menu_id))
     if not top:
         lines.append("No clinics returned.")
     else:
@@ -282,4 +345,24 @@ def search_clinics(
             _summary_line(i, card, row.place.ai_rating)
             for i, (card, row) in enumerate(zip(cards, top, strict=True), start=1)
         ]
-    return "\n".join(lines), _artifact(menu_id, cards, excluded)
+    return "\n".join(lines), _artifact(menu_id, target, cards, excluded)
+
+
+def _no_clinic_note(clinic_name: str, tokens: list[str], menu_id: str) -> str:
+    """지점 이름으로 찾았는데 이 시술 가격이 없을 때, 이름에 맞는 지점과 가격이 있는 시술을 알려 준다."""
+    catalog = get_catalog()
+    found = [p for p in catalog.places if matches_place(p, tokens)]
+    if not found:
+        return (
+            f"No clinic in the data matches clinic_name {clinic_name!r}. "
+            "Try fewer words, such as the brand only. Do not search outside the data."
+        )
+    listed = "; ".join(
+        f"{p.name_ko} / {p.name_ja}: "
+        + ", ".join(catalog.menu(m).short_ko for m in p.prices)
+        for p in found[:5]
+    )
+    return (
+        f"Clinics matching {clinic_name!r} have no price for {menu_id} in the data. "
+        f"They list prices for: {listed}."
+    )

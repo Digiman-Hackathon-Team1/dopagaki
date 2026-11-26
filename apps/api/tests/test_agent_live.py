@@ -86,3 +86,30 @@ def test_live_price_question_returns_cards_with_web_prices(
         assert card["savingsJpy"] == row.savings_jpy
         assert card["jpAverageJpy"] == row.jp_benchmark_jpy
         assert card["reason"]
+
+
+def test_live_branch_comparison_shows_both_branches() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/agent/chat",
+        json={
+            "userId": str(uuid4()),
+            "message": "밴스의원 홍대점이랑 블리비의원 명동점 리쥬란 가격 비교해 줘",
+            "lang": "ko",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    print(json.dumps(body, ensure_ascii=False, indent=2))
+    place_ids = {card["placeId"] for card in body["cards"]}
+    assert {"vands-hongdae", "velyb-myeongdong"} <= place_ids, body["answer"]
+    rows = {r.place.id: r for r in rank_rows(get_catalog(), "rejuran-2cc")}
+    for card in body["cards"]:
+        row = rows[card["placeId"]]
+        assert (card["totalKrw"], card["totalJpy"], card["savingsJpy"]) == (
+            row.total_krw,
+            row.total_jpy,
+            row.savings_jpy,
+        )

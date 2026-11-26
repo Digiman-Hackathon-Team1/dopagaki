@@ -143,3 +143,58 @@ def test_exclusions_follow_the_last_search_per_treatment() -> None:
         ("rejuran-2cc", "area"),
         ("potenza", "needle"),
     ]
+
+
+def test_area_comparison_keeps_both_searches() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "area": "hongdae"}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "area": "gangnam"}, "c2"),
+        reply_message("비교"),
+    )
+
+    result = run(graph)
+    cards = read_cards(result)
+
+    assert [c.area for c in cards] == ["hongdae"] * 3 + ["gangnam"] * 3
+    assert [c.search_id for c in cards] == ["c1"] * 3 + ["c2"] * 3
+    assert {e.search_id for e in read_exclusions(result)} == {"c1", "c2"}
+
+
+def test_branch_comparison_keeps_both_branches() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "밴스 홍대"}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "블리비 명동"}, "c2"),
+        reply_message("비교"),
+    )
+
+    cards = read_cards(run(graph))
+
+    assert [c.place_id for c in cards] == ["vands-hongdae", "velyb-myeongdong"]
+
+
+def test_narrowing_the_branch_name_replaces_the_search() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "밴스"}, "c1"),
+        tool_call("search_clinics", {**REJURAN, "clinic_name": "밴스 홍대"}, "c2"),
+        reply_message("홍대점"),
+    )
+
+    assert [c.place_id for c in read_cards(run(graph))] == ["vands-hongdae"]
+
+
+def test_overlapping_comparison_shows_each_clinic_once() -> None:
+    # "밴스"와 "홍대입구" 검색 모두에 밴스의원 홍대점이 들어갈 수 있다.
+    graph = graph_with(
+        tool_call(
+            "search_clinics", {**REJURAN, "clinic_name": "밴스", "limit": 10}, "c1"
+        ),
+        tool_call(
+            "search_clinics", {**REJURAN, "clinic_name": "홍대입구", "limit": 10}, "c2"
+        ),
+        reply_message("비교"),
+    )
+
+    ids = [c.card_id for c in read_cards(run(graph))]
+
+    assert "vands-hongdae:rejuran-2cc" in ids
+    assert len(ids) == len(set(ids))

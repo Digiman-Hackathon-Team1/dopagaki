@@ -26,7 +26,13 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 
-from api.agent.schemas import AgentReply, Exclusion, Lang, RecommendationCard
+from api.agent.schemas import (
+    AgentReply,
+    Exclusion,
+    Lang,
+    RecommendationCard,
+    RecommendationCardData,
+)
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
 from api.agent.tools.search_clinics import SearchClinicsArtifact
 
@@ -74,14 +80,16 @@ def read_exclusions(state: AgentState) -> list[Exclusion]:
 
 
 def search_results(messages: Sequence[BaseMessage]) -> list[SearchClinicsArtifact]:
-    """이번 턴(마지막 사용자 메시지 뒤)의 성공한 search_clinics 결과. 시술마다 마지막 결과만 남긴다.
+    """이번 턴(마지막 사용자 메시지 뒤)의 성공한 search_clinics 결과(ADR 0009).
 
-    이전 턴 결과, 다른 도구의 결과, 오류 난 호출은 읽지 않는다.
+    - 같은 시술을 다시 검색하면 앞 결과를 지우고 새 결과를 남긴다(범위를 좁힌 재검색).
+    - 단, 지역·기준 위치·지점을 서로 다르게 지정한 검색은 비교로 보고 앞 결과도 남긴다.
+    - 이전 턴 결과, 다른 도구의 결과, 오류 난 호출은 읽지 않는다.
     """
     start = max(
         (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
     )
-    results: dict[str, SearchClinicsArtifact] = {}
+    results: list[SearchClinicsArtifact] = []
     for message in messages[start + 1 :]:
         if (
             not isinstance(message, ToolMessage)
@@ -89,11 +97,16 @@ def search_results(messages: Sequence[BaseMessage]) -> list[SearchClinicsArtifac
             or message.status == "error"
         ):
             continue
-        result = SearchClinicsArtifact.model_validate(message.artifact)
-        # 마지막 검색 결과가 그 시술의 자리를 차지하도록 지웠다가 다시 넣는다.
-        results.pop(result.menu_id, None)
-        results[result.menu_id] = result
-    return list(results.values())
+        new = SearchClinicsArtifact.model_validate(message.artifact).model_copy(
+            update={"search_id": message.tool_call_id}
+        )
+        results = [
+            old
+            for old in results
+            if old.menu_id != new.menu_id or old.target.compares_with(new.target)
+        ]
+        results.append(new)
+    return results
 
 
 def assemble_cards(
@@ -112,11 +125,33 @@ def assemble_cards(
         RecommendationCard(
             **card.model_dump(),
             kind="recommendation",
+            search_id=search_id,
             reason=reasons.get(card.card_id),
         )
-        for result in results
-        for card in result.cards
+        for search_id, card in _unique_cards(results)
     ]
+
+
+def assemble_exclusions(results: Sequence[SearchClinicsArtifact]) -> list[Exclusion]:
+    return [
+        e.model_copy(update={"search_id": r.search_id})
+        for r in results
+        for e in r.exclusions
+    ]
+
+
+def _unique_cards(
+    results: Sequence[SearchClinicsArtifact],
+) -> list[tuple[str, RecommendationCardData]]:
+    """비교 검색에서 같은 병원이 두 번 나오면 처음 것만 남긴다."""
+    seen: set[str] = set()
+    cards = []
+    for result in results:
+        for card in result.cards:
+            if card.card_id not in seen:
+                seen.add(card.card_id)
+                cards.append((result.search_id, card))
+    return cards
 
 
 def build_graph(
@@ -164,7 +199,7 @@ def build_graph(
             raise AgentOutputError("응답이 응답 칸 형식에 맞지 않습니다") from error
         results = search_results(state["messages"])
         cards = assemble_cards(results, reply)
-        exclusions = [e for r in results for e in r.exclusions]
+        exclusions = assemble_exclusions(results)
         return {
             "reply": reply.model_dump(),
             "cards": [c.model_dump() for c in cards],
