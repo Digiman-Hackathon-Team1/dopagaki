@@ -67,14 +67,19 @@ pnpm dev --filter=@repo/web
 
 ## 배포 (Railway)
 
-같은 레포에서 서비스 두 개를 만든다. 두 서비스 모두 Root Directory는 비워 두고(레포 루트), Config File Path만 지정한다.
+Railway 프로젝트 `dopagaki`에 서비스 두 개가 있다.
 
-| 서비스 | Config File Path | 변수 |
-| --- | --- | --- |
-| `api` | `/apps/api/railway.json` | `PORT=8000` |
-| `web` | `/apps/web/railway.json` | `API_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
+- web: https://web-production-841b18da.up.railway.app
+- api: https://api-production-952f3404.up.railway.app (API 문서 `/docs`)
 
-- 두 서비스 모두 Settings → Networking → Generate Domain으로 `*.up.railway.app` 주소를 받는다.
+서비스 설정은 Railway에 직접 넣었다. Railway는 `railway.json` 설정 파일을 더 이상 받지 않는다.
+
+| 서비스 | Dockerfile Path | Healthcheck | 변수 |
+| --- | --- | --- | --- |
+| `api` | `apps/api/Dockerfile` | `/api/health` | `PORT=8000`, `ANTHROPIC_API_KEY` |
+| `web` | `apps/web/Dockerfile` | `/` | `API_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
+
+- 두 서비스 모두 Root Directory는 레포 루트다. Watch Paths로 해당 앱이 바뀔 때만 배포한다.
 - web은 `/api` 요청을 내부 네트워크로 api 서비스에 넘긴다. 브라우저는 web 주소 하나만 쓰므로 CORS 설정이 필요 없다.
 - web 빌드는 병원 가격표 이미지를 원본 레포에서 받아 포함한다.
 - 선택 변수: web의 `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, `VITE_CONCIERGE_API` (빌드 때 들어간다).
