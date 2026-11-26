@@ -2,7 +2,8 @@
 
 import pytest
 
-from api.domain.price_tags import classify
+from api.domain.catalog import get_catalog
+from api.domain.price_tags import _note_tags, classify, price_tags
 
 
 @pytest.mark.parametrize(
@@ -35,3 +36,35 @@ from api.domain.price_tags import classify
 )
 def test_classify(text: str, tags: list[str]) -> None:
     assert classify(text) == tags
+
+
+@pytest.mark.parametrize(
+    ("note", "krw", "expected"),
+    [
+        # 메모에 다른 가격(체험가·첫방문가)이 함께 적혀 있으면, 정가 카드에는 체험가 태그를 붙이지 않는다.
+        ("턱보톡스 50U 국산 24,000원 · 카톡플친 1회 체험 19,000원", 24000, set()),
+        ("홈페이지 국산 사각턱보톡스 1.9만 원(1회 체험 9,900원 별도)", 19000, set()),
+        ("사각턱 보톡스 국산 20,000원 · 첫방문 19,000원 · 부가세 별도", 20000, set()),
+        # 카드 가격이 그 체험가이면 붙인다.
+        (
+            "턱보톡스 50U 국산 24,000원 · 카톡플친 1회 체험 19,000원",
+            19000,
+            {"first_visit", "app_benefit"},
+        ),
+        # 팁 비용은 어느 구절에 있어도 붙인다.
+        ("포텐자 1회 220,000원 · 개인팁 50,000원/부가세 별도", 220000, {"extra_fee"}),
+        # 금액이 하나뿐이면 메모 전체를 읽는다.
+        ("공식 가격표 · 인모드 FX 1부위 (1회 체험가)", 9900, {"first_visit"}),
+    ],
+)
+def test_note_tags_follow_the_card_price(note: str, krw: int, expected: set) -> None:
+    assert _note_tags(note, krw) == expected
+
+
+def test_clinic_sentence_naming_treatments_applies_only_to_them() -> None:
+    place = next(
+        p for p in get_catalog().places if p.caveat_ko == "포텐자·보톡스 특가 확인"
+    )
+    tagged = {m for m, o in place.prices.items() if "event" in price_tags(place, m, o)}
+
+    assert tagged == {"potenza", "jaw-botox"}
