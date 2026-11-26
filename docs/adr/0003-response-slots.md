@@ -2,7 +2,7 @@
 
 * **상태 (Status):** 제안됨(Proposed). 카드 형식은 프론트(황인식·손창현 님)와 합의 필요
 * **날짜 (Date):** 2026-11-26
-* **관련 (Related):** T0 #3
+* **관련 (Related):** T0 #3, T2 #5(제외 사유 칸 추가)
 
 ## 1. 배경 및 문제 상황 (Context and Problem Statement)
 
