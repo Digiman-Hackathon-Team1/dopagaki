@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { copy } from './copy';
+import { Questions, type Send } from './Questions';
 import { areas, menus } from '@/data/prices.json';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -7,61 +6,9 @@ import type { Schemas } from '@repo/api-client';
 import { SvgIcon } from '@/components/SvgIcon';
 
 type Lang = Schemas['ChatRequest']['lang'];
-export type QuestionAnswer = {
-  question: Schemas['Question']['question'];
-  answer: string;
-};
-
-type Send = (message: string, answers?: QuestionAnswer[]) => void;
 const exclusions = { needle: '바늘 시술 기피', downtime: '회복 기간 초과', area: '다른 지역', japanese: '일본어 미지원', budget: '예산 초과' };
 
 const japaneseExclusions = { needle: '針を使う施術', downtime: 'ダウンタイム超過', area: 'エリア外', japanese: '日本語非対応', budget: '予算超過' };
-
-type Choice = { selected: string[]; direct: boolean; custom: string };
-const emptyChoice: Choice = { selected: [], direct: false, custom: '' };
-
-function Questions({ items, send, lang }: { lang: Lang; items: Schemas['Question'][]; send: Send }) {
-  const [choices, setChoices] = useState<Record<number, Choice>>({});
-  const grouped = items.length > 1;
-  const answers = items.map((item, i) => {
-    const choice = choices[i] ?? emptyChoice;
-    const text = [...choice.selected, choice.direct ? choice.custom.trim() : ''].filter(Boolean).join(', ');
-    return { question: item.question, answer: text };
-  });
-  const message = answers.map(({ question, answer }) =>
-    grouped && answer ? question + ' ' + answer : answer
-  ).join('\n');
-  function change(i: number, update: Partial<Choice>) {
-    setChoices(prev => ({ ...prev, [i]: { ...emptyChoice, ...prev[i], ...update } }));
-  }
-  return <div>{items.map((item, i) => {
-    const choice = choices[i] ?? emptyChoice;
-    function select(option: string) {
-      if (!grouped && !item.multiSelect) return send(option, [{ question: item.question, answer: option }]);
-      if (!item.multiSelect) return change(i, { selected: [option], direct: false });
-      change(i, { selected: choice.selected.includes(option)
-        ? choice.selected.filter(s => s !== option) : [...choice.selected, option] });
-    }
-    return <fieldset key={i}><legend>{item.question}</legend>
-      <small className="agent-choice-hint">{item.multiSelect
-        ? (lang === 'ja' ? '複数選択できます' : '여러 개 선택할 수 있어요')
-        : grouped ? (lang === 'ja' ? '1つ選んでください' : '하나를 선택하세요')
-        : (lang === 'ja' ? '選ぶと送信されます' : '선택하면 바로 전송돼요')}</small>
-      {item.options.map(option => <button key={option} aria-pressed={grouped || item.multiSelect ? choice.selected.includes(option) : undefined}
-        onClick={() => select(option)}>{option}</button>)}
-      <button aria-pressed={choice.direct} onClick={() => change(i, {
-        direct: !choice.direct, selected: item.multiSelect ? choice.selected : []
-      })}>{lang === 'ja' ? '自由入力' : '직접 입력'}</button>
-      {choice.direct && <input aria-label={item.question} placeholder={lang === 'ja' ? '回答を入力してください' : '답변을 입력하세요'} value={choice.custom}
-        onChange={e => change(i, { custom: e.target.value })} />}
-    </fieldset>;
-  })}
-    {grouped && <small>{lang === 'ja' ? '回答済み' : '답변한 질문'} {answers.filter(item => item.answer).length}/{items.length}</small>}
-    {[...message].length > 2000 && <small role="alert">{copy[lang].tooLong}</small>}
-    {(grouped || items[0]?.multiSelect || choices[0]?.direct) &&
-      <button disabled={answers.some(item => !item.answer) || [...message].length > 2000} onClick={() => send(message, answers)}>{lang === 'ja' ? '回答を送信' : '답변 보내기'}</button>}
-  </div>;
-}
 
 const priceLabels = {
   first_visit: '첫 방문', event: '이벤트가', day_limited: '요일 한정',

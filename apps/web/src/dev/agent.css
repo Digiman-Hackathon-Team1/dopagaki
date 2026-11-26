@@ -32,7 +32,7 @@
 .agent-markdown ul { list-style: disc; padding-left: 24px; }
 .agent-markdown ol { list-style: decimal; padding-left: 24px; }
 .agent-markdown :is(th, td) { padding: 6px 10px; border: 1px solid var(--color-line); }
-.agent-card, .agent-dev fieldset { background: var(--color-paper); border: 1px solid var(--color-line); border-radius: 16px; padding: 16px; min-width: 0; }
+.agent-card { background: var(--color-paper); border: 1px solid var(--color-line); border-radius: 16px; padding: 16px; min-width: 0; }
 .agent-card strong { color: var(--color-accent); font-size: var(--text-lg); }
 .agent-dev summary { cursor: pointer; color: var(--color-ink-2); }
 .agent-dev details p, .agent-card details { margin-top: 8px; }
@@ -43,12 +43,30 @@
 .agent-tags span { padding: 2px 8px; border-radius: 12px; background: var(--color-soft); color: var(--color-soft-ink-strong); font-size: var(--text-xs); }
 .agent-dev, .agent-reply { grid-template-columns: minmax(0, 1fr); }
 .agent-dev header, .agent-composer, .agent-log { min-width: 0; }
-.agent-dev fieldset input { max-width: 100%; }
 .agent-turn { scroll-margin-top: var(--space-md); }
-.agent-choice-hint { display: block; }
 .agent-composer { flex-wrap: wrap; }
 .agent-composer small { flex-basis: 100%; }
 .agent-user-answers { padding: 14px 18px; }
 .agent-user-answers > div + div { margin-top: 16px; }
 .agent-user-answers dt { font-size: var(--text-sm); color: var(--color-on-select); opacity: .85; }
 .agent-user-answers dd { margin: 4px 0 0; font-size: var(--text-md); font-weight: 600; }
+.agent-question-sheet { border-top: 0; border-radius: 24px 24px 0 0; color: var(--color-ink); }
+.agent-question-heading { display: flex; align-items: flex-start; gap: 16px; padding: 24px 20px 20px; }
+.agent-question-heading .vs-title { word-break: keep-all; text-wrap: pretty; flex: 1; line-height: 1.5; overflow-wrap: anywhere; outline: none; }
+.agent-question-close { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border: 0; background: transparent; color: var(--color-muted); cursor: pointer; }
+.agent-question-progress { flex-shrink: 0; height: 2px; background: var(--color-rule); }
+.agent-question-progress span { display: block; height: 100%; background: var(--color-select); }
+.agent-question-options { padding: 16px 20px; gap: 8px; }
+.agent-question-options small { color: var(--color-muted); font-size: var(--text-xs); }
+.agent-question-option { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; border: 1px solid var(--color-rule); border-radius: 16px; padding: 16px; text-align: left; line-height: 1.5; background: var(--color-paper); color: var(--color-ink); cursor: pointer; overflow-wrap: anywhere; }
+.agent-question-option > span { min-width: 0; }
+.agent-question-option > span:first-child:not(:last-child) { flex-shrink: 0; color: var(--color-rule); }
+.agent-question-option[aria-pressed=true] { border-color: var(--color-select); background: var(--color-paper-2); font-weight: 700; }
+.agent-question-option[aria-pressed=true] > span:first-child:not(:last-child) { color: var(--color-select); }
+.agent-question-direct { color: var(--color-muted); }
+.agent-question-options textarea { width: 100%; min-height: 96px; flex-shrink: 0; border: 1px solid var(--color-line); border-radius: 12px; padding: 12px; font: inherit; background: var(--color-paper); color: var(--color-ink); resize: vertical; }
+.agent-question-footer { display: flex; flex-shrink: 0; gap: 12px; padding: 12px 20px max(20px, env(safe-area-inset-bottom)); background: var(--color-paper); }
+.agent-question-footer button { min-height: 48px; border: 0; border-radius: 12px; font: inherit; font-weight: 700; cursor: pointer; }
+.agent-question-back { flex: 1; background: transparent; color: var(--color-ink); }
+.agent-question-next { flex: 2; background: var(--color-select); color: var(--color-on-select); }
+.agent-question-next:disabled { background: var(--color-rule); color: var(--color-muted); cursor: default; }
