@@ -26,6 +26,8 @@ MenuId = Literal[
     "aquapeel",
 ]
 
+TOOL_NAME = "search_clinics"
+
 ExcludeReason = Literal["area", "japanese", "budget"]
 EXCLUDE_LABEL: dict[ExcludeReason, str] = {
     "area": "outside the requested area",
@@ -78,6 +80,18 @@ class SearchClinicsInput(BaseModel):
     limit: int = Field(default=3, ge=1, le=10, description="돌려줄 병원 수. 기본 3")
 
 
+class SearchClinicsArtifact(BaseModel):
+    """화면용 결과(LLM에는 보내지 않음). finalize가 이걸로 카드를 조립한다."""
+
+    menu_id: str
+    cards: list[RecommendationCardData]
+
+
+def _artifact(menu_id: str, cards: list[RecommendationCardData]) -> dict:
+    # 대화 기억(체크포인터)에 저장되므로 일반 데이터로 둔다.
+    return SearchClinicsArtifact(menu_id=menu_id, cards=cards).model_dump()
+
+
 def _menu_lines() -> str:
     return "\n".join(
         f"- {m.id}: {m.name_ko} / {m.name_ja} "
@@ -90,7 +104,8 @@ DESCRIPTION = f"""\
 서울 병원 가격 데이터에서 시술 하나를 받는 병원을 찾아 상위 몇 곳을 돌려준다.
 가격·엔화 환산·일본 대비 절약액은 web 순위표와 같은 계산이다. 답변의 금액은 이 결과만 쓴다.
 필수 입력: menu_id. 기본값: 절약액 순, 상위 3곳, 예산·회복 기간·지역 제한 없음.
-결과의 card_id로 card_reasons를 채우면 그 병원이 카드로 화면에 나간다.
+결과의 병원은 모두 카드로 화면에 나간다. card_reasons에 card_id마다 추천 이유 한 줄을 쓴다.
+같은 턴에 같은 시술을 다시 부르면 마지막 결과의 카드만 나간다.
 쓰면 안 되는 경우: 아래 목록에 없는 시술(필러, 실 리프팅 등)이나 시술을 아직 정하지 않았을 때.
 시술 목록:
 {_menu_lines()}"""
@@ -115,6 +130,7 @@ def _card(row: PriceRow, show_distance: bool) -> RecommendationCardData:
         total_krw=row.total_krw,
         total_jpy=row.total_jpy,
         krw_per_100_jpy=get_catalog().fx.krw_per_100_jpy,
+        fx_date_label=get_catalog().fx.date_label,
         jp_average_jpy=row.jp_benchmark_jpy,
         jp_min_jpy=min(jp_prices),
         jp_max_jpy=max(jp_prices),
@@ -150,7 +166,7 @@ def _summary_line(rank: int, card: RecommendationCardData, rating: float) -> str
 
 
 @tool(
-    "search_clinics",
+    TOOL_NAME,
     description=DESCRIPTION,
     args_schema=SearchClinicsInput,
     response_format="content_and_artifact",
@@ -165,25 +181,26 @@ def search_clinics(
     area: AreaId | None = None,
     origin: GeoPoint | None = None,
     limit: int = 3,
-) -> tuple[str, list[dict]]:
+) -> tuple[str, dict]:
     catalog = get_catalog()
     menu = catalog.menu(menu_id)
     name = f"{menu.name_ko} / {menu.name_ja}"
 
     # 시술 단위 거르기: 맞지 않으면 병원을 찾지 않는다.
     if avoid_needle and menu.uses_needle:
-        return f"{name} uses a needle, so it is excluded. No clinics returned.", []
+        message = f"{name} uses a needle, so it is excluded. No clinics returned."
+        return message, _artifact(menu_id, [])
     if max_downtime_days is not None and menu.downtime_max_days > max_downtime_days:
         reason = (
             f"{name} can show visible downtime for up to {menu.downtime_max_days} days, "
             f"more than the allowed {max_downtime_days}. No clinics returned."
         )
-        return reason, []
+        return reason, _artifact(menu_id, [])
     has_origin = is_point_in_south_korea(origin)
     if sort == "distance" and not has_origin:
         raise ValueError(
-            "sort=distance needs an origin in Seoul. Get one from resolve_location "
-            "or ask the user where they are staying."
+            "sort=distance needs an origin inside South Korea. Get one from "
+            "resolve_location or ask the user where they are staying."
         )
 
     # 병원 단위 거르기. 정렬된 순서를 유지하며 처음 걸린 이유를 센다.
@@ -221,6 +238,10 @@ def search_clinics(
         f"FX: ₩{fx.krw_per_100_jpy} per ¥100 ({fx.bank_ko}, {fx.date_label}).",
         matched + ".",
     ]
+    if origin is not None and not has_origin:
+        lines.append(
+            "origin ignored: it is outside South Korea, so no distances are shown."
+        )
     if not top:
         lines.append("No clinics returned.")
     else:
@@ -229,4 +250,4 @@ def search_clinics(
             _summary_line(i, card, row.place.ai_rating)
             for i, (card, row) in enumerate(zip(cards, top, strict=True), start=1)
         ]
-    return "\n".join(lines), [card.model_dump() for card in cards]
+    return "\n".join(lines), _artifact(menu_id, cards)

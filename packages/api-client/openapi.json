@@ -318,6 +318,11 @@
             "title": "Krwper100Jpy",
             "description": "환산에 쓴 환율(100엔당 원)"
           },
+          "fxDateLabel": {
+            "type": "string",
+            "title": "Fxdatelabel",
+            "description": "환율 기준일. 예: 2026.11.25"
+          },
           "jpAverageJpy": {
             "type": "integer",
             "title": "Jpaveragejpy",
@@ -397,9 +402,16 @@
             "title": "Kind"
           },
           "reason": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Reason",
-            "description": "LLM이 쓴 추천 이유 한 줄"
+            "description": "LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null"
           }
         },
         "additionalProperties": false,
@@ -421,6 +433,7 @@
           "totalKrw",
           "totalJpy",
           "krwPer100Jpy",
+          "fxDateLabel",
           "jpAverageJpy",
           "jpMinJpy",
           "jpMaxJpy",

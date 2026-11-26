@@ -59,7 +59,7 @@ def test_chat_returns_recommendation_cards(client: TestClient) -> None:
     top = rank_rows(get_catalog(), "rejuran-2cc")[0]
     card_id = f"{top.place.id}:rejuran-2cc"
     model = fake_model(
-        tool_call("search_clinics", {"menu_id": "rejuran-2cc"}),
+        tool_call("search_clinics", {"menu_id": "rejuran-2cc", "limit": 1}),
         reply_message("가장 싼 곳이에요", {card_id: "가장 싸요"}),
     )
     graph = build_graph(model, tools=TOOLS, checkpointer=InMemorySaver())

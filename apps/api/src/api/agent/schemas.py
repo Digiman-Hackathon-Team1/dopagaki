@@ -5,7 +5,7 @@
 응답 칸은 설계 문서 4.8을 따른다.
 
 카드 금액은 LLM이 쓰지 않는다. 도구가 카드 데이터(`RecommendationCardData`)를 만들고, LLM은
-`card_reasons`로 보여 줄 카드와 추천 이유만 고른다. finalize가 둘을 합쳐 `RecommendationCard`를
+`card_reasons`로 카드마다 추천 이유만 쓴다. finalize가 둘을 합쳐 `RecommendationCard`를
 만든다(ADR 0009).
 """
 
@@ -31,7 +31,7 @@ class ReplyQuestion(BaseModel):
 
 
 class CardReason(BaseModel):
-    """화면에 보여 줄 카드 하나와 그 추천 이유."""
+    """카드 하나의 추천 이유."""
 
     card_id: str = Field(description="도구 결과에 있는 card_id를 그대로 쓴다")
     reason: str = Field(
@@ -48,8 +48,8 @@ class AgentReply(BaseModel):
     answer: str = Field(description="답변 본문. 표와 목록을 쓸 수 있다")
     card_reasons: list[CardReason] = Field(
         description=(
-            "화면에 카드로 보여 줄 병원과 추천 이유. 이번 턴 도구 결과에 있는 card_id만 쓴다. "
-            "카드 금액은 앱이 도구 결과로 채우므로 여기에 쓰지 않는다. 보여 줄 카드가 없으면 빈 배열"
+            "이번 턴 도구 결과의 카드마다 추천 이유 한 줄. card_id는 도구 결과에 있는 것만 쓴다. "
+            "카드 금액은 앱이 도구 결과로 채우므로 여기에 쓰지 않는다. 카드가 없으면 빈 배열"
         )
     )
     questions: list[ReplyQuestion] = Field(
@@ -110,6 +110,7 @@ class RecommendationCardData(ResponseModel):
     total_krw: int = Field(description="부가세 포함 가격(원)")
     total_jpy: int = Field(description="부가세 포함 가격의 엔화 환산")
     krw_per_100_jpy: float = Field(description="환산에 쓴 환율(100엔당 원)")
+    fx_date_label: str = Field(description="환율 기준일. 예: 2026.11.25")
     jp_average_jpy: int = Field(description="일본 주요 병원 세금 포함 공식가 평균")
     jp_min_jpy: int
     jp_max_jpy: int
@@ -129,7 +130,9 @@ class RecommendationCardData(ResponseModel):
 
 class RecommendationCard(RecommendationCardData):
     kind: Literal["recommendation"]
-    reason: str = Field(description="LLM이 쓴 추천 이유 한 줄")
+    reason: str | None = Field(
+        description="LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null"
+    )
 
 
 class ChatResponse(ResponseModel):

@@ -1,7 +1,8 @@
-"""finalize의 카드 조립(ADR 0009): 금액은 도구 결과, 이유와 노출 여부는 LLM."""
+"""finalize의 카드 조립(ADR 0009): 카드는 도구 결과 그대로, 추천 이유만 LLM."""
 
 from agent_fakes import fake_model, reply_message, tool_call
 from langchain_core.messages import HumanMessage
+from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
 
 from api.agent.graph import build_graph, read_cards
@@ -11,6 +12,13 @@ from api.domain.catalog import get_catalog
 
 TOP3 = rank_rows(get_catalog(), "rejuran-2cc")[:3]
 IDS = [f"{r.place.id}:rejuran-2cc" for r in TOP3]
+REJURAN = {"menu_id": "rejuran-2cc"}
+
+
+@tool(response_format="content_and_artifact")
+def other_tool(text: str) -> tuple[str, dict]:
+    """테스트용: 모양이 다른 artifact를 돌려주는 도구(나중의 jpMatch·booking 같은)."""
+    return "ok", {"kind": "booking", "url": "https://example.com"}
 
 
 def run(graph, message: str = "리쥬란 싼 곳", thread_id: str = "t1") -> dict:
@@ -20,15 +28,15 @@ def run(graph, message: str = "리쥬란 싼 곳", thread_id: str = "t1") -> dic
     )
 
 
-def graph_with(*responses):
+def graph_with(*responses, tools=TOOLS):
     return build_graph(
-        fake_model(*responses), tools=TOOLS, checkpointer=InMemorySaver()
+        fake_model(*responses), tools=tools, checkpointer=InMemorySaver()
     )
 
 
 def test_cards_take_amounts_from_tool_and_reasons_from_llm() -> None:
     graph = graph_with(
-        tool_call("search_clinics", {"menu_id": "rejuran-2cc"}),
+        tool_call("search_clinics", REJURAN),
         reply_message("세 곳이에요", {i: f"이유 {n}" for n, i in enumerate(IDS)}),
     )
 
@@ -39,41 +47,75 @@ def test_cards_take_amounts_from_tool_and_reasons_from_llm() -> None:
     assert [c.total_krw for c in cards] == [r.total_krw for r in TOP3]
     assert [c.savings_jpy for c in cards] == [r.savings_jpy for r in TOP3]
     assert all(c.kind == "recommendation" for c in cards)
+    assert all(c.fx_date_label == get_catalog().fx.date_label for c in cards)
 
 
-def test_only_cards_with_reasons_are_shown_in_tool_order() -> None:
+def test_all_tool_cards_are_shown_in_tool_order_even_without_reasons() -> None:
     # LLM이 순서를 바꾸고 하나를 빼고, 도구 결과에 없는 카드 ID를 지어내도
-    # 코드가 정한 순서로 도구 결과에 있는 카드만 나간다.
+    # 도구 결과의 카드가 코드가 정한 순서대로 모두 나간다(설계 문서 4.7).
     graph = graph_with(
-        tool_call("search_clinics", {"menu_id": "rejuran-2cc"}),
+        tool_call("search_clinics", REJURAN),
         reply_message(
-            "두 곳",
+            "세 곳",
             {IDS[2]: "셋째", "made-up:rejuran-2cc": "가짜", IDS[0]: "첫째"},
         ),
     )
 
     cards = read_cards(run(graph))
 
-    assert [c.card_id for c in cards] == [IDS[0], IDS[2]]
+    assert [c.card_id for c in cards] == IDS
+    assert [c.reason for c in cards] == ["첫째", None, "셋째"]
 
 
-def test_no_reasons_means_no_cards() -> None:
+def test_same_treatment_searched_again_uses_last_result() -> None:
     graph = graph_with(
-        tool_call("search_clinics", {"menu_id": "rejuran-2cc"}), reply_message("요약만")
+        tool_call("search_clinics", REJURAN, "c1"),
+        tool_call(
+            "search_clinics",
+            {**REJURAN, "japanese_only": True, "area": "myeongdong", "limit": 2},
+            "c2",
+        ),
+        reply_message("명동"),
     )
 
-    assert read_cards(run(graph)) == []
+    cards = read_cards(run(graph))
+
+    assert len(cards) == 2
+    assert all(c.area == "myeongdong" and c.japanese_support for c in cards)
+
+
+def test_different_treatments_are_both_shown() -> None:
+    graph = graph_with(
+        tool_call("search_clinics", REJURAN, "c1"),
+        tool_call("search_clinics", {"menu_id": "shrink-300", "limit": 2}, "c2"),
+        reply_message("비교"),
+    )
+
+    cards = read_cards(run(graph))
+
+    assert [c.menu_id for c in cards] == ["rejuran-2cc"] * 3 + ["shrink-300"] * 2
+
+
+def test_other_tool_artifacts_are_ignored() -> None:
+    graph = graph_with(
+        tool_call("other_tool", {"text": "x"}, "c1"),
+        tool_call("search_clinics", REJURAN, "c2"),
+        reply_message("끝"),
+        tools=[*TOOLS, other_tool],
+    )
+
+    assert [c.card_id for c in read_cards(run(graph))] == IDS
 
 
 def test_cards_from_previous_turn_are_not_repeated() -> None:
     graph = graph_with(
-        tool_call("search_clinics", {"menu_id": "rejuran-2cc"}),
+        tool_call("search_clinics", REJURAN),
         reply_message("첫 턴", {IDS[0]: "이유"}),
         # 2턴째: 도구를 부르지 않고 앞 턴 카드 ID를 다시 써도 카드는 나가지 않는다.
         reply_message("둘째 턴", {IDS[0]: "이유"}),
     )
 
-    assert len(read_cards(run(graph))) == 1
+    assert len(read_cards(run(graph))) == 3
     assert read_cards(run(graph, "고마워")) == []
 
 

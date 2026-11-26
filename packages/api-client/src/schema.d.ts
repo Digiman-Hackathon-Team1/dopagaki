@@ -167,6 +167,11 @@ export interface components {
              */
             krwPer100Jpy: number;
             /**
+             * Fxdatelabel
+             * @description 환율 기준일. 예: 2026.11.25
+             */
+            fxDateLabel: string;
+            /**
              * Jpaveragejpy
              * @description 일본 주요 병원 세금 포함 공식가 평균
              */
@@ -220,9 +225,9 @@ export interface components {
             kind: "recommendation";
             /**
              * Reason
-             * @description LLM이 쓴 추천 이유 한 줄
+             * @description LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null
              */
-            reason: string;
+            reason: string | null;
         };
         /** ValidationError */
         ValidationError: {

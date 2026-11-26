@@ -26,12 +26,9 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 
-from api.agent.schemas import (
-    AgentReply,
-    Lang,
-    RecommendationCard,
-    RecommendationCardData,
-)
+from api.agent.schemas import AgentReply, Lang, RecommendationCard
+from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
+from api.agent.tools.search_clinics import SearchClinicsArtifact
 
 LANG_NAME: dict[Lang, str] = {"ja": "Japanese", "ko": "Korean"}
 
@@ -41,8 +38,8 @@ skincare and dermatology treatments in Seoul at prices cheaper than in Japan.
 Help the user decide what treatment to get, when, where, and for how much, up to the \
 clinic's booking channel. Do not diagnose and do not book or pay on the user's behalf.
 Never state prices or savings that did not come from a tool result.
-To show clinics from a tool result as cards, list each one in card_reasons with its \
-card_id and a one-line reason. The app fills in the card's prices from the tool result.
+Clinics returned by search_clinics are shown to the user as cards. Give each card a \
+one-line reason in card_reasons, by card_id. The app fills in the card's prices.
 Write every field of your reply in the language named by the note at the end of the \
 latest user message."""
 
@@ -73,31 +70,41 @@ def read_cards(state: AgentState) -> list[RecommendationCard]:
 def assemble_cards(
     messages: Sequence[BaseMessage], reply: AgentReply
 ) -> list[RecommendationCard]:
-    """이번 턴 도구 결과의 카드 데이터에 LLM이 고른 추천 이유를 붙인다(ADR 0009).
+    """이번 턴 search_clinics 결과로 카드를 만들고 LLM이 쓴 추천 이유를 붙인다(ADR 0009).
 
-    - 금액은 도구 결과 그대로다. LLM은 card_id와 이유만 고른다.
-    - 이번 턴(마지막 사용자 메시지 뒤)의 도구 결과만 쓴다. 이전 턴의 카드는 다시 나가지 않는다.
-    - LLM이 이유를 붙인 카드만, 도구 결과의 순서(코드가 정한 순위)대로 내보낸다.
-    - 도구 결과에 없는 card_id는 버린다.
+    - 금액과 순서는 도구 결과 그대로다. LLM은 카드마다 이유만 쓴다.
+    - 이번 턴(마지막 사용자 메시지 뒤)의 결과만 쓴다. 이전 턴의 카드는 다시 나가지 않는다.
+    - 성공한 search_clinics 결과의 카드는 모두 내보낸다(설계 문서 4.7). 같은 시술을 다시
+      검색했으면 마지막 결과만 쓴다. 다른 시술 검색 결과는 함께 나간다.
+    - 이유가 없는 카드는 reason이 null이다. 도구 결과에 없는 card_id의 이유는 버린다.
     """
     start = max(
         (i for i, m in enumerate(messages) if isinstance(m, HumanMessage)), default=-1
     )
-    data: dict[str, RecommendationCardData] = {}
+    results: dict[str, SearchClinicsArtifact] = {}
     for message in messages[start + 1 :]:
-        if not isinstance(message, ToolMessage) or message.status == "error":
+        if (
+            not isinstance(message, ToolMessage)
+            or message.name != SEARCH_CLINICS
+            or message.status == "error"
+        ):
             continue
-        for item in message.artifact or []:
-            card = RecommendationCardData.model_validate(item)
-            data.setdefault(card.card_id, card)
+        result = SearchClinicsArtifact.model_validate(message.artifact)
+        # 마지막 검색 결과가 그 시술의 자리를 차지하도록 지웠다가 다시 넣는다.
+        results.pop(result.menu_id, None)
+        results[result.menu_id] = result
 
-    reasons = {r.card_id: r.reason for r in reply.card_reasons}
+    reasons: dict[str, str] = {}
+    for r in reply.card_reasons:
+        reasons.setdefault(r.card_id, r.reason)
     return [
         RecommendationCard(
-            **card.model_dump(), kind="recommendation", reason=reasons[card_id]
+            **card.model_dump(),
+            kind="recommendation",
+            reason=reasons.get(card.card_id),
         )
-        for card_id, card in data.items()
-        if card_id in reasons
+        for result in results.values()
+        for card in result.cards
     ]
 
 

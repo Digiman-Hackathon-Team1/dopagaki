@@ -33,7 +33,7 @@ def call_in_graph(**args) -> ToolMessage:
 
 
 def cards(message: ToolMessage) -> list[RecommendationCardData]:
-    return [RecommendationCardData.model_validate(c) for c in message.artifact]
+    return [RecommendationCardData.model_validate(c) for c in message.artifact["cards"]]
 
 
 def test_menu_ids_match_catalog() -> None:
@@ -110,7 +110,7 @@ def test_budget_in_krw_compares_vat_included_price() -> None:
 def test_treatment_level_exclusion_returns_no_cards(args: dict) -> None:
     message = call(**args)
 
-    assert message.artifact == []
+    assert message.artifact == {"menu_id": args["menu_id"], "cards": []}
     assert "No clinics returned" in message.content
 
 
@@ -124,6 +124,13 @@ def test_distance_sort_with_origin() -> None:
     distances = [c.distance_meters for c in result]
     assert None not in distances
     assert distances == sorted(distances)
+
+
+def test_origin_outside_korea_is_ignored_and_reported() -> None:
+    message = call(menu_id="shrink-300", origin={"lat": 35.6812, "lng": 139.7671})
+
+    assert all(c.distance_meters is None for c in cards(message))
+    assert "origin ignored" in message.content
 
 
 def test_distance_sort_without_origin_is_an_error_for_the_model() -> None:
