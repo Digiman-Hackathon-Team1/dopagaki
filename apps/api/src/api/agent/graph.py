@@ -159,12 +159,18 @@ def jp_match_cards(messages: Sequence[BaseMessage]) -> list[JpMatchCardData]:
     """이번 턴에 match_jp_treatment가 찾은 대응(설계 문서 4.3, 9장). 확인 필요·대응 없음은 카드가 없다.
 
     같은 시술을 두 번 찾으면(예: 일본 병원 이름을 붙여 다시 부름) 한 장만 내고, 마지막 결과를 쓴다.
+    다만 일본 병원 가격이 있는 결과 뒤에 병원 없이 다시 찾으면 앞 결과를 둔다. 병원 카드의 직접 비교와
+    대응 카드의 일본 병원 가격이 어긋나지 않게 하기 위해서다(Sonnet이 이렇게 다시 부르는 것을 확인했다).
     """
     found: dict[str, JpMatchCardData] = {}
     for message in _this_turn(messages, MATCH_JP_TREATMENT):
         match = MatchJpTreatmentArtifact.model_validate(message.artifact).match
-        if match:
-            found[match.menu_id] = match
+        if match is None:
+            continue
+        earlier = found.get(match.menu_id)
+        if earlier and earlier.jp_clinic and match.jp_clinic is None:
+            continue
+        found[match.menu_id] = match
     return list(found.values())
 
 

@@ -104,6 +104,18 @@ def test_same_menu_matched_twice_makes_one_card_from_last_result() -> None:
     assert match.jp_clinic.name_ja == "湘南美容クリニック (SBC)"
 
 
+def test_repeated_match_without_clinic_keeps_clinic_price() -> None:
+    graph = graph_with(
+        tool_call("match_jp_treatment", {"query": "ハイフ", "jp_clinic": "品川"}, "c1"),
+        tool_call("match_jp_treatment", {"query": "ハイフ"}, "c2"),
+        reply_message("답변"),
+    )
+
+    [match] = read_cards(run(graph, "品川でハイフ"))
+
+    assert match.jp_clinic.name_ja == "品川美容外科"
+
+
 def test_match_card_comes_before_location_card_and_is_not_repeated_next_turn() -> None:
     graph = graph_with(
         tool_call("match_jp_treatment", {"query": "ハイフ"}, "c1"),
