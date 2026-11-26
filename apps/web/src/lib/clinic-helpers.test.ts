@@ -1,3 +1,4 @@
+import { HIDDEN_PROOF_OFFERS } from '../data/proof-hidden.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -131,7 +132,9 @@ test('order sheet and inquiry message generators output polite bilingual Korean/
   const order = buildOrderSheetMessages(sinchon, bundle, ['no-upsell', 'total-first'], true);
   assert.ok(order.ko.includes('밴스의원 신촌점'));
   assert.ok(order.ko.includes('추가 시술 권유는 정중히 사양'));
+  assert.ok(order.ko.includes('마취비·진정관리'));
   assert.ok(order.ja.includes('バンス医院 新村店'));
+  assert.ok(order.ja.includes('麻酔代・鎮静ケア'));
 
   const inquiry = buildInquiryMessages(sinchon, bundle, {
     date: '2026-12-05',
@@ -491,8 +494,10 @@ test('zero wrong-branch screenshots, strict branch-URL mapping, zero orphan imag
     for (const menuId of ['rejuran-2cc', 'shrink-300', 'potenza', 'jaw-botox'] as const) {
       const koProof = check(pid, menuId, 'ko');
       const jaProof = check(pid, menuId, 'ja');
-      assert.ok(koProof.imageFile, `Missing KO proof imageFile for ${pid}/${menuId}`);
-      assert.ok(jaProof.imageFile, `Missing JA proof imageFile for ${pid}/${menuId}`);
+      if (!HIDDEN_PROOF_OFFERS.has(`${pid}::${menuId}`)) {
+        assert.ok(koProof.imageFile, `Missing KO proof imageFile for ${pid}/${menuId}`);
+        assert.ok(jaProof.imageFile, `Missing JA proof imageFile for ${pid}/${menuId}`);
+      }
       assert.ok(
         koProof.priceUrl.includes(`branch=${branch}`),
         `Expected KO priceUrl to include branch=${branch} for ${pid}/${menuId}, got ${koProof.priceUrl}`
@@ -704,6 +709,7 @@ test('1회 체험가 주의 문구 및 Wave 1-2 보강 공식 스크린샷/가�
     assert.ok(place, `Missing clinic ${id}`);
     for (const m of allMenus) {
       const pr = getOfficialMenuProof(place, m, 'ko');
+      if (HIDDEN_PROOF_OFFERS.has(`${id}::${m}`)) continue;
       assert.ok(pr.imageFile, `${id}::${m} must have verified proof screenshot`);
       const fname = path.basename(pr.imageFile);
       if (hasProofImages) {
@@ -747,12 +753,15 @@ test('100% of remaining 137 clinics and 735 offered prices across 9 treatments h
       offerCount += 1;
       const ko = getOfficialMenuProof(place, menuId, 'ko');
       const ja = getOfficialMenuProof(place, menuId, 'ja');
-      assert.ok(ko.imageFile, `Missing KO proof for ${place.id}::${menuId}`);
-      assert.ok(ja.imageFileJa, `Missing JA proof for ${place.id}::${menuId}`);
+      if (!HIDDEN_PROOF_OFFERS.has(`${place.id}::${menuId}`)) {
+        assert.ok(ko.imageFile, `Missing KO proof for ${place.id}::${menuId}`);
+        assert.ok(ja.imageFileJa, `Missing JA proof for ${place.id}::${menuId}`);
+      }
       assert.equal(ko.verifiedKrw, place.prices[menuId]?.krw, `KRW mismatch on ${place.id}::${menuId}`);
+      if (HIDDEN_PROOF_OFFERS.has(`${place.id}::${menuId}`)) continue;
       if (hasProofImages) {
-        assert.ok(fs.existsSync(path.join(koDir, ko.imageFile)));
-        assert.ok(fs.existsSync(path.join(jaDir, ja.imageFileJa)));
+        assert.ok(fs.existsSync(path.join(koDir, ko.imageFile!)));
+        assert.ok(fs.existsSync(path.join(jaDir, ja.imageFileJa!)));
       }
     }
   }
@@ -776,6 +785,15 @@ test('100% of remaining 137 clinics and 735 offered prices across 9 treatments h
     assert.ok(eff.recoveryHintKo.length > 3 && eff.recoveryHintJa.length > 3);
     assert.equal(eff.effectsKo.length, 3);
     assert.equal(eff.effectsJa.length, 3);
+    assert.equal(eff.recommendedForKo.length, 3, `Expected 3 recommendedForKo bullets on ${menu.id}`);
+    assert.equal(eff.recommendedForJa.length, 3, `Expected 3 recommendedForJa bullets on ${menu.id}`);
+    assert.equal(eff.qna.length, 3, `Expected 3 Q&A items on ${menu.id}`);
+    for (const qa of eff.qna) {
+      assert.ok(qa.qKo.length > 5 && qa.aKo.length > 20, `Short KO Q&A on ${menu.id}`);
+      assert.ok(qa.qJa.length > 5 && qa.aJa.length > 20, `Short JA Q&A on ${menu.id}`);
+      assert.equal(/[가-힣]/.test(`${qa.qJa} ${qa.aJa}`), false, `Hangul leaked in JA Q&A on ${menu.id}`);
+    }
+    assert.equal(/[가-힣]/.test(eff.recommendedForJa.join(' ')), false, `Hangul leaked in JA recommendedFor on ${menu.id}`);
     assert.ok(eff.timingKo.length > 10 && eff.timingJa.length > 10);
     assert.equal(
       plainJargonRe.test(JSON.stringify({ eff, dt, leadKo: menu.leadTimeNoteKo, leadJa: menu.leadTimeNoteJa })),
@@ -791,6 +809,8 @@ test('100% of remaining 137 clinics and 735 offered prices across 9 treatments h
     '../App.tsx',
     '../components/Modals.tsx',
     '../components/ClinicPageView.tsx',
+    '../components/ClinicBookingSheet.tsx',
+    '../components/FeeTransparencyBox.tsx',
     '../components/TreatmentInfoView.tsx',
     '../components/ConciergeView.tsx',
     'i18n.ts'
