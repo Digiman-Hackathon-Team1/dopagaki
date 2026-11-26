@@ -2,17 +2,18 @@
 
 T1에서는 safety_check가 그대로 통과하고, 도구는 T2부터 추가한다.
 
-Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을 그 블록이 만들어질 때와 앞부분이 같은
+Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을 그 블록이 만들어질 때와 요청 앞부분이 같은
 대화에서만 받아들인다. 그래서 대화 기록은 덧붙이기만 하고, 시스템 프롬프트는 턴마다 바뀌는
-값(응답 언어 등)을 넣지 않은 고정 문장으로 둔다. 턴마다 바뀌는 지시는 그 턴의 사용자 메시지
-뒤에 시스템 메시지로 덧붙여 기록에 남긴다.
+값(응답 언어 등)을 넣지 않은 고정 문장으로 둔다. 턴마다 바뀌는 지시는 그 턴의 사용자 메시지에
+텍스트 블록으로 덧붙인다. 대화 중간 시스템 메시지는 쓰지 않는다. 그 턴의 LLM 호출이 실패하면
+답 없는 시스템 메시지가 기록에 남아 다음 턴 요청을 만들 수 없게 되기 때문이다.
 """
 
 from collections.abc import Sequence
 from typing import Literal
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
@@ -29,9 +30,10 @@ skincare and dermatology treatments in Seoul at prices cheaper than in Japan.
 Help the user decide what treatment to get, when, where, and for how much, up to the \
 clinic's booking channel. Do not diagnose and do not book or pay on the user's behalf.
 Never state prices or savings that did not come from a tool result.
-Write every field of your reply in the language named by the latest system note."""
+Write every field of your reply in the language named by the note at the end of the \
+latest user message."""
 
-LANG_NOTE = "Reply language for this turn: {language}."
+LANG_NOTE = "[Note from Dopa app] Reply language for this turn: {language}."
 
 
 class AgentOutputError(Exception):
@@ -62,9 +64,15 @@ def build_graph(
         bound = model.bind(response_format=AgentReply)
 
     def load_context(state: AgentState) -> dict:
-        # 이번 턴의 응답 언어를 사용자 메시지 뒤에 덧붙인다. 사용자 기억(프로필) 읽기는 P1에서 추가한다.
+        # 이번 턴의 응답 언어를 사용자 메시지 끝에 텍스트 블록으로 붙인다.
+        # 같은 id로 돌려주면 add_messages가 그 메시지를 교체한다(아직 LLM에 보내기 전이라 덧붙이기 조건을 해치지 않는다).
+        # 사용자 기억(프로필) 읽기는 P1에서 추가한다.
+        last = state["messages"][-1]
+        if not isinstance(last, HumanMessage):
+            return {}
         note = LANG_NOTE.format(language=LANG_NAME[state["lang"]])
-        return {"messages": [SystemMessage(note)]}
+        blocks = [{"type": "text", "text": last.text}, {"type": "text", "text": note}]
+        return {"messages": [HumanMessage(content=blocks, id=last.id)]}
 
     def safety_check(state: AgentState) -> dict:
         # T1: 통과. 임신·수유·질환 언급 검사는 T6에서 추가한다.
@@ -92,7 +100,9 @@ def build_graph(
     graph.add_node("load_context", load_context)
     graph.add_node("safety_check", safety_check)
     graph.add_node("agent", agent)
-    graph.add_node("tools", ToolNode(list(tools)))
+    # 도구 예외는 모두 오류 메시지로 모델에 돌려준다(설계 문서 12장). 기본값은 일부 예외만 잡고
+    # 나머지를 다시 던져, 결과 없는 tool_use가 기록에 남고 다음 턴이 400이 된다.
+    graph.add_node("tools", ToolNode(list(tools), handle_tool_errors=True))
     graph.add_node("finalize", finalize)
 
     graph.add_edge(START, "load_context")

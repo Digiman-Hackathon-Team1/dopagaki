@@ -35,3 +35,26 @@ def reply_message(answer: str = "답변") -> AIMessage:
         "cautions": [],
     }
     return AIMessage(content=json.dumps(reply, ensure_ascii=False))
+
+
+def user_texts(messages: list[BaseMessage]) -> list[str]:
+    """사용자 메시지의 본문(첫 텍스트 블록)만 꺼낸다. 두 번째 블록은 앱이 붙인 언어 지시다."""
+    texts = []
+    for m in messages:
+        if m.type != "human":
+            continue
+        texts.append(m.content if isinstance(m.content, str) else m.content[0]["text"])
+    return texts
+
+
+class FailingOnceChatModel(FakeChatModel):
+    """첫 호출에서만 예외를 내는 가짜 LLM. API 장애(529, 시간 초과 등)를 흉내 낸다."""
+
+    failed: bool = False
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        if not self.failed:
+            self.failed = True
+            self.calls.append(list(messages))
+            raise RuntimeError("simulated API failure")
+        return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
