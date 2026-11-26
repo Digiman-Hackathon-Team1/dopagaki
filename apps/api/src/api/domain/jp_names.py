@@ -17,8 +17,8 @@
   공백은 지우지 않는다. 지우면 다른 단어의 일부에도 맞기 때문이다(ADR 0011). 공백 변형은 별칭으로 둔다.
 - 이름 앞이 같은 문자 종류(가타카나, 영문·숫자, 한글, 한자)면 다른 단어의 일부로 보고 버린다.
   'ケミカルピール'의 'ピール', '이마보톡스'의 '보톡스'는 맞지 않는다. 히라가나(조사)는 경계다.
-- 이름 뒤는 가타카나·영문 이름일 때만 같은 문자 종류가 오면 버린다('ハイフ受けたい'는 맞고 'ハイフル'은 아님).
-  한글은 조사가 붙으므로('하이후를') 뒤를 보지 않는다.
+- 이름 뒤는 가타카나·영문·한자 이름일 때만 같은 문자 종류가 오면 버린다('ハイフ受けたい'는 맞고 'ハイフル'·
+  '水光肌'은 아님). 한글은 조사가 붙으므로('하이후를') 뒤를 보지 않는다. 숫자는 영문과 다른 종류다('HIFU300').
 - 다른 이름 안에 든 이름은 버린다. 'エラボトックス' → エラボトックス(안의 ボトックス는 버림).
 """
 
@@ -32,6 +32,14 @@ from api.domain.catalog import JpBenchmark, Menu, get_catalog
 
 
 @dataclass(frozen=True)
+class UnitNote:
+    """시술별 한국·일본 단위 차이. 근거는 `jp_benchmarks[].plan_ja`의 단위 표기다."""
+
+    ja: str
+    ko: str
+
+
+@dataclass(frozen=True)
 class JpName:
     """대응표의 한 줄: 같은 뜻의 이름들 → 한국 시술."""
 
@@ -41,20 +49,14 @@ class JpName:
     reason_ja: str
     reason_ko: str
     kind: Literal["direct", "broad", "other", "part"] = "direct"
-
-
-@dataclass(frozen=True)
-class UnitNote:
-    """시술별 한국·일본 단위 차이. 근거는 `jp_benchmarks[].plan_ja`의 단위 표기다."""
-
-    ja: str
-    ko: str
+    # 일본 벤치마크 플랜명에 이 이름이 있을 때, 그 병원 가격과 직접 비교하며 함께 알릴 제품 차이(설계 4.7).
+    compare_note: "UnitNote | None" = None
 
 
 UNIT_NOTES: dict[str, UnitNote] = {
     "rejuran-2cc": UnitNote(
-        ja="韓国は2cc基準です。日本は1cc単位の価格が多く、1cc×2で比べています。",
-        ko="한국은 2cc 기준이에요. 일본은 1cc 단위 가격이 많아 1cc×2로 비교해요.",
+        ja="韓国は2cc基準です。日本は1cc単位のクリニックもあり、その場合は1cc×2で比べています。",
+        ko="한국은 2cc 기준이에요. 일본은 1cc 단위인 곳도 있어 그곳은 1cc×2로 비교해요.",
     ),
     "shrink-300": UnitNote(
         ja="韓国は300ショット基準です。日本はクリニックにより300ショット・650ショットや「全顔」単位です。",
@@ -98,6 +100,7 @@ JP_NAMES: tuple[JpName, ...] = (
         # 플랜명: 脂肪溶解リニアハイフ, ウルトラスキンハイフ, UTIMS A3 HIFU, ウルトラフォーマー3, ドクターハイフ
         names=(
             "ハイフ",
+            "はいふ",
             "HIFU",
             "リニアハイフ",
             "ウルトラスキンハイフ",
@@ -153,6 +156,8 @@ JP_NAMES: tuple[JpName, ...] = (
             "リジュランi",
             "リジュランアイ",
             "Rejuran i",
+            "리쥬란i",
+            "리쥬란 i",
             "리쥬란 아이",
             "리쥬란아이",
         ),
@@ -160,6 +165,18 @@ JP_NAMES: tuple[JpName, ...] = (
         reason_ja="リジュランアイ（目元用）はデータにありません。データのリジュランはヒーラーです。",
         reason_ko="리쥬란 아이(눈가용)는 데이터에 없어요. 데이터의 리쥬란은 힐러예요.",
         kind="other",
+        # SBC 리쥬란 벤치마크 'リジュランi 1cc × 2'. SBC 공식 페이지: リジュランi는 PN 2%, 눈가에 권함.
+        # SBC는 리쥬란 힐러를 팔지 않아 가장 가까운 이 제품으로 비교한다(ADR 0012).
+        compare_note=UnitNote(
+            ja=(
+                "このクリニックの価格はリジュランヒーラーではなく、同じPN 2%で目元向けの"
+                "リジュランiの価格です。"
+            ),
+            ko=(
+                "이 병원 가격은 리쥬란 힐러가 아니라 같은 성분 농도(PN 2%)의 눈가용 "
+                "리쥬란 i 가격이에요."
+            ),
+        ),
     ),
     JpName(
         id="skin-booster-injection",
@@ -190,7 +207,7 @@ JP_NAMES: tuple[JpName, ...] = (
         ),
         menu_ids=("jaw-botox",),
         reason_ja="日本は部位の名前（エラ）を付けて、韓国は「四角あごボトックス」と呼びます。",
-        reason_ko="일본은 부위 이름(エラ, 턱)을 붙여 부르고, 한국은 '사각턱 보톡스'라고 해요.",
+        reason_ko="일본은 부위 이름(エラ)을 붙여 부르고, 한국은 '사각턱 보톡스'라고 해요.",
     ),
     JpName(
         id="botox",
@@ -213,15 +230,37 @@ JP_NAMES: tuple[JpName, ...] = (
         names=("エラ", "사각턱"),
         menu_ids=("jaw-botox",),
         reason_ja="日本は部位の名前（エラ）を付けて、韓国は「四角あごボトックス」と呼びます。",
-        reason_ko="일본은 부위 이름(エラ, 턱)을 붙여 부르고, 한국은 '사각턱 보톡스'라고 해요.",
+        reason_ko="일본은 부위 이름(エラ)을 붙여 부르고, 한국은 '사각턱 보톡스'라고 해요.",
         kind="part",
     ),
     JpName(
         id="juvelook",
-        names=("ジュベルック", "Juvelook", "쥬베룩"),
+        names=(
+            "ジュベルック",
+            "ジュベルックスキン",
+            "Juvelook",
+            "쥬베룩",
+            "쥬베룩 스킨",
+            "쥬베룩스킨",
+        ),
         menu_ids=("juvelook-2cc",),
         reason_ja=SAME_NAME_JA,
         reason_ko=SAME_NAME_KO,
+    ),
+    JpName(
+        id="juvelook-volume",
+        # 데이터의 쥬베룩은 스킨이다. 볼륨은 다른 제품이라 바꿔 답하지 않는다.
+        names=(
+            "ジュベルックボリューム",
+            "ジュベルック ボリューム",
+            "Juvelook Volume",
+            "쥬베룩 볼륨",
+            "쥬베룩볼륨",
+        ),
+        menu_ids=("juvelook-2cc",),
+        reason_ja="ジュベルックボリュームは別の製品で、データにありません。データのジュベルックはスキンです。",
+        reason_ko="쥬베룩 볼륨은 다른 제품이라 데이터에 없어요. 데이터의 쥬베룩은 스킨이에요.",
+        kind="other",
     ),
     JpName(
         id="re2o",
@@ -240,6 +279,7 @@ JP_NAMES: tuple[JpName, ...] = (
             "MiniFX",
             "インモードFX",
             "インモード FX",
+            "InMode FX",
             "인모드 FX",
             "인모드FX",
             "미니 FX",
@@ -298,14 +338,19 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-Script = Literal["katakana", "latin", "hangul", "kanji"]
+Script = Literal["katakana", "latin", "digit", "hangul", "kanji"]
 
 
 def _script(char: str) -> Script | None:
-    """이름의 일부가 될 수 있는 글자의 종류. None이면 경계(공백, 기호, 히라가나)."""
+    """이름의 일부가 될 수 있는 글자의 종류. None이면 경계(공백, 기호, 히라가나).
+
+    숫자는 영문과 따로 본다. 'HIFU300'처럼 단위 숫자가 붙어도 이름으로 찾기 위해서다.
+    """
     if "ァ" <= char <= "ヺ":
         return "katakana"
-    if char.isascii() and char.isalnum():
+    if char.isascii() and char.isdigit():
+        return "digit"
+    if char.isascii() and char.isalpha():
         return "latin"
     if "가" <= char <= "힣":
         return "hangul"
@@ -352,7 +397,7 @@ class JpNameIndex:
                 after = _script(text[end]) if end < len(text) else None
                 head, tail = _script(alias[0]), _script(alias[-1])
                 if not (before and before == head) and not (
-                    tail in ("katakana", "latin") and after == tail
+                    tail in ("katakana", "latin", "kanji") and after == tail
                 ):
                     matches.append(_Match(start, end, entry))
                 start = text.find(alias, start + 1)
@@ -422,22 +467,125 @@ class JpClinicMatch:
     benchmarks: tuple[JpBenchmark, ...]
 
 
+# 병원 이름에 흔히 붙는 말. 이 말만으로는 병원을 가리지 않는다('皮膚科', 'A CLINIC'의 'clinic').
+_CLINIC_GENERIC = (
+    "美容外科",
+    "美容皮膚科",
+    "美容クリニック",
+    "スキンクリニック",
+    "クリニック",
+    "皮膚科",
+    "外科",
+    "美容",
+    "clinic",
+    "skin",
+    "미용외과",
+    "미용피부과",
+    "미용클리닉",
+    "스킨클리닉",
+    "클리닉",
+    "피부과",
+    "미용",
+    "의원",
+)
+
+
+def _clinic_normalize(text: str) -> str:
+    """병원 이름 비교용. 괄호는 공백으로 바꾼다('湘南美容クリニック（SBC）' = '湘南美容クリニック (SBC)')."""
+    return normalize(re.sub(r"[()（）]", " ", unicodedata.normalize("NFKC", text)))
+
+
+# 데이터에서 같은 병원 그룹이 시술마다 다른 이름으로 적힌 경우의 별칭. 'SBC NEO Skin Clinic'은
+# 湘南美容クリニック(SBC)와 같은 병원으로 본다(사용자 결정, ADR 0012).
+_CLINIC_ALIASES: dict[str, str] = {
+    "SBC NEO Skin Clinic": "湘南美容クリニック 쇼난미용클리닉",
+}
+
+
 def _clinic_text(benchmark: JpBenchmark) -> str:
-    return normalize(f"{benchmark.name_ja} {benchmark.name_ko}")
+    alias = _CLINIC_ALIASES.get(benchmark.name_ja, "")
+    return _clinic_normalize(f"{benchmark.name_ja} {benchmark.name_ko} {alias}")
+
+
+def compare_note(benchmark: JpBenchmark) -> UnitNote | None:
+    """이 일본 병원 플랜이 한국 시술과 다른 제품 이름이면, 직접 비교할 때 함께 알릴 문장."""
+    for entry in get_jp_names().match(benchmark.plan_ja).entries:
+        if entry.compare_note:
+            return entry.compare_note
+    return None
+
+
+def _strip_generic(token: str) -> str:
+    """'湘南美容外科' → '湘南', 'ビアンカクリニック' → 'ビアンカ'. 흔한 말만 남으면 빈 문자열."""
+    changed = True
+    while changed:
+        changed = False
+        for word in _CLINIC_GENERIC:
+            if token.endswith(word):
+                token = token[: -len(word)]
+                changed = True
+    return token
+
+
+def _clinic_tokens(name: str) -> list[tuple[str, str]]:
+    """사용자가 말한 병원 이름 → (단어, 흔한 말을 뗀 단어) 목록.
+
+    영문과 다른 글자 사이도 나눈다('SBC湘南美容クリニック' → sbc, 湘南美容クリニック). 두 글자보다 짧은
+    단어와 흔한 말뿐인 단어는 버린다('A CLINIC', 'Aクリニック'은 단어가 남지 않는다).
+    """
+    tokens = []
+    for word in _clinic_normalize(name).split():
+        for part in re.findall(r"[a-z]+|[^a-z]+", word):
+            stripped = _strip_generic(part)
+            if len(stripped) >= 2:
+                tokens.append((part, stripped))
+    return tokens
+
+
+def _starts_word(text: str, token: str) -> bool:
+    """token이 text 안의 단어 시작에 있는지. 영문 단어는 끝도 단어 경계여야 한다('a'는 'bianca'에 맞지 않음)."""
+    start = text.find(token)
+    while start != -1:
+        end = start + len(token)
+        before = _script(text[start - 1]) if start > 0 else None
+        after = _script(text[end]) if end < len(text) else None
+        if before != _script(token[0]) and not (
+            _script(token[-1]) == "latin" and after == "latin"
+        ):
+            return True
+        start = text.find(token, start + 1)
+    return False
 
 
 def find_jp_clinic(menu: Menu, name: str) -> JpClinicMatch:
     """사용자가 말한 일본 병원을 이 시술의 일본 벤치마크 병원에서 찾는다(설계 4.7).
 
-    병원 이름은 '湘南', 'SBC', '品川'처럼 이름의 앞부분만 말하는 일이 많아, 공백으로 나눈 단어가 모두
-    병원 이름(일본어·한국어)에 들어 있으면 맞는 것으로 본다. 두 곳 이상 맞으면 ambiguous다.
+    - 사용자는 '湘南', 'SBC', '品川'처럼 이름의 앞부분만 말하는 일이 많다. 단어가 병원 이름(일본어·한국어)의
+      단어 시작에 있으면 맞는 것으로 본다. 단어 중간('ビアンカ'의 'a')에는 맞지 않는다.
+    - 단어 그대로 맞지 않으면 흔한 말을 뗀 단어로 찾는다('湘南美容外科' → 湘南).
+    - 모든 단어에 맞는 병원이 없으면 한 단어라도 맞는 병원으로 찾는다. 지점 이름('品川美容外科 新宿院')은
+      데이터에 없기 때문이다.
+    - 두 곳 이상 맞으면 ambiguous다.
     """
-    tokens = normalize(name).split()
-    if not tokens:
-        return JpClinicMatch(status="unknown", benchmarks=())
-    found = tuple(
-        b for b in menu.jp_benchmarks if all(t in _clinic_text(b) for t in tokens)
-    )
+    tokens = _clinic_tokens(name)
+
+    def hits(token: tuple[str, str]) -> set[int]:
+        full, stripped = token
+        for word in dict.fromkeys((full, stripped)):
+            found = {
+                i
+                for i, b in enumerate(menu.jp_benchmarks)
+                if _starts_word(_clinic_text(b), word)
+            }
+            if found:
+                return found
+        return set()
+
+    per_token = [hits(t) for t in tokens]
+    indexes = set.intersection(*per_token) if per_token else set()
+    if not indexes:
+        indexes = set().union(*per_token)
+    found = tuple(b for i, b in enumerate(menu.jp_benchmarks) if i in indexes)
     if not found:
         return JpClinicMatch(status="unknown", benchmarks=())
     if len(found) > 1:

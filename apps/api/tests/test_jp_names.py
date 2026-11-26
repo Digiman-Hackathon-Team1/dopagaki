@@ -64,6 +64,9 @@ def test_same_name_in_two_entries_is_rejected() -> None:
         "シュリンク",
         "ウルトラフォーマー3",
         "UTIMS A3 HIFU",
+        "HIFU300",  # 숫자는 경계
+        "ハイフ300ショット",
+        "はいふ",  # 히라가나
     ],
 )
 def test_hifu_variants_match_shrink(query: str) -> None:
@@ -119,6 +122,10 @@ def test_product_and_device_names_match(query: str, menu_id: str) -> None:
         ("ウルセラ ハイフ", ("shrink-300",)),  # 다른 기기는 함께 와도 확인
         ("ハイフ ボトックス", ("shrink-300", "jaw-botox")),
         ("エラ", ("jaw-botox",)),
+        ("리쥬란i", ("rejuran-2cc",)),  # 한국어 표기도 같은 결과
+        ("쥬베룩 볼륨", ("juvelook-2cc",)),  # 데이터의 쥬베룩은 스킨
+        ("ジュベルック ボリューム", ("juvelook-2cc",)),
+        ("ジュベルックボリューム", ("juvelook-2cc",)),
     ],
 )
 def test_broad_or_other_names_need_confirmation(query: str, candidates) -> None:
@@ -136,6 +143,7 @@ def test_broad_or_other_names_need_confirmation(query: str, candidates) -> None:
         "이마보톡스",  # '보톡스'는 다른 단어의 일부, 데이터에 없는 부위
         "ハイフル",  # 'ハイフ' 뒤에 가타카나가 이어짐
         "shrinkage",
+        "水光肌になりたい",  # 고민 표현. '水光' 뒤에 한자가 이어짐
         "",
     ],
 )
@@ -195,3 +203,55 @@ def test_find_jp_clinic_without_price_for_menu_is_unknown() -> None:
     assert find_jp_clinic(shrink, "TAクリニック").status == "unknown"
     assert find_jp_clinic(shrink, " ").status == "unknown"
     assert [m.id for m in menus_with_jp_clinic("TAクリニック")] == ["jaw-botox"]
+
+
+@pytest.mark.parametrize(
+    ("menu_id", "name", "clinic"),
+    [
+        ("shrink-300", "湘南美容外科", "湘南美容クリニック (SBC)"),  # 흔한 다른 이름
+        (
+            "shrink-300",
+            "湘南美容クリニック（SBC）",
+            "湘南美容クリニック (SBC)",
+        ),  # 전각 괄호
+        ("shrink-300", "SBC湘南美容クリニック", "湘南美容クリニック (SBC)"),
+        (
+            "shrink-300",
+            "品川美容外科 新宿院",
+            "品川美容外科",
+        ),  # 지점 이름은 데이터에 없음
+        ("shrink-300", "LULAクリニック", "ルラ美容クリニック"),
+        ("re2o-5cc", "ビアンカクリニック", "BIANCA CLINIC (ビアンカ)"),
+        ("lalapeel", "表参道美容皮膚科", "表参道美容皮膚科"),
+        ("jaw-botox", "TAクリニック", "TAクリニック"),
+        # SBC NEO Skin Clinic은 湘南美容クリニック(SBC)와 같은 병원으로 본다(ADR 0012).
+        ("re2o-5cc", "湘南美容クリニック", "SBC NEO Skin Clinic"),
+        ("re2o-5cc", "SBC", "SBC NEO Skin Clinic"),
+        ("inmode-fx", "湘南", "SBC NEO Skin Clinic"),
+    ],
+)
+def test_find_jp_clinic_name_variants(menu_id: str, name: str, clinic: str) -> None:
+    result = find_jp_clinic(get_catalog().menu(menu_id), name)
+    assert (result.status, [b.name_ja for b in result.benchmarks]) == (
+        "found",
+        [clinic],
+    )
+
+
+@pytest.mark.parametrize(
+    ("menu_id", "name"),
+    [
+        ("re2o-5cc", "A CLINIC"),  # 'a'는 'bianca'의 일부
+        ("jaw-botox", "Aクリニック"),  # TAクリニック이 아님
+        ("shrink-300", "皮膚科"),  # 흔한 말만
+        ("shrink-300", "クリニック"),
+        ("shrink-300", "S"),  # 한 글자
+        ("shrink-300", "LA"),  # 'lula'의 일부
+        ("shrink-300", "ラ"),
+        ("shrink-300", "聖"),
+    ],
+)
+def test_find_jp_clinic_ignores_parts_and_generic_words(
+    menu_id: str, name: str
+) -> None:
+    assert find_jp_clinic(get_catalog().menu(menu_id), name).status == "unknown"
