@@ -32,7 +32,7 @@ description: 도파가키 팀 작업 진행. GitHub 이슈에서 내 작업을 �
 
 1. 노션 설계 문서 전체를 먼저 읽는다: https://app.notion.com/p/423bf371be2d803288d0d8e8819739d4
 2. 고른 이슈 본문의 **목표 · 범위 · 완료 기준 · 의존**을 읽는다. `## 시작 전`이 있으면 그것부터 한다. 이슈 "참고"에 적힌 장을 이번 작업의 기준으로 삼는다.
-3. `develop`과 `main`에는 직접 push하지 않는다. `develop`에서 브랜치를 만든다: `git switch -c t<번호>-<짧은-이름>` (예: `t1-agent-skeleton`).
+3. `develop`과 `main`에는 직접 push하지 않는다. `develop`에서 브랜치를 만든다. 이름은 `docs/git-naming-convention.md`를 따른다: `git switch -c <type>/<이슈번호>-<slug>` (예: `feat/5-search-clinics`).
 4. 작업 범위는 이슈 "범위"로 제한한다. 범위에 없는 기능, 리팩터링, 다른 사람 담당 영역(다른 앱, 다른 담당의 파일)을 바꿔야 할 것 같으면 멈추고 사용자에게 알린다.
 5. 설계 문서와 이슈가 다르면 설계 문서를 따른다. 판단이 서지 않으면 멈추고 묻는다.
 6. 설계를 바꿔야 하면 사용자에게 알리고, 승인받아 설계 문서를 고치면 하위 페이지 "설계 변경 기록"(https://app.notion.com/p/424bf371be2d81dda111e3a9b4583311)에 한 건 남긴다. 형식은 버전·날짜 제목 아래 변경 전, 변경 후, 이유, 근거, 관련(ADR·PR·이슈). 선택지를 비교한 큰 결정은 `docs/adr/`에도 남긴다.
@@ -47,7 +47,7 @@ description: 도파가키 팀 작업 진행. GitHub 이슈에서 내 작업을 �
 
 ## 5. PR 올리기
 
-1. 커밋 메시지 앞에 작업 번호를 붙인다: `[T1] 에이전트 골격 추가`
+1. 커밋 메시지는 `docs/git-naming-convention.md`를 따른다: `<type>(<scope>): <요약> (#<이슈번호>)` (예: `feat(agent): search_clinics 도구 추가 (#5)`). 작업 단위별로 나눠 커밋한다.
 2. PR 본문은 아래 양식으로 쓴다. 이슈 완료 기준을 하나씩 대조해 "검증" 또는 "남은 것"에 빠짐없이 넣는다.
 
    ```markdown
@@ -82,9 +82,10 @@ description: 도파가키 팀 작업 진행. GitHub 이슈에서 내 작업을 �
    - 표는 전후 비교처럼 숫자를 대조할 때만 쓴다. 측정값이 있으면 "검증" 앞에 `## 측정 결과`를 둔다.
    - 작업 단위는 리뷰어가 읽는 순서대로 번호를 붙인다.
    - 멘션(@)은 사용자가 요청할 때만 넣는다.
-3. 사용자에게 확인받은 뒤 브랜치를 push하고 PR을 연다: `gh pr create --base develop --title "[T1] …" --body "…"`
+3. 사용자에게 확인받은 뒤 브랜치를 push하고 PR을 연다. 제목은 `<type>(<scope>): <요약> [T<번호> #<이슈번호>]`: `gh pr create --base develop --title "feat(agent): … [T2 #5]" --body-file …`
 4. CI(`check`)가 실패하면 고쳐서 같은 브랜치에 다시 push한다.
-5. 머지는 사용자가 요청할 때만 한다. 자동 머지(`gh pr merge --auto`)는 쓰지 않는다. 이슈는 PR이 `develop`에 머지되면 `Closes`로 닫힌다.
+5. 머지는 사용자가 요청할 때만 한다. 머지 커밋으로 머지하고(`gh pr merge --merge`, Squash 아님), 자동 머지(`gh pr merge --auto`)는 쓰지 않는다. 이슈는 PR이 `develop`에 머지되면 `Closes`로 닫힌다.
+6. PR 본문을 고칠 때 `gh pr edit`은 이 레포에서 실패할 수 있다. `gh api -X PATCH repos/Digiman-Hackathon-Team1/dopagaki/pulls/<번호> -F body=@<파일>`로 고치고 반영됐는지 확인한다.
 
 ## 하지 않는 것
 

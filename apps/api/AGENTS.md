@@ -81,7 +81,7 @@ OpenAPI 타입은 컴파일 시점 검사다. 요청 검증은 서버의 Pydanti
 ### PR
 
 - `develop`에서 브랜치를 만들고 `develop` 대상으로 PR을 올린다. 머지는 사용자가 요청할 때만 한다.
-- 커밋과 PR 제목 앞에 작업 번호를 붙인다. 예: `[T1] 에이전트 골격 추가`
+- 브랜치, 커밋, PR 제목은 `docs/git-naming-convention.md`를 따른다. 예: PR 제목 `feat(agent): 데이터·가격 계산과 search_clinics 추가 [T2 #5]`
 - PR 본문에 `Closes #이슈번호`, 변경 요약, 완료 기준별 확인 결과를 적는다.
 
 ### 관련 문서
