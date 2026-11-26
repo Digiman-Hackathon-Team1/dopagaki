@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { copy } from './copy';
+import { areas, menus } from '@/data/prices.json';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Schemas } from '@repo/api-client';
@@ -34,15 +36,21 @@ function Questions({ items, send, lang }: { lang: Lang; items: Schemas['Question
         ? choice.selected.filter(s => s !== option) : [...choice.selected, option] });
     }
     return <fieldset key={i}><legend>{item.question}</legend>
+      <small className="agent-choice-hint">{item.multiSelect
+        ? (lang === 'ja' ? '複数選択できます' : '여러 개 선택할 수 있어요')
+        : grouped ? (lang === 'ja' ? '1つ選んでください' : '하나를 선택하세요')
+        : (lang === 'ja' ? '選ぶと送信されます' : '선택하면 바로 전송돼요')}</small>
       {item.options.map(option => <button key={option} aria-pressed={grouped || item.multiSelect ? choice.selected.includes(option) : undefined}
         onClick={() => select(option)}>{option}</button>)}
       <button aria-pressed={choice.direct} onClick={() => change(i, {
         direct: !choice.direct, selected: item.multiSelect ? choice.selected : []
       })}>{lang === 'ja' ? '自由入力' : '직접 입력'}</button>
-      {choice.direct && <input aria-label={item.question} placeholder={lang === 'ja' ? '回答を入力してください' : '답변을 입력하세요'} maxLength={2000} value={choice.custom}
+      {choice.direct && <input aria-label={item.question} placeholder={lang === 'ja' ? '回答を入力してください' : '답변을 입력하세요'} value={choice.custom}
         onChange={e => change(i, { custom: e.target.value })} />}
     </fieldset>;
   })}
+    {grouped && <small>{lang === 'ja' ? '回答済み' : '답변한 질문'} {answers.filter(Boolean).length}/{items.length}</small>}
+    {[...message].length > 2000 && <small role="alert">{copy[lang].tooLong}</small>}
     {(grouped || items[0]?.multiSelect || choices[0]?.direct) &&
       <button disabled={answers.some(answer => !answer) || [...message].length > 2000} onClick={() => send(message)}>{lang === 'ja' ? '回答を送信' : '답변 보내기'}</button>}
   </div>;
@@ -58,12 +66,12 @@ const japaneseTags = {
   app_benefit: 'アプリ特典', anesthesia: '麻酔料要確認', extra_fee: '追加料金'
 };
 
-function Card({ card, lang }: { lang: Lang; card: Schemas['RecommendationCard'] }) {
+function Card({ card, lang, showSearch }: { showSearch: boolean; lang: Lang; card: Schemas['RecommendationCard'] }) {
   const ja = lang === 'ja';
   const n = (value: number) => value.toLocaleString(lang);
   const won = ja ? 'ウォン' : '원';
   const yen = ja ? '円' : '엔';
-  return <article className="agent-card"><small>{ja ? card.stationJa : card.stationKo} · {card.area}{card.japaneseSupport && (ja ? ' · 日本語対応' : ' · 일본어 지원')}</small>
+  return <article className="agent-card"><small>{showSearch && (ja ? '検索 ' : '검색 ') + card.searchId.replace(/^s/, '') + ' · '}{ja ? card.stationJa : card.stationKo} · {areas.find(area => area.id === card.area)?.[ja ? 'nameJa' : 'nameKo'] ?? card.area}{card.japaneseSupport && (ja ? ' · 日本語対応' : ' · 일본어 지원')}</small>
     <h3>{ja ? card.clinicNameJa : card.clinicNameKo} · {ja ? card.menuNameJa : card.menuNameKo}</h3><strong>{n(card.totalKrw)}{won}</strong> · {n(card.totalJpy)}{yen}
     <p>{ja ? '日本の平均' : '일본 평균'} {n(card.jpAverageJpy)}{ja ? '円より' : '엔 대비'} {n(Math.abs(card.savingsJpy))}{yen} ({Math.abs(card.savingsPct)}%) {card.savingsJpy < 0 ? (ja ? '割高' : '높음') : (ja ? 'お得' : '절약')}</p>
     {card.priceTags.length > 0 && <p className="agent-tags">{card.priceTags.map(tag => <span key={tag}>{ja ? japaneseTags[tag] : priceLabels[tag]}</span>)}</p>}
@@ -80,13 +88,22 @@ function Card({ card, lang }: { lang: Lang; card: Schemas['RecommendationCard'] 
 }
 
 export function Reply({ reply, send, lang }: { lang: Lang; reply: Schemas['ChatResponse']; send: Send }) {
+  const searchIds = new Set([
+    ...reply.cards.flatMap(card => card.kind === 'recommendation' ? [card.searchId] : []),
+    ...reply.exclusions.map(item => item.searchId)
+  ]);
   return <div className="agent-reply">
     {reply.conditionSummary && <p className="agent-summary">{reply.conditionSummary}</p>}
-    <div className="agent-markdown"><Markdown remarkPlugins={[remarkGfm]} skipHtml>{reply.answer}</Markdown></div>
-    {reply.cards.map(card => card.kind === 'recommendation' && <Card lang={lang} key={card.searchId + ':' + card.cardId} card={card} />)}
+    <div className="agent-markdown"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
+      a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
+      img: ({ alt }) => <>{alt}</>
+    }}>{reply.answer}</Markdown></div>
+    {reply.cards.some(card => card.kind === 'recommendation') && <h3>{lang === 'ja' ? 'おすすめのクリニック' : '추천 병원'}</h3>}
+    {reply.cards.map(card => card.kind === 'recommendation' && <Card showSearch={searchIds.size > 1} lang={lang} key={card.searchId + ':' + card.cardId} card={card} />)}
     {reply.exclusions.length > 0 && <details><summary>{lang === 'ja' ? '候補から除外したクリニック' : '추천에서 제외된 병원'}</summary>{reply.exclusions.map(e =>
-      <p key={[e.searchId,e.menuId,e.reason].join(':')}>{e.searchId} · {e.menuId} · {lang === 'ja' ? japaneseExclusions[e.reason] : exclusions[e.reason]} · {e.clinicCount}{lang === 'ja' ? '院' : '곳'}</p>)}</details>}
+      <p key={[e.searchId,e.menuId,e.reason].join(':')}>{lang === 'ja' ? '検索' : '검색'} {e.searchId.replace(/^s/, '')} · {menus.find(menu => menu.id === e.menuId)?.[lang === 'ja' ? 'shortJa' : 'shortKo'] ?? e.menuId} · {lang === 'ja' ? japaneseExclusions[e.reason] : exclusions[e.reason]} · {e.clinicCount}{lang === 'ja' ? '院' : '곳'}</p>)}</details>}
     {reply.questions.length > 0 && <Questions lang={lang} items={reply.questions} send={send} />}
+    {reply.cautions.length > 0 && <h3>{lang === 'ja' ? '確認しておきたいこと' : '확인할 사항'}</h3>}
     {reply.cautions.map(text => <p key={text}><SvgIcon name="info" /> {text}</p>)}
     <small>{reply.disclaimer}</small>
     {reply.suggestions.length > 0 && <section><h3>{lang === 'ja' ? '続けて質問する' : '이어서 물어보기'}</h3>{reply.suggestions.map(s =>

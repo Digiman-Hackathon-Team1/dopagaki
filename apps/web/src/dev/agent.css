@@ -41,3 +41,10 @@
 .agent-composer input { flex: 1; min-width: 0; background: var(--color-canvas); }
 .agent-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
 .agent-tags span { padding: 2px 8px; border-radius: 12px; background: var(--color-soft); color: var(--color-soft-ink-strong); font-size: var(--text-xs); }
+.agent-dev, .agent-reply { grid-template-columns: minmax(0, 1fr); }
+.agent-dev header, .agent-composer, .agent-log { min-width: 0; }
+.agent-dev fieldset input { max-width: 100%; }
+.agent-turn { scroll-margin-top: var(--space-md); }
+.agent-choice-hint { display: block; }
+.agent-composer { flex-wrap: wrap; }
+.agent-composer small { flex-basis: 100%; }
