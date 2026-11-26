@@ -7,7 +7,12 @@ import type { Schemas } from '@repo/api-client';
 import { SvgIcon } from '@/components/SvgIcon';
 
 type Lang = Schemas['ChatRequest']['lang'];
-type Send = (message: string) => void;
+export type QuestionAnswer = {
+  question: Schemas['Question']['question'];
+  answer: string;
+};
+
+type Send = (message: string, answers?: QuestionAnswer[]) => void;
 const exclusions = { needle: '바늘 시술 기피', downtime: '회복 기간 초과', area: '다른 지역', japanese: '일본어 미지원', budget: '예산 초과' };
 
 const japaneseExclusions = { needle: '針を使う施術', downtime: 'ダウンタイム超過', area: 'エリア外', japanese: '日本語非対応', budget: '予算超過' };
@@ -21,16 +26,18 @@ function Questions({ items, send, lang }: { lang: Lang; items: Schemas['Question
   const answers = items.map((item, i) => {
     const choice = choices[i] ?? emptyChoice;
     const text = [...choice.selected, choice.direct ? choice.custom.trim() : ''].filter(Boolean).join(', ');
-    return grouped && text ? item.question + ' ' + text : text;
+    return { question: item.question, answer: text };
   });
-  const message = answers.join('\n');
+  const message = answers.map(({ question, answer }) =>
+    grouped && answer ? question + ' ' + answer : answer
+  ).join('\n');
   function change(i: number, update: Partial<Choice>) {
     setChoices(prev => ({ ...prev, [i]: { ...emptyChoice, ...prev[i], ...update } }));
   }
   return <div>{items.map((item, i) => {
     const choice = choices[i] ?? emptyChoice;
     function select(option: string) {
-      if (!grouped && !item.multiSelect) return send(option);
+      if (!grouped && !item.multiSelect) return send(option, [{ question: item.question, answer: option }]);
       if (!item.multiSelect) return change(i, { selected: [option], direct: false });
       change(i, { selected: choice.selected.includes(option)
         ? choice.selected.filter(s => s !== option) : [...choice.selected, option] });
@@ -49,10 +56,10 @@ function Questions({ items, send, lang }: { lang: Lang; items: Schemas['Question
         onChange={e => change(i, { custom: e.target.value })} />}
     </fieldset>;
   })}
-    {grouped && <small>{lang === 'ja' ? '回答済み' : '답변한 질문'} {answers.filter(Boolean).length}/{items.length}</small>}
+    {grouped && <small>{lang === 'ja' ? '回答済み' : '답변한 질문'} {answers.filter(item => item.answer).length}/{items.length}</small>}
     {[...message].length > 2000 && <small role="alert">{copy[lang].tooLong}</small>}
     {(grouped || items[0]?.multiSelect || choices[0]?.direct) &&
-      <button disabled={answers.some(answer => !answer) || [...message].length > 2000} onClick={() => send(message)}>{lang === 'ja' ? '回答を送信' : '답변 보내기'}</button>}
+      <button disabled={answers.some(item => !item.answer) || [...message].length > 2000} onClick={() => send(message, answers)}>{lang === 'ja' ? '回答を送信' : '답변 보내기'}</button>}
   </div>;
 }
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, type Schemas } from '@repo/api-client';
 import mark from '@/assets/dopagaki-mark.png';
 import { SvgIcon } from '@/components/SvgIcon';
-import { Reply } from './Reply';
+import { Reply, type QuestionAnswer } from './Reply';
 import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
 import { copy } from './copy';
 import './agent.css';
@@ -10,6 +10,7 @@ import './agent.css';
 type Turn = {
   id: number;
   message: string;
+  answers?: QuestionAnswer[];
   status: 'waiting' | 'writing' | 'unavailable' | 'invalid' | 'offline' | 'serverError' | null;
   httpStatus?: number;
   reply?: Schemas['ChatResponse'];
@@ -61,13 +62,13 @@ export default function AgentDev() {
     scrollTarget.current = undefined;
   }, [turns]);
 
-  function send(value: string) {
+  function send(value: string, answers?: QuestionAnswer[]) {
     const message = value.trim();
     if (!message || [...message].length > 2000) return;
     const id = ++sequence.current;
     follow.current = true;
     scrollTarget.current = id;
-    setTurns(previous => [...previous, { id, message, status: 'waiting' }]);
+    setTurns(previous => [...previous, { id, message, answers, status: 'waiting' }]);
     function update(changes: Partial<Turn>) {
       setTurns(previous => previous.map(turn => turn.id === id ? { ...turn, ...changes } : turn));
     }
@@ -118,7 +119,12 @@ export default function AgentDev() {
         <button onClick={() => send(t.prompt)}>{t.example} <SvgIcon name="chevronRight" /></button>
       </section>}
       {turns.map(turn => <section data-turn={turn.id} key={turn.id} className="agent-turn">
-        <p className="agent-user">{turn.message}</p>
+        {turn.answers?.length ? <dl className="agent-user agent-user-answers">
+          {turn.answers.map((item, index) => <div key={index}>
+            <dt>{item.question}</dt>
+            <dd>{item.answer}</dd>
+          </div>)}
+        </dl> : <p className="agent-user">{turn.message}</p>}
         {turn.reply ? <Reply lang={lang} reply={turn.reply} send={send} /> : <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>}
       </section>)}
     </div>

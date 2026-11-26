@@ -48,3 +48,7 @@
 .agent-choice-hint { display: block; }
 .agent-composer { flex-wrap: wrap; }
 .agent-composer small { flex-basis: 100%; }
+.agent-user-answers { padding: 14px 18px; }
+.agent-user-answers > div + div { margin-top: 16px; }
+.agent-user-answers dt { font-size: var(--text-sm); color: var(--color-on-select); opacity: .85; }
+.agent-user-answers dd { margin: 4px 0 0; font-size: var(--text-md); font-weight: 600; }
