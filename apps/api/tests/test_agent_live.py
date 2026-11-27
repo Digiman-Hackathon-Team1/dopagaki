@@ -298,6 +298,12 @@ def test_live_first_clinic_booking_returns_booking_card(
         (c.kind, c.url_ja, c.url_ko) for c in place.channels
     ]
     assert "http" not in second["answer"], second["answer"]
+    # 접수 메모 합계는 앞 턴 병원 카드의 금액과 같다(시술 하나).
+    assert booking["menuIds"] == [clinics[0]["menuId"]]
+    assert (booking["orderTotalKrw"], booking["orderTotalJpy"]) == (
+        clinics[0]["totalKrw"],
+        clinics[0]["totalJpy"],
+    )
 
 
 def test_live_booking_request_is_not_done_on_users_behalf() -> None:

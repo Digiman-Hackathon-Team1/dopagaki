@@ -331,9 +331,27 @@ class BookingCardData(ResponseModel):
     )
     official_site_url: str = Field(description="병원 공식 사이트")
     inquiry_ko: str = Field(
-        description="병원에 보낼 한국어 문의 문장(web 예약 문의 문장과 같은 틀). 이름 칸은 비워 둔다"
+        description=(
+            "방문 전에 채널로 보낼 한국어 예약 문의(web buildInquiryMessages와 같은 틀). 희망 날짜·시간대·"
+            "인원이 들어가고 가격은 없다. 이름 칸은 비워 둔다"
+        )
     )
-    inquiry_ja: str = Field(description="같은 문의 문장의 일본어판(사용자 확인용)")
+    inquiry_ja: str = Field(description="같은 문의 문장의 일본어판")
+    order_sheet_ko: str = Field(
+        description=(
+            "방문한 날 접수대에서 보여 줄 한국어 메모(web 예약 시트의 접수 메모와 같은 틀). 시술별 공식가, "
+            "부가세 포함 예상 합계, 부탁(추가 시술 권유 사양 등)이 들어간다"
+        )
+    )
+    order_sheet_ja: str = Field(description="같은 접수 메모의 일본어판")
+    order_total_krw: int = Field(
+        description="접수 메모의 부가세 포함 예상 합계(원). 시술이 없으면 0"
+    )
+    order_total_jpy: int = Field(
+        description="같은 합계의 엔화 환산. 시술 하나면 병원 추천 카드의 totalJpy와 같다"
+    )
+    krw_per_100_jpy: float = Field(description="접수 메모 환산에 쓴 환율(100엔당 원)")
+    fx_date_label: str = Field(description="환율 기준일")
 
 
 class BookingCard(BookingCardData):

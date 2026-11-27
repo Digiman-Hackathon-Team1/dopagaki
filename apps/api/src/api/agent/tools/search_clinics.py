@@ -293,9 +293,18 @@ def _proof(place: Place, menu_id: str) -> PriceProof:
     )
 
 
+CHANNEL_NAMES = {
+    "kakao": "KakaoTalk",
+    "line": "LINE",
+    "instagram": "Instagram",
+    "naver_booking": "Naver Booking",
+    "direct_reserve": "official web booking",
+}
+
+
 def channel_names(place: Place) -> str:
     """LLM용 채널 이름 목록. 링크는 LLM에 보내지 않는다(카드에만 있음)."""
-    return ", ".join(c.kind for c in place.channels) or "none in data"
+    return ", ".join(CHANNEL_NAMES[c.kind] for c in place.channels) or "none in data"
 
 
 def _summary_line(rank: int, card: RecommendationCardData, place: Place) -> str:
