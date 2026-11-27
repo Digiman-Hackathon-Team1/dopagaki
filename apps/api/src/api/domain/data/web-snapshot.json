@@ -9,7 +9,7 @@
     "apps/web/src/data/clinic-channels.ts": "301a6533f56e5eca240a1ab3a49061f6c81ff5359e0cad8826fa2ec6730bb3b0",
     "apps/web/src/data/official-proofs.ts": "3ce87ec5d436bf7f7ea32097bb9c5719d684bd2b3cea05f7c1b9a817e96075b9",
     "apps/web/src/lib/clinic-helpers.ts": "3afbf4206ea8f3bcdfbeb0a173dd4f72f413b52d5801467cbde1897458c041bc",
-    "apps/api/scripts/export-web-snapshot.mts": "ac04bcaea9340c79ceaf93eb3b91832c5bf57afb0f9fa57918ab50d9e4adc762"
+    "apps/api/scripts/export-web-snapshot.mts": "6dc8908a64ec47d446a5490932ace0b661a67e789982c284d804ce4338c28630"
   },
   "meta": {
     "checkedDate": "2026-11-23",

@@ -10,6 +10,7 @@
  *   getOfficialMenuProof)의 결과를 그대로 넣는다.
  * - tests/fixtures/calc-expected.json: web calc.ts로 계산한 기대값. calc.py 대조 테스트(설계 13장)에 쓴다.
  * - tests/fixtures/inquiry-expected.json: web buildInquiryMessages로 만든 예약 문의 문장. inquiry.py 대조 테스트에 쓴다.
+ * - tests/fixtures/order-sheet-expected.json: web buildOrderSheetMessages로 만든 접수 메모. inquiry.py 대조 테스트에 쓴다.
  *
  * web 파일은 읽기만 한다. web 데이터나 환율이 바뀌면 이 스크립트를 다시 실행한다.
  */
@@ -25,8 +26,11 @@ import { getClinicChannels } from '../../web/src/data/clinic-channels.ts';
 import { getOfficialMenuProof } from '../../web/src/data/official-proofs.ts';
 import {
   buildInquiryMessages,
+  buildOrderSheetMessages,
   computeClinicBundle,
-  type InquiryFormInput
+  ORDER_GUARD_OPTIONS,
+  type InquiryFormInput,
+  type OrderGuardOption
 } from '../../web/src/lib/clinic-helpers.ts';
 import type { PlaceItem } from '../../web/src/types.ts';
 
@@ -64,11 +68,13 @@ const SOURCE_FILES = [
   'apps/web/src/data/clinic-channels.ts',
   'apps/web/src/data/official-proofs.ts',
   'apps/web/src/lib/clinic-helpers.ts',
-  'apps/api/scripts/export-web-snapshot.mts'
+  'apps/api/scripts/export-web-snapshot.mts',
+  // official-proofs.ts가 읽는 스크린샷 숨김 목록(PR #22에서 추가). 파일이 있을 때만 넣는다.
+  'apps/web/src/data/proof-hidden.ts'
 ];
 const repoRoot = path.resolve(apiDir, '../..');
 const sources = Object.fromEntries(
-  SOURCE_FILES.map((file) => {
+  SOURCE_FILES.filter((file) => fs.existsSync(path.join(repoRoot, file))).map((file) => {
     const text = fs.readFileSync(path.join(repoRoot, file), 'utf8').replace(/\r\n/g, '\n');
     return [file, createHash('sha256').update(text, 'utf8').digest('hex')];
   })
@@ -225,6 +231,37 @@ for (const menuId of ['rejuran-2cc', 'shrink-300']) {
 
 const expected = { krwPer100Jpy, origins: ORIGINS, rows, orders };
 
+// 접수 메모 대조: 부가세 별도·포함 병원, 시술 수(없음·하나·둘·병원에 가격 없음), 부탁 조합.
+// 에이전트는 항상 부가세 포함·1회 기준이다(설계 4.7).
+const vatExcludedPlace = dataset.places.find((p) => p.vatExcluded && 'shrink-300' in p.prices && 'rejuran-2cc' in p.prices);
+const vatIncludedPlace = dataset.places.find((p) => !p.vatExcluded && 'shrink-300' in p.prices);
+const noPotenzaPlace = dataset.places.find((p) => !('potenza' in p.prices));
+if (!vatExcludedPlace || !vatIncludedPlace || !noPotenzaPlace) throw new Error('접수 메모 대조용 병원이 없습니다');
+const GUARD_SETS: Array<Array<OrderGuardOption['id']>> = [
+  ['no-upsell', 'total-first'],
+  [],
+  ORDER_GUARD_OPTIONS.map((g) => g.id).reverse(),
+  ['one-hour']
+];
+const orderCases = [];
+for (const place of [vatExcludedPlace, vatIncludedPlace, noPotenzaPlace]) {
+  for (const menuIds of [[], ['shrink-300'], ['shrink-300', 'rejuran-2cc'], ['potenza']]) {
+    for (const guards of GUARD_SETS) {
+      const bundle = computeClinicBundle(place, dataset.menus, menuIds, 1, true, krwPer100Jpy, dataset.meta.vatRate);
+      orderCases.push({
+        placeId: place.id,
+        menuIds,
+        guards,
+        krwPer100Jpy,
+        vatRate: dataset.meta.vatRate,
+        totalKrw: bundle.totalKrw,
+        totalJpy: bundle.krTotalJpy,
+        ...buildOrderSheetMessages(place, bundle, guards, true)
+      });
+    }
+  }
+}
+
 // 예약 문의 문장 대조: 일본어 가능·불가 병원, 시술 수(없음·하나·둘·병원에 가격 없음), 입력 조합.
 const japanesePlace = dataset.places.find((p) => p.japaneseSupport && 'shrink-300' in p.prices);
 const koreanOnlyPlace = dataset.places.find((p) => !p.japaneseSupport && 'shrink-300' in p.prices);
@@ -264,3 +301,4 @@ function write(relative: string, data: unknown, pretty = true) {
 write('src/api/domain/data/web-snapshot.json', snapshot);
 write('tests/fixtures/calc-expected.json', expected, false);
 write('tests/fixtures/inquiry-expected.json', inquiryCases);
+write('tests/fixtures/order-sheet-expected.json', orderCases);
