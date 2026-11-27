@@ -176,6 +176,11 @@ export interface components {
              * Format: uuid
              */
             threadId: string;
+            /**
+             * Fallback
+             * @description 에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·시간 초과·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 보여 준다. 정상 답변이면 null
+             */
+            fallback: ("error" | "daily_limit") | null;
             /** Conditionsummary */
             conditionSummary: string;
             /** Answer */
@@ -630,13 +635,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
-            };
-            /** @description API 키가 없어 에이전트를 사용할 수 없음 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
