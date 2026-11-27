@@ -10,7 +10,7 @@ import '@/components/agent/agent.css';
 
 type Phase = 'pending' | 'streaming' | 'settled';
 const phaseOf = (turn: Turn): Phase =>
-  turn.reply || failed(turn.status) ? 'settled' : turn.streamed ? 'streaming' : 'pending';
+  turn.reply || failed(turn.status) ? 'settled' : turn.streamed?.trim() ? 'streaming' : 'pending';
 
 /**
  * AI 상담 탭. 에이전트 대화(POST /api/agent/chat/stream) 하나로 상담한다(설계 문서 1장, ADR 0002, #44).

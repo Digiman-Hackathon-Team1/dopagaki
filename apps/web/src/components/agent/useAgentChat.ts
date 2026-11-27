@@ -69,6 +69,8 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
       update({ status: 'writing' });
       let result: Turn;
       let streamed = '';
+      // 응답을 받기 시작한 뒤의 예외(파싱 실패·연결 끊김)는 '연결할 수 없음'이 아니라 '중간에 끊김'이다.
+      let connected = false;
       try {
         userId.current ??= anonymousId();
         const { data, response } = await api.POST('/api/agent/chat/stream', {
@@ -79,26 +81,32 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
         if (!response.ok || !data) {
           result = { id, message, answers, status: response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status };
         } else {
+          connected = true;
           let reply: Schemas['ChatResponse'] | undefined;
           const reader = data
             .pipeThrough(new TextDecoderStream())
             .pipeThrough(new EventSourceParserStream())
             .getReader();
-          for (;;) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            const event = JSON.parse(value.data) as StreamEvent;
-            if (signal?.aborted) return;
-            if (event.type === 'start') {
-              thread.current = event.threadId;
-            } else if (event.type === 'delta') {
-              streamed += event.text;
-              update({ streamed });
-            } else {
-              reply = event.response;
-              await reader.cancel().catch(() => undefined);
-              break;
+          try {
+            for (;;) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              const event = JSON.parse(value.data) as StreamEvent;
+              if (signal?.aborted) return;
+              if (event.type === 'start') {
+                thread.current = event.threadId;
+              } else if (event.type === 'delta') {
+                streamed += event.text;
+                update({ streamed });
+              } else if (event.type === 'done') {
+                reply = event.response;
+                break;
+              }
+              // 모르는 이벤트는 건너뛴다.
             }
+          } finally {
+            // done 뒤의 나머지나 예외로 남은 응답을 닫아, 서버가 더 보내지 않게 한다.
+            await reader.cancel().catch(() => undefined);
           }
           // done 없이 끝났으면 답이 중간에 끊긴 것이다. 보인 글은 남기고 시세표로 안내한다.
           result = reply
@@ -106,7 +114,7 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
             : { id, message, answers, streamed, status: 'interrupted' };
         }
       } catch {
-        result = { id, message, answers, streamed, status: streamed ? 'interrupted' : 'offline' };
+        result = { id, message, answers, streamed, status: connected ? 'interrupted' : 'offline' };
       }
       if (signal?.aborted) return;
       if (result.reply) thread.current = result.reply.threadId;

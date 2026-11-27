@@ -24,9 +24,9 @@ export function Turns({ turns, lang, send, onPriceTable }: {
       </div>)}
     </dl> : <p className="agent-user">{turn.message}</p>}
     {turn.reply ? <Reply lang={lang} reply={turn.reply} send={send} onPriceTable={onPriceTable} /> : <>
-      {turn.streamed && <div className="agent-reply agent-streaming" aria-busy={!failed(turn.status)}><AnswerText text={turn.streamed} /></div>}
+      {turn.streamed?.trim() && <div className="agent-reply agent-streaming" aria-busy={!failed(turn.status)}><AnswerText text={turn.streamed} /></div>}
       <div className="agent-status">
-        {!(turn.streamed && turn.status === 'writing') && <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>}
+        {!(turn.streamed?.trim() && turn.status === 'writing') && <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>}
         {failed(turn.status) && <PriceTableLink lang={lang} onClick={onPriceTable} />}
       </div>
     </>}

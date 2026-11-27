@@ -26,6 +26,9 @@ export default function AgentDev() {
       const reply = turn?.querySelector('.agent-reply');
       if (reply) reply.scrollIntoView({ block: 'start' });
       else if (log.current) log.current.scrollTop = log.current.scrollHeight;
+    } else if (follow.current && log.current && chat.turns.at(-1)?.streamed) {
+      // 글을 이어 받는 동안에는 맨 아래를 따라간다(사용자가 위로 올려 읽으면 멈춘다).
+      log.current.scrollTop = log.current.scrollHeight;
     }
     scrollTarget.current = undefined;
   }, [chat.turns]);
