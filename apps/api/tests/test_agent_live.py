@@ -173,3 +173,70 @@ def test_live_unsupported_concern_is_not_recommended() -> None:
     body = response.json()
     print(json.dumps(body, ensure_ascii=False, indent=2))
     assert clinic_cards(body) == [], body["answer"]
+
+
+def post(message: str, lang: str) -> dict:
+    response = TestClient(app).post(
+        "/api/agent/chat",
+        json={"userId": str(uuid4()), "message": message, "lang": lang},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    print(json.dumps(body, ensure_ascii=False, indent=2))
+    return body
+
+
+def jp_match_cards(body: dict) -> list[dict]:
+    return [c for c in body["cards"] if c["kind"] == "jp_match"]
+
+
+def test_live_hifu_question_maps_to_shrink_with_reason_and_clinics() -> None:
+    """이슈 #7 완료 기준: "하이후 하는 병원 있어?" → 슈링크 대응과 이유, 병원 카드."""
+    body = post("하이후 하는 병원 있어?", "ko")
+
+    [match] = jp_match_cards(body)
+    assert match["menuId"] == "shrink-300"
+    assert "슈링크" in body["answer"], body["answer"]
+    clinics = clinic_cards(body)
+    assert clinics, body["answer"]
+    assert {c["menuId"] for c in clinics} == {"shrink-300"}
+    rows = {r.place.id: r for r in rank_rows(get_catalog(), "shrink-300")}
+    for card in clinics:
+        row = rows[card["placeId"]]
+        assert (card["totalKrw"], card["savingsJpy"]) == (
+            row.total_krw,
+            row.savings_jpy,
+        )
+
+
+def test_live_jp_clinic_price_is_compared_directly() -> None:
+    """설계 4.7: 다니던 일본 병원 가격이 데이터에 있으면 그 가격과 직접 비교한다(절약액은 코드가 계산)."""
+    body = post(
+        "品川美容外科でハイフを受けていました。ソウルだとどのくらい安くなりますか?",
+        "ja",
+    )
+
+    [match] = jp_match_cards(body)
+    assert match["jpClinic"]["nameJa"] == "品川美容外科"
+    clinics = clinic_cards(body)
+    assert clinics, body["answer"]
+    for card in clinics:
+        assert card["jpClinic"]["savingsJpy"] == 27500 - card["totalJpy"]
+
+
+def test_live_ambiguous_jp_name_asks_before_searching() -> None:
+    """이슈 #7 완료 기준: 애매하면 확인 질문."""
+    body = post("ピーリングを受けたいです", "ja")
+
+    assert jp_match_cards(body) == []
+    assert clinic_cards(body) == [], body["answer"]
+    asked = body["answer"] + json.dumps(body["questions"], ensure_ascii=False)
+    assert "ララピール" in asked and "アクアピール" in asked, asked
+
+
+def test_live_unknown_jp_name_says_no_match() -> None:
+    """이슈 #7 완료 기준: 대응이 없으면 틀린 대응 대신 "대응 없음"."""
+    body = post("ダーマペンを受けられるクリニックはありますか?", "ja")
+
+    assert jp_match_cards(body) == []
+    assert clinic_cards(body) == [], body["answer"]

@@ -12,10 +12,27 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from api.agent.config import get_settings
-from api.agent.schemas import ExcludeReason, ExclusionData, RecommendationCardData
-from api.domain.calc import PriceRow, SortId, matches_place, rank_rows
-from api.domain.catalog import AreaId, Fx, get_catalog
+from api.agent.schemas import (
+    ExcludeReason,
+    ExclusionData,
+    JpClinicSavings,
+    RecommendationCardData,
+)
+from api.agent.tools.match_jp_treatment import (
+    jp_clinic_not_found,
+    jp_clinic_price,
+    product_note_line,
+)
+from api.domain.calc import (
+    PriceRow,
+    SortId,
+    matches_place,
+    rank_rows,
+    savings_against,
+)
+from api.domain.catalog import AreaId, Fx, JpBenchmark, Menu, get_catalog
 from api.domain.fx import FxProvider
+from api.domain.jp_names import find_jp_clinic
 from api.domain.locations import get_locations
 from api.domain.price_tags import price_tags
 
@@ -92,6 +109,15 @@ class SearchClinicsInput(BaseModel):
             "특정 병원·지점을 찾을 때만 쓴다. 병원 이름·브랜드·주소·역 이름의 단어를 공백으로 "
             "나눠 적으면 모든 단어가 들어간 지점만 찾는다. 예: '밴스 홍대', 'バンス 明洞', '블리비'. "
             "지점끼리 비교할 때는 지점마다 따로 부른다. 지점을 말하지 않았으면 null"
+        ),
+    )
+    jp_clinic: str | None = Field(
+        default=None,
+        max_length=50,
+        description=(
+            "사용자가 다니던 일본 병원과 직접 비교할 때만 쓴다. match_jp_treatment 결과의 jp_clinic 이름을 "
+            "그대로 넣거나, 사용자가 말한 일본 병원 이름을 지점 이름 없이 넣는다(예: '品川', 'SBC'). 그 병원의 이 시술 "
+            "가격이 데이터에 있으면 카드마다 그 가격 대비 절약액이 붙는다. 말하지 않았으면 null"
         ),
     )
     limit: int = Field(default=3, ge=1, le=10, description="돌려줄 병원 수. 기본 3")
@@ -181,7 +207,8 @@ DESCRIPTION = f"""\
 같은 턴에 같은 시술을 범위만 좁히거나 넓혀 다시 부르면 마지막 결과의 카드만 나간다. 지역·기준 위치·
 지점(clinic_name)이 서로 다른 대상을 부르면 비교로 보고 모두 나간다. 비교할 때는 대상마다 한 번씩 부른다.
 쓰면 안 되는 경우: 아래 목록에 없는 시술(필러, 실 리프팅 등)이나 시술을 아직 정하지 않았을 때.
-시술명 없이 고민만 말했으면 recommend_treatments를 먼저 부른다.
+시술명 없이 고민만 말했으면 recommend_treatments를 먼저 부른다. 아래 목록과 다른 일본 시술명(ハイフ, HIFU,
+ブナジュ, 하이후 등)으로 물었으면 match_jp_treatment를 먼저 부르고, menu_id를 직접 짐작하지 않는다.
 시술 목록:
 {_menu_lines()}"""
 
@@ -192,7 +219,18 @@ def get_fx_provider() -> FxProvider:
     return FxProvider(get_settings().web_fx_url, get_catalog().fx)
 
 
-def _card(row: PriceRow, show_distance: bool, fx: Fx) -> RecommendationCardData:
+def _jp_clinic_savings(benchmark: JpBenchmark, row: PriceRow) -> JpClinicSavings:
+    savings_jpy, savings_pct = savings_against(benchmark.price_jpy, row.total_jpy)
+    return JpClinicSavings(
+        **jp_clinic_price(benchmark).model_dump(),
+        savings_jpy=savings_jpy,
+        savings_pct=savings_pct,
+    )
+
+
+def _card(
+    row: PriceRow, show_distance: bool, fx: Fx, jp_clinic: JpBenchmark | None
+) -> RecommendationCardData:
     jp_prices = [b.price_jpy for b in row.menu.jp_benchmarks]
     return RecommendationCardData(
         card_id=f"{row.place.id}:{row.menu.id}",
@@ -218,6 +256,7 @@ def _card(row: PriceRow, show_distance: bool, fx: Fx) -> RecommendationCardData:
         jp_clinic_count=len(jp_prices),
         savings_jpy=row.savings_jpy,
         savings_pct=row.savings_pct,
+        jp_clinic=_jp_clinic_savings(jp_clinic, row) if jp_clinic else None,
         distance_meters=row.distance_meters if show_distance else None,
         walk_minutes=row.walk_minutes if show_distance else None,
         price_tags=price_tags(row.place, row.menu.id, row.offer),
@@ -238,6 +277,12 @@ def _summary_line(rank: int, card: RecommendationCardData, rating: float) -> str
         f"Japanese support: {'yes' if card.japanese_support else 'no'}",
         f"rating {rating}",
     ]
+    if card.jp_clinic:
+        parts.insert(
+            4,
+            f"saves ¥{card.jp_clinic.savings_jpy:,} ({card.jp_clinic.savings_pct}%) "
+            f"vs {card.jp_clinic.name_ja}",
+        )
     if card.distance_meters is not None:
         parts.append(f"{card.distance_meters:,} m (walk ~{card.walk_minutes} min)")
     if card.price_tags:
@@ -265,6 +310,7 @@ def search_clinics(
     area: AreaId | None = None,
     origin_id: str | None = None,
     clinic_name: str | None = None,
+    jp_clinic: str | None = None,
     limit: int = 3,
 ) -> tuple[str, dict]:
     catalog = get_catalog()
@@ -349,13 +395,16 @@ def search_clinics(
             kept.append(row)
 
     top = kept[:limit]
-    cards = [_card(row, has_origin, fx) for row in top]
+    reference, reference_note = _jp_reference(menu, jp_clinic)
+    cards = [_card(row, has_origin, fx, reference) for row in top]
     jp_prices = [b.price_jpy for b in menu.jp_benchmarks]
     benchmark = (
         f"Japan benchmark: average of {len(jp_prices)} major Japanese clinics "
         f"(tax incl.) ¥{menu.jp_benchmark_jpy:,} "
         f"(range ¥{min(jp_prices):,}–¥{max(jp_prices):,})."
     )
+    if reference_note:
+        benchmark += " " + reference_note
     matched = f"{len(kept)} clinics matched"
     if excluded:
         matched += "; excluded: " + ", ".join(
@@ -385,6 +434,28 @@ def search_clinics(
             for i, (card, row) in enumerate(zip(cards, top, strict=True), start=1)
         ]
     return "\n".join(lines), _artifact(menu_id, target, cards, excluded)
+
+
+def _jp_reference(menu: Menu, jp_clinic: str | None) -> tuple[JpBenchmark | None, str]:
+    """사용자가 다니던 일본 병원(설계 4.7). 이 시술 가격이 있으면 그 병원과, 없으면 일본 평균과 비교한다."""
+    if not jp_clinic or not jp_clinic.strip():
+        return None, ""
+    result = find_jp_clinic(menu, jp_clinic)
+    if result.status == "found":
+        b = result.benchmarks[0]
+        return b, (
+            f"Direct comparison: the user's Japanese clinic {b.name_ja} / {b.name_ko}, "
+            f"{b.plan_ja} ¥{b.price_jpy:,} (tax incl.). Each card also shows savings against it. "
+            f"Its unit may differ from {menu.name_ko}; if so, say so."
+            + product_note_line(b)
+        )
+    if result.status == "ambiguous":
+        listed = "; ".join(f"{b.name_ja} ({b.plan_ja})" for b in result.benchmarks)
+        return None, (
+            f"jp_clinic {jp_clinic!r} matches several Japanese clinics: {listed}. No direct "
+            "comparison; ask which one and compare with the Japan average meanwhile."
+        )
+    return None, jp_clinic_not_found(menu, jp_clinic)
 
 
 def _no_clinic_note(clinic_name: str, tokens: list[str], menu_id: str) -> str:
