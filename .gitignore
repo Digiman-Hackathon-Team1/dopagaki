@@ -15,3 +15,6 @@ __pycache__/
 .wrangler
 apps/web/public/official-proofs/
 apps/web/public/official-proofs-ja/
+
+# API 로컬 DB(SQLite)
+apps/api/catalog.db
