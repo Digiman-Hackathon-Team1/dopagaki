@@ -88,7 +88,8 @@ unknown condition that could rule clinics out: the return date for treatments wi
 otherwise where they stay (travelers) or their home area (residents). Example after showing Rejuran \
 clinics: "Rejuran can leave marks for up to 3 days. Tell me your return date and I can check it fits." \
 Ask only that one question even when several conditions are unknown; put the others in cautions.
-- Ask first only in these cases: the user gave a concern but not how many days of visible \
+- Ask first only in these cases (schedule requests follow the plan_trip rules below instead): the \
+user gave a concern but not how many days of visible \
 downtime they can have (for travelers, days left before going home); the user gave neither a \
 concern nor a treatment; match_jp_treatment says the name is ambiguous; resolve_location cannot \
 find the place; you do not know which clinic to book. In the first two cases do not search. Put the \
@@ -96,7 +97,8 @@ find the place; you do not know which clinic to book. In the first two cases do 
 two sentences. Typical questions: the concern, the downtime they can have or their return date, and \
 where they stay or live.
 - Once you know the concern and the downtime, call the tools in this same response (where they \
-stay, if given, then recommend_treatments, then search_clinics) and answer with clinics. A trip \
+stay, if given, then recommend_treatments, then search_clinics) and answer with clinics; for a \
+schedule request call plan_trip instead. A trip \
 length is enough: for "2 nights 3 days" assume the treatment is on the first day, so 2 days of \
 downtime, and say that assumption in cautions instead of asking which day.
 - Use what the user already said in this conversation and do not ask it again.
@@ -157,9 +159,10 @@ a traveler pass trip_days: the days from the first day they can visit a clinic (
 when already in Seoul) to the return day, both counted (2 nights 3 days: 3; going home the day after \
 tomorrow: 3). For a resident pass days_until_event when they gave the next day they must look fine \
 (tomorrow: 1) and their budget for this month. Set one_clinic to true only when they want the \
-treatments at one clinic in one visit. For a schedule request, ask first only when a traveler has not \
-said how long they stay or when they go home; a resident without an event date gets a plan without a \
-downtime limit and one question about their next event after the answer. The plan is shown as a card: \
+treatments at one clinic in one visit. For a schedule request these rules replace the ask-first \
+rules above: ask first only when a traveler has not said how long they stay or when they go home. \
+A resident gets a plan right away even without a home area or an event date; then ask only the one \
+question the plan_trip result names. The plan is shown as a card: \
 explain it day by day (residents: what to get now, then what later and why: after the event or next \
 month), say why each treatment was left out, and mention the comparison with the other way of getting \
 them (one clinic or each at its cheapest clinic) when the result gives one.

@@ -81,10 +81,10 @@ class PlanTripInput(BaseModel):
     )
     days_until_event: int | None = Field(
         default=None,
-        ge=1,
+        ge=0,
         le=60,
         description=(
-            "거주자만: 오늘부터 다음 약속(얼굴을 보여야 하는 날)까지 날 수. 내일 → 1, 모레 → 2. "
+            "거주자만: 오늘부터 다음 약속(얼굴을 보여야 하는 날)까지 날 수. 오늘 → 0, 내일 → 1, 모레 → 2. "
             "약속이 없거나 말하지 않았으면 null. 여행자는 null"
         ),
     )
@@ -243,41 +243,56 @@ def _one_clinic(pools: Sequence[list[PriceRow]]) -> list[PriceRow] | None:
     return best
 
 
+def _group(rows: list[PriceRow]) -> list[list[PriceRow]]:
+    """같은 병원 시술을 한 방문으로 묶는다. 한 방문은 3개까지다(예약 문의 문장 상한, get_booking_options).
+
+    3개를 넘으면 회복이 긴 시술부터 3개씩 나눠 방문을 따로 만든다.
+    """
+    by_place: dict[str, list[PriceRow]] = {}
+    for row in rows:
+        by_place.setdefault(row.place.id, []).append(row)
+    visits = []
+    for place_rows in by_place.values():
+        ordered = sorted(place_rows, key=lambda r: -r.menu.downtime_max_days)
+        visits += [
+            ordered[i : i + ONE_CLINIC_MAX]
+            for i in range(0, len(ordered), ONE_CLINIC_MAX)
+        ]
+    return visits
+
+
+def _downtime(visit: list[PriceRow]) -> int:
+    return max(r.menu.downtime_max_days for r in visit)
+
+
 def _schedule_traveler(
     rows: list[PriceRow], trip_days: int
 ) -> list[tuple[int, list[PriceRow]]]:
-    """방문(병원 한 곳)을 날짜에 둔다. 회복이 긴 방문이 앞날이고, 하루에 한 곳씩, 날이 모자라면 같은 날 여러 곳.
+    """방문을 날짜에 둔다. 회복이 긴 방문이 앞날이고, 하루에 한 곳씩, 날이 모자라면 같은 날 여러 곳.
 
     방문 날짜는 그 방문의 가장 긴 회복 기간으로 정한 마지막 날(귀국일 - 회복 일수)을 넘지 않는다.
+    마지막 날에 걸려 앞 방문과 같은 날이 되면 다음 방문은 비어 있는 다음 날부터 채운다.
     """
-    visits: dict[str, list[PriceRow]] = {}
-    for row in rows:
-        visits.setdefault(row.place.id, []).append(row)
     ordered = sorted(
-        enumerate(visits.values()),
-        key=lambda iv: (
-            trip_days - max(r.menu.downtime_max_days for r in iv[1]),
-            -max(r.menu.downtime_max_days for r in iv[1]),
-            iv[0],
-        ),
+        enumerate(_group(rows)),
+        key=lambda iv: (trip_days - _downtime(iv[1]), -_downtime(iv[1]), iv[0]),
     )
     out = []
-    for slot, (_, visit) in enumerate(ordered, start=1):
-        latest = trip_days - max(r.menu.downtime_max_days for r in visit)
-        out.append((min(slot, latest), visit))
+    cursor = 1
+    for _, visit in ordered:
+        day = min(cursor, trip_days - _downtime(visit))
+        if day == cursor:
+            cursor += 1
+        out.append((day, visit))
     return sorted(out, key=lambda dv: dv[0])
 
 
 def _resident_visits(rows: list[PriceRow]) -> list[list[PriceRow]]:
     """거주자 방문 순서: 회복이 긴 방문부터(약속 전에 먼저 받아 둔다)."""
-    visits: dict[str, list[PriceRow]] = {}
-    for row in rows:
-        visits.setdefault(row.place.id, []).append(row)
     return [
         v
         for _, v in sorted(
-            enumerate(visits.values()),
-            key=lambda iv: (-max(r.menu.downtime_max_days for r in iv[1]), iv[0]),
+            enumerate(_group(rows)), key=lambda iv: (-_downtime(iv[1]), iv[0])
         )
     ]
 
@@ -355,7 +370,7 @@ def plan_trip(
 
     # 시술마다 보낼 수 있는 병원(절약액 순). 거주자는 기준 위치 3km, 없으면 6km 안.
     pools: dict[str, list[PriceRow]] = {}
-    radius: int | None = None
+    radii: dict[str, int] = {}
     deferred: dict[str, list[PlanReason]] = {}
     for m in menus:
         rows = rank_rows(
@@ -367,13 +382,11 @@ def plan_trip(
         )
         pool = rows
         if near:
+            radii[m.id] = NEAR_RADIUS_M
             pool = [r for r in rows if r.distance_meters <= NEAR_RADIUS_M]
-            if pool:
-                radius = radius or NEAR_RADIUS_M
-            else:
+            if not pool:
+                radii[m.id] = WIDE_RADIUS_M
                 pool = [r for r in rows if r.distance_meters <= WIDE_RADIUS_M]
-                if pool:
-                    radius = WIDE_RADIUS_M
         if not pool:
             deferred[m.id] = ["far" if rows else "no_clinic"]
             continue
@@ -436,17 +449,21 @@ def plan_trip(
                 )
                 if best_key is None or key > best_key:
                     best_key, chosen, rows = key, list(subset), picked
+    # 고르지 못한 시술의 이유: 더하면 예산을 넘으면 budget, 한 병원에서 같이 받을 수 없으면 one_clinic.
     for menu_id in eligible:
         if menu_id in chosen:
             continue
-        fits = (
-            not one_clinic
-            or len(chosen) < ONE_CLINIC_MAX
-            and arrange([*chosen, menu_id]) is not None
+        added = (
+            arrange([*chosen, menu_id])
+            if not one_clinic or len(chosen) < ONE_CLINIC_MAX
+            else None
         )
-        deferred[menu_id] = ["budget" if budget is not None and fits else "one_clinic"]
+        over = added is not None and budget is not None and spent(added) > budget.amount
+        deferred[menu_id] = ["budget" if over or not one_clinic else "one_clinic"]
     row_of = {r.menu.id: r for r in rows}
     rows = [row_of[i] for i in chosen]
+    # 거주자 거리 기준: 이번에 받을 시술에 쓴 반경 중 가장 넓은 것(모두 3km면 3km)
+    radius = max((radii[i] for i in chosen), default=None) if near else None
 
     # 날짜·순서
     show_distance = location is not None
@@ -567,9 +584,7 @@ def _summary(
             where += f"; only clinics within {plan.radius_meters // 1000} km"
         lines.append(where + ".")
     elif not traveler:
-        lines.append(
-            "Home area not given: clinics anywhere in Seoul. Ask once where they live."
-        )
+        lines.append("Home area not given: clinics anywhere in Seoul.")
     lines.append(f"FX: ₩{fx.krw_per_100_jpy} per ¥100 ({fx.bank_ko}, {fx.date_label}).")
     if plan.budget is not None:
         symbol = "¥" if plan.budget.currency == "JPY" else "₩"
@@ -614,9 +629,26 @@ def _summary(
                 line += f" | price condition: {v.price_condition_ko} / {v.price_condition_ja}"
             line += f" | card_id={v.card_id}"
             lines.append(line)
+        if traveler:
+            for day in sorted({v.day for v in plan.visits if v.day is not None}):
+                same = [v for v in plan.visits if v.day == day]
+                if len(same) > 1:
+                    lines.append(
+                        f"Day {day} total ({len(same)} clinics): "
+                        + _price(
+                            sum(v.total_krw for v in same),
+                            sum(v.total_jpy for v in same),
+                        )
+                        + "."
+                    )
+        vs_japan = (
+            f"saves ¥{plan.savings_jpy:,} ({plan.savings_pct}%)"
+            if plan.savings_jpy >= 0
+            else f"costs ¥{-plan.savings_jpy:,} ({-plan.savings_pct}%) more"
+        )
         lines.append(
-            f"Plan total {_price(plan.total_krw, plan.total_jpy)}; saves ¥{plan.savings_jpy:,} "
-            f"({plan.savings_pct}%) vs Japan average total ¥{plan.jp_total_jpy:,}."
+            f"Plan total {_price(plan.total_krw, plan.total_jpy)}; {vs_japan} vs Japan "
+            f"average total ¥{plan.jp_total_jpy:,}."
         )
         alt = plan.alternative
         if alt is not None:
@@ -660,6 +692,17 @@ def _summary(
                 row = pools[d.menu_id][0]
                 line += f". Cheapest option: {_clinic(row)} {_price(row.total_krw, row.total_jpy)}"
             lines.append(line + ".")
+    # 답 뒤에 덧붙일 질문은 하나다(설계 4.2). 결과를 가장 많이 바꾸는 것부터.
+    if not traveler and location is None:
+        lines.append(
+            "After the answer, ask only this one question: where they live (the plan would "
+            "keep clinics near home)."
+        )
+    elif not traveler and plan.days_until_event is None:
+        lines.append(
+            "After the answer, ask only this one question: when their next event that needs "
+            "a clean face is."
+        )
     lines.append(
         "The plan is shown as a card. Explain it day by day (or in order), then why each "
         "treatment is not planned now. Copy amounts as written; do not add them up. Opening hours "

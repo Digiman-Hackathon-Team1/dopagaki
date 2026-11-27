@@ -443,3 +443,111 @@ def test_openapi_exposes_trip_plan_card() -> None:
     assert {"visits", "deferred", "alternative"} <= set(
         schemas["TripPlanCard"]["properties"]
     )
+
+
+def test_traveler_fills_the_next_free_day_after_shared_days() -> None:
+    """리뷰 반영: 회복이 긴 두 방문이 1일째를 함께 쓰면 다음 방문은 비어 있는 2일째로 간다."""
+    p = plan(
+        visitor="traveler",
+        menu_ids=["rejuran-2cc", "re2o-5cc", "shrink-300", "aquapeel"],
+        trip_days=4,
+    )
+    days = {i.menu_id: v.day for v in p.visits for i in v.items}
+    assert days == {"rejuran-2cc": 1, "re2o-5cc": 1, "shrink-300": 2, "aquapeel": 3}
+    text = call(
+        visitor="traveler",
+        menu_ids=["rejuran-2cc", "re2o-5cc", "shrink-300", "aquapeel"],
+        trip_days=4,
+    ).content
+    assert "Day 1 total (2 clinics)" in text
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        {
+            "visitor": "resident",
+            "menu_ids": ["rejuran-2cc", "shrink-300", "potenza", "jaw-botox"],
+            "origin_id": "area:sinchon",
+        },
+        {"visitor": "resident", "menu_ids": ALL_MENUS[:5], "origin_id": "area:hongdae"},
+        {"visitor": "traveler", "menu_ids": ALL_MENUS[:5], "trip_days": 10},
+    ],
+)
+def test_every_visit_card_id_can_be_booked(args: dict) -> None:
+    """리뷰 반영: 한 방문은 3개까지라 방문 card_id를 예약 도구에 그대로 넣을 수 있다."""
+    from api.agent.tools.get_booking_options import get_booking_options
+
+    p = plan(**args)
+    for visit in p.visits:
+        assert len(visit.items) <= 3
+        booking = get_booking_options.invoke(
+            {
+                "type": "tool_call",
+                "name": "get_booking_options",
+                "id": "b",
+                "args": {"place_id": visit.card_id},
+            }
+        ).artifact["booking"]
+        assert sorted(booking["menu_ids"]) == sorted(i.menu_id for i in visit.items)
+        assert booking["order_total_krw"] == visit.total_krw
+
+
+def test_radius_counts_only_planned_treatments() -> None:
+    """3km 안에 없어 6km로 넓힌 시술이 일정에서 빠지면 카드의 반경은 3km다."""
+    catalog = get_catalog()
+    for location_id in get_locations().locations:
+        origin = get_locations().get(location_id)
+        assert origin is not None
+        wide = [
+            m.id
+            for m in catalog.menus
+            if m.uses_needle
+            and not any(
+                r.distance_meters <= 3000
+                for r in rank_rows(catalog, m.id, origin=origin.point)
+            )
+            and any(
+                r.distance_meters <= 6000
+                for r in rank_rows(catalog, m.id, origin=origin.point)
+            )
+        ]
+        if not wide:
+            continue
+        p = plan(
+            visitor="resident",
+            menu_ids=[wide[0], "aquapeel"],
+            origin_id=location_id,
+            avoid_needle=True,
+        )
+        if planned(p) == ["aquapeel"] and p.visits[0].distance_meters <= 3000:
+            assert p.radius_meters == 3000
+            return
+    pytest.skip("6km로 넓히는 바늘 시술이 있는 위치가 없다")
+
+
+def test_resident_asks_one_question_home_first_then_event() -> None:
+    no_home = call(visitor="resident", menu_ids=["aquapeel"]).content
+    assert "ask only this one question: where they live" in no_home
+    no_event = call(
+        visitor="resident", menu_ids=["aquapeel"], origin_id="area:sinchon"
+    ).content
+    assert "ask only this one question: when their next event" in no_event
+    both = call(
+        visitor="resident",
+        menu_ids=["aquapeel"],
+        origin_id="area:sinchon",
+        days_until_event=2,
+    ).content
+    assert "ask only this one question" not in both
+
+
+def test_resident_event_today_allows_only_no_downtime() -> None:
+    p = plan(
+        visitor="resident",
+        menu_ids=["juvelook-2cc", "aquapeel"],
+        origin_id="area:sinchon",
+        days_until_event=0,
+    )
+    assert planned(p) == ["aquapeel"]
+    assert reasons(p) == {"juvelook-2cc": ["downtime"]}
