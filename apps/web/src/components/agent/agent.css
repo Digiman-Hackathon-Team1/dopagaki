@@ -33,3 +33,16 @@
 .agent-reply { grid-template-columns: minmax(0, 1fr); }
 .agent-reply summary { cursor: pointer; color: var(--color-ink-2); }
 .agent-reply details p, .agent-card details { margin-top: 8px; }
+.agent-card > * + * { margin-top: 8px; }
+.agent-card > small { display: block; }
+.agent-card h4 { font-weight: 700; }
+.agent-card h3 { font-weight: 700; }
+.agent-card button { border: 1px solid var(--color-line); border-radius: 14px; padding: 8px 12px; font: inherit; color: var(--color-select); background: var(--color-paper); cursor: pointer; }
+.agent-channels { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.agent-channels a { border: 1px solid var(--color-line); border-radius: 12px; padding: 8px 12px; }
+.agent-channels small { flex-basis: 100%; }
+.agent-comparison { border-left: 3px solid var(--color-line); padding-left: 12px; }
+.agent-copy pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; margin: 12px 0; padding: 12px; border-radius: 12px; background: var(--color-canvas); user-select: text; }
+.agent-copy small { display: block; }
+.agent-fallback { padding: 16px; border: 1px solid var(--color-line); border-radius: 16px; background: var(--color-paper); }
+.agent-price-table-link { display: inline-block; margin-top: 8px; padding: 10px 14px; border-radius: 12px; background: var(--color-select); color: var(--color-on-select); }
