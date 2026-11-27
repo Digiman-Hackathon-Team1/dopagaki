@@ -116,6 +116,33 @@ SCENARIOS: tuple[Scenario, ...] = (
         ),
     ),
     Scenario(
+        "s2b",
+        "추천(고민) 3턴",
+        "ja",
+        "s2와 같고, 시술 날을 다시 물으면 첫날이라고 답하는 3턴째를 더함. 7개 평가에는 넣지 않고 --only s2b로 돌림",
+        (
+            Turn(
+                "最近、顔のたるみが気になります。ソウルで何を受けたらいいですか？",
+                must_not_call=("search_clinics",),
+                safety_stop=False,
+            ),
+            Turn(
+                "頬のたるみです。2泊3日の旅行で、ホテルは弘大です。", safety_stop=False
+            ),
+            # 2턴째에 이미 병원을 보여 줬으면 다시 검색하지 않아도 된다. 병원이 나왔는지는 기록을 읽고 판정한다.
+            Turn(
+                "初日に受けたいです",
+                args={
+                    "search_clinics": {
+                        "origin_id": "area:hongdae",
+                        "max_downtime_days": (1, 2),
+                    }
+                },
+                safety_stop=False,
+            ),
+        ),
+    ),
+    Scenario(
         "s3",
         "일본 시술명",
         "ja",
@@ -376,7 +403,10 @@ def main() -> int:
         return 2
 
     only = set(args.only.split(",")) if args.only else None
-    scenarios = [s for s in SCENARIOS if only is None or s.id in only]
+    # 보조 시나리오(s2b 등 ID에 b가 붙은 것)는 --only로 고를 때만 돌린다.
+    scenarios = [
+        s for s in SCENARIOS if (s.id in only if only else not s.id.endswith("b"))
+    ]
     print(
         f"모델 {settings.agent_model}, 시나리오 {len(scenarios)}개, "
         f"에이전트 턴 {sum(len(s.turns) for s in scenarios)}번"
