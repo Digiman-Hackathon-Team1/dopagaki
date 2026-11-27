@@ -11,6 +11,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 from api.agent.graph import build_graph, read_cards, read_reply
 from api.agent.safety import find_topics, strip_health_conditions
 from api.agent.tools import TOOLS
+from api.domain.calc import rank_rows
+from api.domain.catalog import get_catalog
 
 
 def run(graph, message: str, thread_id: str = "t1", lang: str = "ko") -> dict:
@@ -179,3 +181,17 @@ def test_safety_stop_keeps_location_card_and_health_suggestions() -> None:
         "임신 중에도 받을 수 있는 관리는?",
         "가까운 곳 순으로",
     ]
+
+
+def test_safety_stop_drops_booking_card() -> None:
+    """예약 방법을 물어도 정지한 턴에는 예약 카드(병원 연결)를 내보내지 않는다."""
+    first = rank_rows(get_catalog(), "rejuran-2cc")[0].place
+    model = fake_model(
+        tool_call("get_booking_options", {"place_id": first.id}, "c1"),
+        reply_message("지금은 권하지 않아요.", safety_stop=True),
+    )
+    graph = build_graph(model, tools=TOOLS, checkpointer=InMemorySaver())
+
+    result = run(graph, "임신 중인데 이 병원 예약 방법 알려 줘")
+
+    assert read_cards(result) == []
