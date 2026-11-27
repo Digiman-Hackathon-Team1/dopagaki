@@ -36,10 +36,11 @@ TOOL_NAME = "get_booking_options"
 class GetBookingOptionsInput(BaseModel):
     place_id: str = Field(
         min_length=1,
-        max_length=60,
+        max_length=80,
         description=(
             "병원 ID. search_clinics 결과 card_id(<place_id>:<menu_id>)의 ':' 앞부분을 그대로 쓴다. "
             "예: card_id=vands-hongdae:shrink-300 이면 vands-hongdae. card_id를 그대로 넣어도 된다. "
+            "search_bundle 묶음 card_id(<place_id>:<menu_id>+<menu_id>)는 그대로 넣으면 시술이 모두 들어간다. "
             "ID를 지어내지 않는다"
         ),
     )
@@ -143,10 +144,15 @@ def get_booking_options(
     if card_menu and menu_ids is None:
         card_menus = [m.strip() for m in card_menu.split("+")]
         unknown = [m for m in card_menus if m not in {x.id for x in catalog.menus}]
-        if unknown or len(card_menus) > 3:
+        if unknown:
             raise ValueError(
                 f"Unknown menu {card_menu!r} in card_id. Pass place_id only, or a card_id from a "
                 "search_clinics or search_bundle result as is."
+            )
+        if len(card_menus) > 3:
+            raise ValueError(
+                "At most three treatments fit in one inquiry. Pass place_id with up to three "
+                "menu_ids."
             )
         menu_ids = card_menus
     try:

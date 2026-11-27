@@ -5,12 +5,13 @@ from itertools import combinations
 
 import pytest
 from agent_fakes import fake_model, reply_message, tool_call
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from api.agent.graph import build_graph, read_cards, read_reply
 from api.agent.schemas import BookingCard, BundleCard, BundleCardData, LocationCard
 from api.agent.tools import TOOLS
+from api.agent.tools.get_booking_options import get_booking_options
 from api.agent.tools.search_bundle import search_bundle
 from api.domain.catalog import get_catalog
 from api.domain.locations import get_locations
@@ -265,3 +266,129 @@ def test_every_pair_has_some_bundle() -> None:
     ids = [m.id for m in get_catalog().menus]
     for pair in combinations(ids, 2):
         assert cards(call(menu_ids=list(pair), limit=1)), pair
+
+
+def test_same_bundle_in_two_areas_is_a_comparison() -> None:
+    """같은 묶음을 지역끼리 비교하면 두 검색의 카드가 모두 나간다(ADR 0009와 같은 규칙)."""
+    menu_ids = ["shrink-300", "aquapeel"]
+    graph = build_graph(
+        fake_model(
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "search_bundle",
+                        "args": {"menu_ids": menu_ids, "area": "hongdae"},
+                        "id": "c1",
+                    },
+                    {
+                        "name": "search_bundle",
+                        "args": {"menu_ids": menu_ids, "area": "gangnam"},
+                        "id": "c2",
+                    },
+                ],
+            ),
+            reply_message("홍대와 강남 비교"),
+        ),
+        tools=TOOLS,
+        checkpointer=InMemorySaver(),
+    )
+    found = [
+        c
+        for c in read_cards(run(graph, "홍대랑 강남 비교"))
+        if isinstance(c, BundleCard)
+    ]
+    assert {c.area for c in found} == {"hongdae", "gangnam"}
+    assert {c.search_id for c in found} == {"b1", "b2"}
+
+
+def test_narrowed_same_bundle_keeps_only_last() -> None:
+    menu_ids = ["shrink-300", "aquapeel"]
+    graph = build_graph(
+        fake_model(
+            tool_call("search_bundle", {"menu_ids": menu_ids}, "c1"),
+            tool_call("search_bundle", {"menu_ids": menu_ids, "area": "gangnam"}, "c2"),
+            reply_message("강남만"),
+        ),
+        tools=TOOLS,
+        checkpointer=InMemorySaver(),
+    )
+    found = [
+        c
+        for c in read_cards(run(graph, "강남으로 좁혀 줘"))
+        if isinstance(c, BundleCard)
+    ]
+    assert found and all(c.area == "gangnam" and c.search_id == "b2" for c in found)
+
+
+def test_one_clinic_cheapest_for_every_treatment_counts_as_one() -> None:
+    """시술별 최저가가 동률이면 이미 고른 병원을 써서, 따로 받는 병원 수를 1로 센다."""
+    message = call(menu_ids=["inmode-fx", "lalapeel"])
+    first = cards(message)[0]
+    assert first.separate_clinic_count == 1
+    assert first.extra_vs_separate_krw == 0
+    assert {p.place_id for p in first.separate_picks} == {first.place_id}
+    assert "this is the cheapest bundle" in message.content
+
+
+def test_other_bundles_compare_with_the_cheapest_bundle_when_one_clinic_wins() -> None:
+    message = call(menu_ids=["jaw-botox", "re2o-5cc"])
+    result = cards(message)
+    assert result[0].separate_clinic_count == 1
+    second = result[1]
+    assert second.extra_vs_separate_krw == second.total_krw - result[0].total_krw
+    assert "more than the cheapest bundle" in message.content
+    assert "different clinics" not in message.content
+
+
+def test_separate_picks_name_the_clinics_and_follow_area() -> None:
+    message = call(menu_ids=["shrink-300", "aquapeel"], area="gangnam")
+    card = cards(message)[0]
+    picks = card.separate_picks
+    assert [p.menu_id for p in picks] == ["shrink-300", "aquapeel"]
+    assert all(get_catalog().place(p.place_id).area == "gangnam" for p in picks)
+    assert card.separate_total_krw == sum(p.total_krw for p in picks)
+    for p in picks:
+        assert p.clinic_name_ko in message.content
+
+
+def test_budget_in_won() -> None:
+    menu_ids = ["shrink-300", "aquapeel"]
+    limit = expected_bundles(menu_ids)[0][1]
+    result = cards(
+        call(menu_ids=menu_ids, budget={"amount": limit, "currency": "KRW"}, limit=5)
+    )
+    assert result and all(c.total_krw <= limit for c in result)
+
+
+def test_budget_excludes_everything_gives_cheapest_over_budget() -> None:
+    menu_ids = ["shrink-300", "aquapeel"]
+    cheapest = expected_bundles(menu_ids)[0]
+    message = call(menu_ids=menu_ids, budget={"amount": 1000, "currency": "JPY"})
+    assert cards(message) == []
+    assert "every bundle below" not in message.content
+    assert (
+        f"over budget: clinic name in Korean: {get_catalog().place(cheapest[0]).name_ko}"
+        in (message.content)
+    )
+    assert f"₩{cheapest[1]:,}" in message.content
+
+
+def test_booking_with_three_treatment_bundle_and_too_many() -> None:
+    menu_ids = ["shrink-300", "aquapeel", "lalapeel"]
+    top = cards(call(menu_ids=menu_ids))[0]
+    booking = get_booking_options.invoke(
+        {
+            "type": "tool_call",
+            "name": "get_booking_options",
+            "id": "b",
+            "args": {"place_id": top.card_id},
+        }
+    )
+    # 예약 카드의 시술 순서는 데이터 순서다(get_booking_options 기존 동작).
+    assert set(booking.artifact["booking"]["menu_ids"]) == set(menu_ids)
+    assert booking.artifact["booking"]["order_total_krw"] == top.total_krw
+
+    too_many = f"{top.place_id}:shrink-300+aquapeel+lalapeel+jaw-botox"
+    with pytest.raises(ValueError, match="At most three"):
+        get_booking_options.invoke({"place_id": too_many})

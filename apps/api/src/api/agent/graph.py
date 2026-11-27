@@ -140,7 +140,9 @@ Never state prices or savings that did not come from a tool result. Copy each am
 the tool result writes it: do not round it, add amounts up, subtract them, or convert currencies \
 yourself. The app removes any amount that is not in a tool result. When the user wants two or three \
 treatments at one clinic in one visit, or asks for their combined total, call search_bundle with all \
-of them instead of adding search_clinics results up. It returns the cheapest single-clinic totals and \
+of them instead of adding search_clinics results up. It takes at most three treatments; for four \
+or more, ask which three to bundle, or show each treatment with search_clinics and say a combined \
+total is not available. It returns the cheapest single-clinic totals and \
 how they compare with getting each treatment at its cheapest clinic separately; copy those totals \
 as written.
 Clinics returned by search_clinics and search_bundle are shown to the user as cards. Give each card a \
@@ -378,14 +380,27 @@ def assemble_cards(
 
 
 def bundle_results(messages: Sequence[BaseMessage]) -> list[SearchBundleArtifact]:
-    """이번 턴의 성공한 search_bundle 결과. 같은 시술 묶음을 다시 찾으면(예: 예산을 바꿔) 마지막 결과만 둔다."""
-    found: dict[frozenset[str], SearchBundleArtifact] = {}
-    for message in _this_turn(messages, SEARCH_BUNDLE):
-        result = SearchBundleArtifact.model_validate(message.artifact)
-        key = frozenset(result.menu_ids)
-        found.pop(key, None)
-        found[key] = result
-    return list(found.values())
+    """이번 턴의 성공한 search_bundle 결과. search_results와 같은 규칙이다(ADR 0009, 0016).
+
+    - 같은 시술 묶음을 범위만 좁히거나 넓혀 다시 찾으면(전체 → 강남, 예산 변경) 앞 결과를 지운다.
+    - 지역·기준 위치가 서로 다른 대상이면 비교로 보고 앞 결과도 남긴다.
+    - 묶음 검색 번호(search_id)는 이번 턴의 묶음 검색 순서(b1, b2, ...)다.
+    """
+    results: list[SearchBundleArtifact] = []
+    for calls, message in enumerate(_this_turn(messages, SEARCH_BUNDLE), start=1):
+        new = SearchBundleArtifact.model_validate(message.artifact).model_copy(
+            update={"search_id": f"b{calls}"}
+        )
+        replaced = [
+            i
+            for i, old in enumerate(results)
+            if set(old.menu_ids) == set(new.menu_ids)
+            and not old.target.compares_with(new.target)
+        ]
+        position = replaced[0] if replaced else len(results)
+        results = [r for i, r in enumerate(results) if i not in replaced]
+        results.insert(position, new)
+    return results
 
 
 def assemble_bundle_cards(
@@ -396,7 +411,12 @@ def assemble_bundle_cards(
     for r in reply.card_reasons:
         reasons.setdefault(r.card_id, r.reason)
     return [
-        BundleCard(**card.model_dump(), kind="bundle", reason=reasons.get(card.card_id))
+        BundleCard(
+            **card.model_dump(),
+            kind="bundle",
+            search_id=result.search_id,
+            reason=reasons.get(card.card_id),
+        )
         for result in results
         for card in result.cards
     ]

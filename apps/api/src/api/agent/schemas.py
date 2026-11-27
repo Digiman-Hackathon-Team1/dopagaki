@@ -387,6 +387,19 @@ class BundleItem(ResponseModel):
     proof: PriceProof = Field(description="이 시술 가격의 가격표 증빙 링크")
 
 
+class SeparatePick(ResponseModel):
+    """따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준)."""
+
+    menu_id: str
+    menu_name_ja: str
+    menu_name_ko: str
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    total_krw: int = Field(description="이 병원의 부가세 포함 가격(원)")
+    total_jpy: int
+
+
 class BundleCardData(ResponseModel):
     """search_bundle이 찾은 한 병원 묶음(설계 문서 FR-03, #43). 시술을 모두 이 병원에서 받을 때의 합계다."""
 
@@ -415,7 +428,12 @@ class BundleCardData(ResponseModel):
         )
     )
     separate_total_jpy: int
-    separate_clinic_count: int = Field(description="따로 받을 때 가야 하는 병원 수")
+    separate_clinic_count: int = Field(
+        description="따로 받을 때 가야 하는 병원 수. 1이면 한 병원이 모든 시술의 최저가다"
+    )
+    separate_picks: list[SeparatePick] = Field(
+        description="따로 받을 때 시술마다 가는 병원. 예산은 보지 않는다"
+    )
     extra_vs_separate_krw: int = Field(
         description="이 병원 묶음 합계 - 따로 받을 때 합계(원). 0이면 따로 받는 것과 같다"
     )
@@ -438,6 +456,12 @@ class BundleCardData(ResponseModel):
 
 class BundleCard(BundleCardData):
     kind: Literal["bundle"]
+    search_id: str = Field(
+        description=(
+            "어느 묶음 검색의 카드인지(이번 턴 묶음 검색 순서, 예: b1). 같은 시술 묶음을 지역끼리 비교하면 "
+            "검색마다 값이 다르고, 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다"
+        )
+    )
     reason: str | None = Field(
         description="LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null"
     )

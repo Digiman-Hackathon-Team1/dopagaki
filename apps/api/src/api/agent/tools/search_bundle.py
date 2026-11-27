@@ -11,11 +11,12 @@ from typing import Literal
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field, field_validator
 
-from api.agent.schemas import BundleCardData, BundleItem, ExcludeReason
+from api.agent.schemas import BundleCardData, BundleItem, ExcludeReason, SeparatePick
 from api.agent.tools.search_clinics import (
     EXCLUDE_LABEL,
     Budget,
     MenuId,
+    SearchTarget,
     _proof,
     booking_channels,
     channel_names,
@@ -85,16 +86,23 @@ class SearchBundleArtifact(BaseModel):
     """화면용 결과(LLM에는 보내지 않음). finalize가 이걸로 묶음 카드를 만든다."""
 
     menu_ids: list[str]
-    origin_id: str | None = None
+    # 묶음 검색을 구분하는 값. 그래프가 이번 턴의 묶음 검색 순서로 채운다(b1, b2, ...).
+    search_id: str = ""
+    # 같은 턴의 같은 묶음 검색이 비교인지 재검색인지 가릴 때 쓴다(search_clinics와 같은 규칙, ADR 0009).
+    target: SearchTarget = Field(default_factory=SearchTarget)
     cards: list[BundleCardData]
+
+    @property
+    def origin_id(self) -> str | None:
+        return self.target.origin_id
 
 
 def _artifact(
-    menu_ids: list[str], origin_id: str | None, cards: list[BundleCardData]
+    menu_ids: list[str], target: SearchTarget, cards: list[BundleCardData]
 ) -> dict:
     # 대화 기억(체크포인터)에 저장되므로 일반 데이터로 둔다.
     return SearchBundleArtifact(
-        menu_ids=menu_ids, origin_id=origin_id, cards=cards
+        menu_ids=menu_ids, target=target, cards=cards
     ).model_dump()
 
 
@@ -113,7 +121,9 @@ DESCRIPTION = f"""\
 예산은 묶음 합계 기준이다. 사용자가 숙소·역을 말했으면 먼저 resolve_location을 부르고 location_id를 origin_id에 넣는다.
 결과의 병원은 묶음 카드로 화면에 나간다. card_reasons에 card_id마다 이유 한 줄을 쓴다.
 예약 방법을 물으면 get_booking_options에 묶음 card_id를 그대로 넣는다(시술이 모두 문의 문장에 들어간다).
-쓰면 안 되는 경우: 시술이 하나일 때(search_clinics를 쓴다), 아래 목록에 없는 시술, 시술을 아직 정하지 않았을 때.
+같은 묶음을 지역·기준 위치끼리 비교할 때는 대상마다 한 번씩 부른다(결과가 모두 카드로 나간다).
+쓰면 안 되는 경우: 시술이 하나일 때(search_clinics를 쓴다), 4개 이상일 때(3개로 줄일지 묻거나 시술마다
+search_clinics로 보여 주고 합계는 말하지 않는다), 아래 목록에 없는 시술, 시술을 아직 정하지 않았을 때.
 시술 목록:
 {_menu_lines()}"""
 
@@ -148,6 +158,19 @@ def _card(
     savings_jpy, savings_pct = savings_against(jp_total_jpy, total_jpy)
     separate_krw = sum(r.total_krw for r in separate)
     separate_jpy = sum(r.total_jpy for r in separate)
+    picks = [
+        SeparatePick(
+            menu_id=r.menu.id,
+            menu_name_ja=r.menu.name_ja,
+            menu_name_ko=r.menu.name_ko,
+            place_id=r.place.id,
+            clinic_name_ja=r.place.name_ja,
+            clinic_name_ko=r.place.name_ko,
+            total_krw=r.total_krw,
+            total_jpy=r.total_jpy,
+        )
+        for r in separate
+    ]
     return BundleCardData(
         card_id=f"{place.id}:{'+'.join(r.menu.id for r in rows)}",
         place_id=place.id,
@@ -166,6 +189,7 @@ def _card(
         separate_total_krw=separate_krw,
         separate_total_jpy=separate_jpy,
         separate_clinic_count=len({r.place.id for r in separate}),
+        separate_picks=picks,
         extra_vs_separate_krw=total_krw - separate_krw,
         extra_vs_separate_jpy=total_jpy - separate_jpy,
         krw_per_100_jpy=fx.krw_per_100_jpy,
@@ -188,13 +212,27 @@ def _summary_line(rank: int, card: BundleCardData) -> str:
         f"{i.menu_name_ko} / {i.menu_name_ja} ₩{i.total_krw:,} incl. VAT ≈ ¥{i.total_jpy:,}"
         for i in card.items
     )
-    if card.extra_vs_separate_krw > 0:
+    extra = card.extra_vs_separate_krw
+    if card.separate_clinic_count == 1:
+        # 시술마다 최저가 병원이 한 곳이면 그곳이 가장 싼 묶음이다. 따로 가는 쪽이 싸다고 쓰지 않는다.
         separate = (
-            f"₩{card.extra_vs_separate_krw:,} (¥{card.extra_vs_separate_jpy:,}) more than "
-            "getting each treatment at its cheapest clinic separately"
+            "this is the cheapest bundle"
+            if extra == 0
+            else f"₩{extra:,} (¥{card.extra_vs_separate_jpy:,}) more than the cheapest bundle "
+            f"(clinic {card.separate_picks[0].place_id})"
         )
+    elif extra > 0:
+        separate = (
+            f"₩{extra:,} (¥{card.extra_vs_separate_jpy:,}) more than going to "
+            f"{card.separate_clinic_count} different clinics, each the cheapest for one treatment"
+        )
+    elif extra == 0:
+        separate = "same total as going to each treatment's cheapest clinic separately"
     else:
-        separate = "same total as getting each treatment at its cheapest clinic"
+        separate = (
+            f"₩{-extra:,} (¥{-card.extra_vs_separate_jpy:,}) less than going to each "
+            "treatment's cheapest clinic separately"
+        )
     parts = [
         f"{rank}. card_id={card.card_id}",
         (
@@ -257,7 +295,7 @@ def search_bundle(
             "and pass its location_id. If the user has not given a place, ask once and search "
             "with sort=savings meanwhile."
         )
-    kept_origin = origin_id if location else None
+    target = SearchTarget(area=area, origin_id=origin_id if location else None)
 
     # 시술 단위 거르기: 하나라도 맞지 않으면 묶음을 만들지 않고 어느 시술 때문인지 알린다.
     blocked = []
@@ -273,8 +311,9 @@ def search_bundle(
         return (
             f"search_bundle: {names}. No bundle returned: "
             + "; ".join(blocked)
-            + ". Tell the user, and search again without that treatment if they agree.",
-            _artifact(list(menu_ids), kept_origin, []),
+            + ". Tell the user, and search again without that treatment if they agree "
+            "(use search_clinics if only one treatment remains).",
+            _artifact(list(menu_ids), target, []),
         )
 
     origin = location.point if location else None
@@ -295,12 +334,26 @@ def search_bundle(
             return "japanese"
         return None
 
-    # 따로 받을 때: 같은 지역·일본어 조건에서 시술마다 가장 싼(절약액 큰) 병원.
-    separate: list[PriceRow] = []
+    # 따로 받을 때: 같은 지역·일본어 조건에서 시술마다 가장 싼(절약액 큰) 병원. 예산은 보지 않는다.
+    # 절약액이 같은 병원이 여럿이면, 다른 시술에서도 최저가인 병원을 먼저 골라 병원 수를 줄인다.
+    ties: list[list[PriceRow]] = []
     for m in menus:
-        best = next((r for r in by_menu[m.id] if allowed(r) is None), None)
-        if best is not None:
-            separate.append(best)
+        rows = [r for r in by_menu[m.id] if allowed(r) is None]
+        if rows:
+            ties.append([r for r in rows if r.savings_jpy == rows[0].savings_jpy])
+    tie_places = [{r.place.id for r in t} for t in ties]
+    separate: list[PriceRow] = []
+    for t in ties:
+        chosen = {r.place.id for r in separate}
+        separate.append(
+            min(
+                t,
+                key=lambda r: (
+                    r.place.id not in chosen,
+                    -sum(r.place.id in ids for ids in tie_places),
+                ),
+            )
+        )
 
     rows_by_place = {m.id: {r.place.id: r for r in by_menu[m.id]} for m in menus}
     candidates = [
@@ -362,15 +415,38 @@ def search_bundle(
     if budget is not None:
         symbol = "¥" if budget.currency == "JPY" else "₩"
         lines.append(
-            f"Budget {symbol}{budget.amount:,} is for the bundle total; every bundle below "
-            "is within it."
+            f"Budget {symbol}{budget.amount:,} is for the bundle total"
+            + ("; every bundle below is within it." if cards else ".")
         )
     if complete_separate:
+        picks = "; ".join(
+            f"{r.menu.name_ko} / {r.menu.name_ja} at clinic name in Korean: {r.place.name_ko}, "
+            f"in Japanese: {r.place.name_ja} ₩{r.total_krw:,} ≈ ¥{r.total_jpy:,}"
+            for r in separate
+        )
         lines.append(
-            "Separately, each at its cheapest clinic: ₩"
+            "Separately, each at its cheapest clinic (budget not applied): ₩"
             f"{sum(r.total_krw for r in separate):,} incl. VAT ≈ ¥"
             f"{sum(r.total_jpy for r in separate):,} across "
-            f"{len({r.place.id for r in separate})} clinic(s)."
+            f"{len({r.place.id for r in separate})} clinic(s): {picks}. This is not a "
+            "single-clinic total."
+        )
+    over_budget = [
+        rows
+        for rows in candidates
+        if allowed(rows[0]) is None
+        and budget is not None
+        and budget.amount
+        < sum(r.total_jpy if budget.currency == "JPY" else r.total_krw for r in rows)
+    ]
+    if not cards and not kept and over_budget:
+        cheapest = min(over_budget, key=lambda rows: sum(r.total_jpy for r in rows))
+        lines.append(
+            "Cheapest single-clinic bundle, over budget: clinic name in Korean: "
+            f"{cheapest[0].place.name_ko}, in Japanese: {cheapest[0].place.name_ja}, ₩"
+            f"{sum(r.total_krw for r in cheapest):,} incl. VAT ≈ ¥"
+            f"{sum(r.total_jpy for r in cheapest):,}. Tell the user how much over budget "
+            "it is only by quoting these amounts."
         )
     if not cards:
         if not candidates:
@@ -386,4 +462,4 @@ def search_bundle(
             "Booking channels of the first clinic: "
             + channel_names(catalog.place(cards[0].place_id))
         )
-    return "\n".join(lines), _artifact(list(menu_ids), kept_origin, cards)
+    return "\n".join(lines), _artifact(list(menu_ids), target, cards)
