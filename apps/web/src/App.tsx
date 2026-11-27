@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { MotionConfig } from 'motion/react';
 import { Toaster, toast } from 'sonner';
 import 'sonner/dist/styles.css';
+import { Share2, Smartphone } from 'lucide-react';
 import dopagakiMarkUrl from '@/assets/dopagaki-mark.png';
 import rawDataset from '@/data/prices.json';
 import rawNaverFx from '@/data/naver-fx.json';
@@ -44,7 +45,7 @@ import { BrandGroupList } from '@/components/BrandGroupList.tsx';
 import { TreatmentInfoView } from '@/components/TreatmentInfoView.tsx';
 import { ConciergeView } from '@/components/ConciergeView.tsx';
 import { SavedClinicsView } from '@/components/SavedClinicsView.tsx';
-import { BargainEmoji, MenuEmoji, PhoneEmoji } from '@/components/emoji.tsx';
+import { MenuEmoji } from '@/components/emoji.tsx';
 import QRCode from 'qrcode';
 import { analyticsEnabled, track } from '@/lib/analytics.ts';
 import { FilterSheet, countActiveFilters, type FilterChip } from '@/components/FilterSheet.tsx';
@@ -535,26 +536,32 @@ function ClinicApp() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Desktop side panel: QR of the current page so people can continue on their phone.
-  // Debounced past the 320ms number-rolling window so canvas QR encoding & state update
-  // never trigger a mid-animation main-thread hiccup.
+  // Desktop side panel: fixed QR pointing to the initial Rejuran home page
+  // so clicking treatments or filters never causes the QR code to flicker or change.
   useEffect(() => {
     if (!window.matchMedia('(min-width: 960px)').matches) return;
     let cancelled = false;
-    const timer = window.setTimeout(() => {
-      void QRCode.toDataURL(computeCurrentUrl(lang), {
-        margin: 1,
-        width: 240,
-        color: { dark: '#1f2a6b', light: '#ffffff' }
-      }).then((url) => {
-        if (!cancelled) setAsideQr(url);
-      });
-    }, 450);
+    const fixedHomeUrl = buildHomeUrl({
+      lang,
+      menuId: 'rejuran-2cc',
+      area: 'all',
+      sort: 'savings',
+      traitFilters: [],
+      includeVat: true,
+      japaneseOnly: false,
+      searchQuery: ''
+    });
+    void QRCode.toDataURL(fixedHomeUrl, {
+      margin: 1,
+      width: 240,
+      color: { dark: '#1f2a6b', light: '#ffffff' }
+    }).then((url) => {
+      if (!cancelled) setAsideQr(url);
+    });
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
     };
-  }, [computeCurrentUrl, lang, menuId]);
+  }, [lang]);
 
   // Expose the masthead height so the quick bar can stick right under it.
   useEffect(() => {
@@ -860,30 +867,95 @@ function ClinicApp() {
       <div className="app-shell">
       <aside className="app-aside" aria-label={isJa ? 'ドパガキについて' : '도파가키 소개'}>
         <div className="app-aside-card">
-          <div className="app-aside-emoji" aria-hidden="true">
-            <BargainEmoji size={56} />
-            <MenuEmoji menuId="rejuran-2cc" size={56} />
-            <MenuEmoji menuId="shrink-300" size={56} />
+          <div className="app-aside-stage">
+            <div className="app-aside-meta">
+              <span className="app-aside-tag">SEOUL × TOKYO</span>
+            </div>
+
+            <div className="app-aside-hero">
+              <div className="app-aside-portrait">
+                <img
+                  src={dopagakiMarkUrl}
+                  alt={isJa ? 'ドパガキキャラクター' : '도파가키 캐릭터'}
+                  width={92}
+                  height={92}
+                />
+                <svg
+                  className="app-aside-spark is-lg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M12 1.5L14.4 9.6L22.5 12L14.4 14.4L12 22.5L9.6 14.4L1.5 12L9.6 9.6Z" />
+                </svg>
+                <svg
+                  className="app-aside-spark is-sm"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M12 1.5L14.4 9.6L22.5 12L14.4 14.4L12 22.5L9.6 14.4L1.5 12L9.6 9.6Z" />
+                </svg>
+              </div>
+
+              <div className="app-aside-wordmark">
+                <span className="app-aside-kicker">
+                  {isJa ? '価格を見てドーパミン爆発！' : '가격 보고 도파민 터지는'}
+                </span>
+                <p className="app-aside-brand">{isJa ? 'ドパガキ' : '도파가키'}</p>
+                <span className="app-aside-subbrand">
+                  {isJa ? '美肌相場ガイド' : '피부시세 가이드'}
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="app-aside-brand">{isJa ? 'ドパガキ 美肌相場' : '도파가키 피부시세'}</p>
-          <p className="app-aside-lead">
-            {isJa ? 'ソウルの美容皮膚科、' : '서울 피부과,'}
-            <br />
-            {isJa ? '日本よりいくら安い？' : '일본보다 얼마나 쌀까?'}
-          </p>
+
+          <div className="app-aside-body">
+            <p className="app-aside-lead">
+              {isJa ? (
+                <>
+                  ソウルの美容皮膚科、
+                  <br />
+                  日本より<em>いくら安い？</em>
+                </>
+              ) : (
+                <>
+                  서울 피부과,
+                  <br />
+                  일본보다 <em>얼마나 쌀까?</em>
+                </>
+              )}
+            </p>
+
+            <div className="app-aside-stats">
+              <div className="app-aside-stat">
+                <strong className="num">{isJa ? `${TOTAL_CLINIC_COUNT}院` : `${TOTAL_CLINIC_COUNT}곳`}</strong>
+                <span>{isJa ? 'ソウル検証院' : '서울 검증 병원'}</span>
+              </div>
+              <div className="app-aside-stat">
+                <strong className="num">{isJa ? '日本5院' : '일본 5곳'}</strong>
+                <span>{isJa ? '平均と3秒比較' : '평균가 3초 비교'}</span>
+              </div>
+              <div className="app-aside-stat">
+                <strong>{isJa ? '公式証拠' : '공식 캡처'}</strong>
+                <span>{isJa ? '税込10%反映' : '부가세 10% 반영'}</span>
+              </div>
+            </div>
+          </div>
         </div>
         {asideQr && (
           <div className="app-aside-qr">
-            <div>
+            <div className="app-aside-qr-copy">
+              <span className="app-aside-qr-tag">MOBILE</span>
               <p className="app-aside-qr-title">
-                <PhoneEmoji size={22} />
+                <Smartphone size={15} strokeWidth={2.2} />
                 <span>{isJa ? 'スマホで開く' : '휴대폰으로 열기'}</span>
               </p>
               <p className="app-aside-qr-sub">
                 {isJa ? 'カメラでQRを読み取ってください' : '카메라로 QR을 스캔하세요'}
               </p>
             </div>
-            <img src={asideQr} alt={isJa ? 'このページのQRコード' : '이 페이지 QR 코드'} width={120} height={120} />
+            <div className="app-aside-qr-frame">
+              <img src={asideQr} alt={isJa ? 'このページのQRコード' : '이 페이지 QR 코드'} width={104} height={104} />
+            </div>
           </div>
         )}
       </aside>
@@ -927,13 +999,15 @@ function ClinicApp() {
                 type="button"
                 className="sh-btn"
                 id="head-share-btn"
+                aria-label={copy.shareBtn}
+                title={copy.shareBtn}
                 onClick={() => {
                   triggerHaptic(6);
                   setShareLang(lang);
                   setShareOpen(true);
                 }}
               >
-                <SvgIcon name="share" />
+                <Share2 size={15} strokeWidth={2.2} />
                 <span id="head-share-label">{copy.shareBtn}</span>
               </button>
             </Magnet>
@@ -1455,6 +1529,11 @@ function ClinicApp() {
         lang={lang}
         shareLang={shareLang}
         shareUrl={computeCurrentUrl(shareLang)}
+        shareSummary={
+          shareLang === 'ja'
+            ? '価格を見てドーパミン爆発！ドパガキ 美肌相場ガイド'
+            : '가격 보고 도파민 터지는 도파가키 피부시세 가이드'
+        }
         onChangeShareLang={setShareLang}
         onClose={() => {
           setShareOpen(false);
