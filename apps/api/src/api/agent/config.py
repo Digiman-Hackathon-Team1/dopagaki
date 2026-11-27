@@ -33,7 +33,7 @@ class AgentSettings(BaseSettings):
     # LLM 호출 하나의 시간 제한(초)과 SDK 재시도 횟수(429·529·연결 오류).
     agent_timeout_seconds: float = 60
     agent_max_retries: int = 2
-    # 하루(UTC) 대화 요청 수. 요청 하나가 LLM을 여러 번 부르므로, 하루 모델 호출 500회인 기존 Worker보다
+    # 하루(UTC) 대화 요청 수. 요청 하나가 LLM을 여러 번 부르므로, 하루 모델 호출 500회였던 버튼식 상담용 Worker보다
     # LLM 호출은 많다. 사용자별 50은 설계 문서 8장의 한 대화 최대 턴 수와 같다(대화 턴 상한은 T9).
     # 데모 응답 캐싱(설계 문서 13장). 켜면 녹화한 대본과 같은 메시지에 Claude 대신 녹화한 응답을 돌려준다.
     agent_demo_cache: bool = False

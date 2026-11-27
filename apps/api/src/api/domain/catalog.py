@@ -29,7 +29,7 @@ AreaId = Literal[
     "gwanak",
 ]
 
-# 고민 분류 6개(web concierge.ts의 ConciergeConcernId). 설계 문서 8장 "정해진 고민 분류 6개".
+# 고민 분류 6개(web treatment-rules.ts의 ConcernId). 설계 문서 8장 "정해진 고민 분류 6개".
 ConcernId = Literal["pores", "glow", "lift", "dry", "jaw", "skinbase"]
 
 
@@ -68,7 +68,7 @@ class Area(SnapshotModel):
 
 
 class Concern(SnapshotModel):
-    """고민별 시술표 한 줄(web concierge.ts의 CONCERN_MENUS). 시술은 가장 직접적인 순이다."""
+    """고민별 시술표 한 줄(web treatment-rules.ts의 CONCERN_MENUS). 시술은 가장 직접적인 순이다."""
 
     id: ConcernId
     menu_ids: tuple[str, ...]
@@ -98,7 +98,7 @@ class Menu(SnapshotModel):
     vat_applies_in_korea: bool
     lead_time_note_ja: str
     lead_time_note_ko: str
-    # web concierge.ts의 값: 겉으로 보이는 회복 기간(최대 일수), 바늘 사용 여부
+    # web treatment-rules.ts의 값: 겉으로 보이는 회복 기간(최대 일수), 바늘 사용 여부
     downtime_max_days: int
     uses_needle: bool
 

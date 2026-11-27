@@ -55,7 +55,7 @@ def cheapest(menu_id: str, origin_id: str | None = None):
     )[0]
 
 
-# 버튼식 상담 테스트(concierge.test.ts)의 거주자 시나리오: 신촌·5만 원·내일 약속·고민 모공+윤기
+# 거주자 시나리오: 신촌·5만 원·내일 약속·고민 모공+윤기
 RESIDENT = {
     "visitor": "resident",
     "concerns": ["pores", "glow"],
@@ -65,8 +65,8 @@ RESIDENT = {
 }
 
 
-def test_resident_matches_button_consult_now_and_later() -> None:
-    """concierge.test.ts: 아쿠아필 근처 ₩3,850, 아쿠아필 + 라라필 ₩35,750, 포텐자는 나중에(회복 기간)."""
+def test_resident_splits_now_and_later() -> None:
+    """아쿠아필 근처 ₩3,850, 아쿠아필 + 라라필 ₩35,750, 포텐자는 나중에(회복 기간)."""
     p = plan(**RESIDENT)
 
     assert sorted(planned(p)) == ["aquapeel", "lalapeel"]

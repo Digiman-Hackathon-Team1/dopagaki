@@ -6,7 +6,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter @repo/web...
 
 # Railway 서비스 변수는 ARG로 선언해야 빌드에 전달된다.
-ARG VITE_POSTHOG_KEY VITE_POSTHOG_HOST VITE_CONCIERGE_API VITE_AGENT_DEV
+ARG VITE_POSTHOG_KEY VITE_POSTHOG_HOST VITE_AGENT_DEV
 RUN pnpm --filter @repo/web proofs:pull && pnpm --filter @repo/web build
 
 FROM caddy:2.10-alpine

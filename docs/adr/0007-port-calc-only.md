@@ -61,6 +61,7 @@ Node 프로세스나 별도 서비스로 web 계산을 그대로 실행한다.
 
 * 스냅샷은 `apps/api` 안에 둔다. 배포 Dockerfile이 `apps/api/src`만 복사하므로 실행 중에 `apps/web` 경로를 읽을 수 없다.
 * 스냅샷에는 만들 때 읽은 원본(web의 `prices.json`, `calc.ts`, `concierge.ts`, `ai-rating.ts`, 후기 데이터 2개, 그리고 내보내기 스크립트 자신)의 SHA-256을 기록한다. 줄바꿈을 LF로 맞춘 뒤 해시해 Windows에서 CRLF로 받아도 같은 값이 나온다. `tests/test_catalog.py`가 이 해시와 web `prices.json` 내용을 대조해, 원본이 바뀌었는데 다시 내보내지 않았으면 실패한다.
+* 회복 기간·바늘 여부·고민별 시술표는 #44에서 `concierge.ts`를 지우면서 `apps/web/src/lib/treatment-rules.ts`로 옮겼다. 지금 스냅샷 원본은 그 파일이다(ADR 0002).
 * 환율(`naver-fx.json`)은 `pnpm build`마다 갱신되므로 대조하지 않는다. 스냅샷의 환율은 web을 읽지 못할 때 쓰는 마지막 대체 값이다. 평소에는 배포된 web의 `naver-fx.json`을 읽는다(ADR 0010).
 * 반올림은 JavaScript `Math.round`(0.5는 올림)와 같게 하고, 각도 변환도 `calc.ts`와 같은 식을 써 거리의 마지막 자리까지 맞춘다. 병원과 시술의 category 일치 거르기도 옮긴다(지금 데이터는 모두 `beauty`).
 

@@ -9,7 +9,7 @@
     "build": "vite build && node scripts/generate-clinic-pages.mjs",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/calc.test.ts src/lib/clinic-helpers.test.ts src/lib/brand-groups.test.ts src/lib/concierge.test.ts src/lib/concierge-parse.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/calc.test.ts src/lib/clinic-helpers.test.ts src/lib/brand-groups.test.ts src/lib/treatment-rules.test.ts",
     "proofs:pull": "sh scripts/pull-proofs.sh"
   },
   "dependencies": {

@@ -87,38 +87,13 @@ export function CameraEmoji({ size = 22, className }: { size?: number; className
   return render(Camera, size, className);
 }
 
-import Airplane from '~icons/fluent-emoji-flat/airplane';
-import House from '~icons/fluent-emoji-flat/house';
-import YenNote from '~icons/fluent-emoji-flat/yen-banknote';
-import Calendar from '~icons/fluent-emoji-flat/spiral-calendar';
-import Pin from '~icons/fluent-emoji-flat/round-pushpin';
-import Basket from '~icons/fluent-emoji-flat/basket';
-import Warning from '~icons/fluent-emoji-flat/warning';
-import Speech from '~icons/fluent-emoji-flat/speech-balloon';
-import Wave from '~icons/fluent-emoji-flat/waving-hand';
-
-const CONCIERGE_EMOJI = {
-  traveler: Airplane,
-  resident: House,
-  budget: YenNote,
-  calendar: Calendar,
-  pin: Pin,
-  basket: Basket,
-  warning: Warning,
-  speech: Speech,
-  wave: Wave,
-  medal: Medal1,
-  stopwatch: Stopwatch,
-  sparkles: Sparkles,
-  bubbles: Bubbles,
-  hearts: SmilingHearts,
-  syringe: Syringe,
-  droplet: Droplet,
-  gem: GemStone
+/** 시술 정보 화면(TreatmentInfoView)이 쓰는 아이콘. */
+const INFO_EMOJI = {
+  stopwatch: Stopwatch
 } as const;
 
-export type ConciergeEmojiName = keyof typeof CONCIERGE_EMOJI;
+export type InfoEmojiName = keyof typeof INFO_EMOJI;
 
-export function ConciergeEmoji({ name, size = 22, className }: { name: ConciergeEmojiName; size?: number; className?: string }) {
-  return render(CONCIERGE_EMOJI[name], size, className);
+export function InfoEmoji({ name, size = 22, className }: { name: InfoEmojiName; size?: number; className?: string }) {
+  return render(INFO_EMOJI[name], size, className);
 }
