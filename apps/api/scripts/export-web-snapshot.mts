@@ -5,8 +5,11 @@
  *
  * 만드는 파일
  * - src/api/domain/data/web-snapshot.json: 에이전트가 읽는 병원·가격·환율 데이터.
- *   prices.json에 web 코드에만 있는 값(회복 기간, 바늘 여부, AI 평점, 고민별 시술표)을 덧붙인다.
+ *   prices.json에 web 코드에만 있는 값(회복 기간, 바늘 여부, AI 평점, 고민별 시술표, 예약 채널,
+ *   가격표 증빙)을 덧붙인다. 예약 채널과 가격표 증빙은 web 화면이 쓰는 함수(getClinicChannels,
+ *   getOfficialMenuProof)의 결과를 그대로 넣는다.
  * - tests/fixtures/calc-expected.json: web calc.ts로 계산한 기대값. calc.py 대조 테스트(설계 13장)에 쓴다.
+ * - tests/fixtures/inquiry-expected.json: web buildInquiryMessages로 만든 예약 문의 문장. inquiry.py 대조 테스트에 쓴다.
  *
  * web 파일은 읽기만 한다. web 데이터나 환율이 바뀌면 이 스크립트를 다시 실행한다.
  */
@@ -18,6 +21,14 @@ import type { AreaId, GeoPoint, NaverFxSnapshot, PriceDataset, SortId } from '..
 import { buildRankedRows } from '../../web/src/lib/calc.ts';
 import { getClinicAiRating } from '../../web/src/lib/ai-rating.ts';
 import { CONCERN_MENUS, DOWNTIME_MAX_DAYS, NEEDLE_MENUS } from '../../web/src/lib/concierge.ts';
+import { getClinicChannels } from '../../web/src/data/clinic-channels.ts';
+import { getOfficialMenuProof } from '../../web/src/data/official-proofs.ts';
+import {
+  buildInquiryMessages,
+  computeClinicBundle,
+  type InquiryFormInput
+} from '../../web/src/lib/clinic-helpers.ts';
+import type { PlaceItem } from '../../web/src/types.ts';
 
 const apiDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const webData = path.resolve(apiDir, '../web/src/data');
@@ -50,6 +61,9 @@ const SOURCE_FILES = [
   'apps/web/src/lib/ai-rating.ts',
   'apps/web/src/data/brand-reviews.ts',
   'apps/web/src/data/branch-reviews.ts',
+  'apps/web/src/data/clinic-channels.ts',
+  'apps/web/src/data/official-proofs.ts',
+  'apps/web/src/lib/clinic-helpers.ts',
   'apps/api/scripts/export-web-snapshot.mts'
 ];
 const repoRoot = path.resolve(apiDir, '../..');
@@ -59,6 +73,51 @@ const sources = Object.fromEntries(
     return [file, createHash('sha256').update(text, 'utf8').digest('hex')];
   })
 );
+
+// 예약 채널(web ClinicBookingSheet와 같은 목록). 언어별로 고르는 링크(인스타그램, 웹 예약)만 다르고
+// 채널 종류와 순서는 같으므로, 한 채널에 일본어·한국어 링크를 함께 담는다.
+function channels(place: PlaceItem) {
+  const ja = getClinicChannels(place.id, 'ja');
+  const ko = getClinicChannels(place.id, 'ko');
+  if (ja.items.map((c) => c.kind).join() !== ko.items.map((c) => c.kind).join()) {
+    throw new Error(`${place.id}의 예약 채널 종류가 언어마다 다릅니다`);
+  }
+  return {
+    channels: ja.items.map((c, i) => ({
+      kind: c.kind,
+      labelJa: c.labelJa,
+      labelKo: c.labelKo,
+      urlJa: c.url,
+      urlKo: ko.items[i].url
+    })),
+    centralChannel: ja.isCentralChannel
+  };
+}
+
+// 가격표 증빙(web 병원 화면과 같은 링크). 스크린샷이 가격과 맞는 경우에만 hasScreenshot이 true다.
+function proofs(place: PlaceItem) {
+  return Object.fromEntries(
+    Object.keys(place.prices).map((menuId) => {
+      const ja = getOfficialMenuProof(place, menuId, 'ja');
+      const ko = getOfficialMenuProof(place, menuId, 'ko');
+      if (ja.capturedDate !== ko.capturedDate || Boolean(ja.imageFile) !== Boolean(ko.imageFile)) {
+        throw new Error(`${place.id}::${menuId}의 가격표 증빙이 언어마다 다릅니다`);
+      }
+      return [
+        menuId,
+        {
+          urlJa: ja.priceUrl,
+          urlKo: ko.priceUrl,
+          domainJa: ja.domainLabel,
+          domainKo: ko.domainLabel,
+          capturedDate: ko.capturedDate,
+          hasScreenshot: ko.imageFile !== null,
+          matchedText: ko.imageFile !== null ? ko.matchedText : null
+        }
+      ];
+    })
+  );
+}
 
 const snapshot = {
   sources,
@@ -78,10 +137,18 @@ const snapshot = {
     downtimeMaxDays: DOWNTIME_MAX_DAYS[menu.id],
     usesNeedle: NEEDLE_MENUS.has(menu.id)
   })),
-  places: dataset.places.map((place) => ({
-    ...place,
-    aiRating: getClinicAiRating(place, dataset.places).overall
-  }))
+  places: dataset.places.map((place) => {
+    const rating = getClinicAiRating(place, dataset.places);
+    return {
+      ...place,
+      aiRating: rating.overall,
+      // 평점 근거: branch 지점 후기, brand 같은 브랜드 다른 지점 후기를 참고. limited는 확인된 후기가 적음.
+      ratingScope: rating.reviewScope,
+      ratingTier: rating.verificationTier,
+      ...channels(place),
+      proofs: proofs(place)
+    };
+  })
 };
 
 // 대조용 기준 위치: 홍대 지역 중심(서울 안), 도쿄역(서울 밖이라 web은 서울 시청 기준으로 계산).
@@ -158,6 +225,35 @@ for (const menuId of ['rejuran-2cc', 'shrink-300']) {
 
 const expected = { krwPer100Jpy, origins: ORIGINS, rows, orders };
 
+// 예약 문의 문장 대조: 일본어 가능·불가 병원, 시술 수(없음·하나·둘·병원에 가격 없음), 입력 조합.
+const japanesePlace = dataset.places.find((p) => p.japaneseSupport && 'shrink-300' in p.prices);
+const koreanOnlyPlace = dataset.places.find((p) => !p.japaneseSupport && 'shrink-300' in p.prices);
+const missingMenuPlace = dataset.places.find((p) => !('potenza' in p.prices));
+if (!japanesePlace || !koreanOnlyPlace || !missingMenuPlace) throw new Error('문의 문장 대조용 병원이 없습니다');
+const FORMS: InquiryFormInput[] = [
+  { date: '', timeSlot: 'any', people: 1, firstVisit: true, guestName: '' },
+  { date: '11/28', timeSlot: 'morning', people: 2, firstVisit: false, guestName: '' },
+  { date: '12/3', timeSlot: 'afternoon', people: 9, firstVisit: true, guestName: '  ' },
+  { date: '', timeSlot: 'evening', people: 0, firstVisit: true, guestName: 'YUKI TANAKA' }
+];
+const inquiryCases = [];
+for (const place of [japanesePlace, koreanOnlyPlace, missingMenuPlace]) {
+  for (const menuIds of [[], ['shrink-300'], ['rejuran-2cc', 'shrink-300'], ['potenza']]) {
+    for (const form of FORMS) {
+      const bundle = computeClinicBundle(
+        place,
+        dataset.menus,
+        menuIds,
+        1,
+        true,
+        krwPer100Jpy,
+        dataset.meta.vatRate
+      );
+      inquiryCases.push({ placeId: place.id, menuIds, form, ...buildInquiryMessages(place, bundle, form) });
+    }
+  }
+}
+
 function write(relative: string, data: unknown, pretty = true) {
   const file = path.join(apiDir, relative);
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -167,3 +263,4 @@ function write(relative: string, data: unknown, pretty = true) {
 
 write('src/api/domain/data/web-snapshot.json', snapshot);
 write('tests/fixtures/calc-expected.json', expected, false);
+write('tests/fixtures/inquiry-expected.json', inquiryCases);
