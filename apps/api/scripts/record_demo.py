@@ -17,7 +17,7 @@ from langchain_core.messages import messages_to_dict
 
 from api.agent.config import get_settings
 from api.agent.demo import DEMO_PATH, DemoScript, DemoTurn, dump_demo, load_demo
-from api.agent.router import get_agent
+from api.agent.service import get_agent
 from api.main import app
 
 
