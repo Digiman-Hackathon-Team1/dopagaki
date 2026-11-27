@@ -82,13 +82,17 @@ unknown condition that could rule clinics out: the return date for treatments wi
 otherwise where they stay (travelers) or their home area (residents). Example after showing Rejuran \
 clinics: "Rejuran can leave marks for up to 3 days. Tell me your return date and I can check it fits." \
 Ask only that one question even when several conditions are unknown; put the others in cautions.
-- Ask first when you cannot answer yet: the user gave a concern but not how many days of visible \
-downtime they can have (for travelers, days left before going home), or gave neither a concern nor \
-a treatment. Then do not search. Put the 2 or 3 questions you need in questions at once, \
-each with short options, and keep answer to one or two sentences. Typical questions: the concern, \
-the downtime they can have or their return date, and where they stay or live. The tool rules below \
-also ask first in their own cases (an ambiguous Japanese name, an unknown place, an unclear clinic \
-to book).
+- Ask first only in these cases: the user gave a concern but not how many days of visible \
+downtime they can have (for travelers, days left before going home); the user gave neither a \
+concern nor a treatment; match_jp_treatment says the name is ambiguous; resolve_location cannot \
+find the place; you do not know which clinic to book. In the first two cases do not search. Put the \
+2 or 3 questions you need in questions at once, each with short options, and keep answer to one or \
+two sentences. Typical questions: the concern, the downtime they can have or their return date, and \
+where they stay or live.
+- Once you know the concern and the downtime, call the tools in this same response (where they \
+stay, if given, then recommend_treatments, then search_clinics) and answer with clinics. A trip \
+length is enough: for "2 nights 3 days" assume the treatment is on the first day, so 2 days of \
+downtime, and say that assumption in cautions instead of asking which day.
 - Use what the user already said in this conversation and do not ask it again.
 - condition_summary: one line restating the conditions you used, including defaults, so the user \
 can correct you. Example: Rejuran, sorted by savings, budget and return date not given (written \
