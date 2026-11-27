@@ -164,6 +164,181 @@ export interface components {
             /** Urlko */
             urlKo: string;
         };
+        /** BundleCard */
+        BundleCard: {
+            /**
+             * Cardid
+             * @description <place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣을 수 있다
+             */
+            cardId: string;
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /**
+             * Items
+             * @description 묶음 시술. 사용자가 말한 순서
+             */
+            items: components["schemas"]["BundleItem"][];
+            /**
+             * Totalkrw
+             * @description 시술 합계(부가세 포함, 원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 시술별 엔화 환산의 합
+             */
+            totalJpy: number;
+            /**
+             * Jptotaljpy
+             * @description 시술별 일본 평균의 합
+             */
+            jpTotalJpy: number;
+            /**
+             * Savingsjpy
+             * @description 일본 평균 합계 대비 절약액(엔). 음수면 일본보다 비쌈
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            /**
+             * Separatetotalkrw
+             * @description 같은 조건(지역·일본어)에서 시술마다 가장 싼 병원에서 따로 받을 때의 합계(원). 병원을 여러 곳 가야 할 수 있다
+             */
+            separateTotalKrw: number;
+            /** Separatetotaljpy */
+            separateTotalJpy: number;
+            /**
+             * Separatecliniccount
+             * @description 따로 받을 때 가야 하는 병원 수. 1이면 한 병원이 모든 시술의 최저가다
+             */
+            separateClinicCount: number;
+            /**
+             * Separatepicks
+             * @description 따로 받을 때 시술마다 가는 병원. 예산은 보지 않는다
+             */
+            separatePicks: components["schemas"]["SeparatePick"][];
+            /**
+             * Extravsseparatekrw
+             * @description 이 병원 묶음 합계 - 따로 받을 때 합계(원). 0이면 따로 받는 것과 같다
+             */
+            extraVsSeparateKrw: number;
+            /** Extravsseparatejpy */
+            extraVsSeparateJpy: number;
+            /**
+             * Krwper100Jpy
+             * @description 엔화 환산에 쓴 환율(100엔당 원)
+             */
+            krwPer100Jpy: number;
+            /**
+             * Fxdatelabel
+             * @description 환율 기준일
+             */
+            fxDateLabel: string;
+            /**
+             * Distancemeters
+             * @description 기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null
+             */
+            distanceMeters: number | null;
+            /** Walkminutes */
+            walkMinutes: number | null;
+            /** Rating */
+            rating: number;
+            /**
+             * Ratingscope
+             * @enum {string}
+             */
+            ratingScope: "branch" | "brand";
+            /**
+             * Ratingtier
+             * @enum {string}
+             */
+            ratingTier: "jp_kr_verified" | "kr_verified" | "limited";
+            /** Bookingchannels */
+            bookingChannels: components["schemas"]["BookingChannel"][];
+            /** Centralchannel */
+            centralChannel: boolean;
+            /** Priceconditionja */
+            priceConditionJa: string;
+            /** Priceconditionko */
+            priceConditionKo: string;
+            /** Sourceurl */
+            sourceUrl: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "bundle";
+            /**
+             * Searchid
+             * @description 어느 묶음 검색의 카드인지(이번 턴 묶음 검색 순서, 예: b1). 같은 시술 묶음을 지역끼리 비교하면 검색마다 값이 다르고, 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다
+             */
+            searchId: string;
+            /**
+             * Reason
+             * @description LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null
+             */
+            reason: string | null;
+        };
+        /**
+         * BundleItem
+         * @description 묶음 카드 안의 시술 하나. 금액은 같은 병원의 병원 추천 카드와 같은 계산이다.
+         */
+        BundleItem: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Basekrw
+             * @description 병원 게시가(원)
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 게시가에 더하는 부가세(원). 이미 포함이면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /**
+             * Jpaveragejpy
+             * @description 이 시술의 일본 주요 병원 평균(세금 포함)
+             */
+            jpAverageJpy: number;
+            /** Pricetags */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
+            /** Pricenoteja */
+            priceNoteJa: string;
+            /** Pricenoteko */
+            priceNoteKo: string;
+            /** @description 이 시술 가격의 가격표 증빙 링크 */
+            proof: components["schemas"]["PriceProof"];
+        };
         /** ChatRequest */
         ChatRequest: {
             /**
@@ -207,9 +382,9 @@ export interface components {
             answer: string;
             /**
              * Cards
-             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다
+             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), bundle(한 병원 묶음), booking(예약 채널과 문의 문장) 순서로 온다
              */
-            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"] | components["schemas"]["BookingCard"])[];
+            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"] | components["schemas"]["BundleCard"] | components["schemas"]["BookingCard"])[];
             /**
              * Exclusions
              * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
@@ -647,6 +822,31 @@ export interface components {
              * @description LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null
              */
             reason: string | null;
+        };
+        /**
+         * SeparatePick
+         * @description 따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준).
+         */
+        SeparatePick: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Totalkrw
+             * @description 이 병원의 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
         };
         /** ValidationError */
         ValidationError: {

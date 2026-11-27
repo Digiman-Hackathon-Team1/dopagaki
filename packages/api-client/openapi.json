@@ -308,6 +308,345 @@
         "title": "BookingChannel",
         "description": "병원 공식 예약·상담 채널 하나. web clinic-channels.ts의 링크 그대로다(FR-05)."
       },
+      "BundleCard": {
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "title": "Cardid",
+            "description": "<place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣을 수 있다"
+          },
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "area": {
+            "type": "string",
+            "enum": [
+              "sinchon",
+              "hongdae",
+              "myeongdong",
+              "yongsan",
+              "gangnam",
+              "jamsil",
+              "seongsu",
+              "yeouido",
+              "magok",
+              "nowon",
+              "cheonho",
+              "gwanak"
+            ],
+            "title": "Area"
+          },
+          "stationJa": {
+            "type": "string",
+            "title": "Stationja"
+          },
+          "stationKo": {
+            "type": "string",
+            "title": "Stationko"
+          },
+          "japaneseSupport": {
+            "type": "boolean",
+            "title": "Japanesesupport"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BundleItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "묶음 시술. 사용자가 말한 순서"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "시술 합계(부가세 포함, 원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy",
+            "description": "시술별 엔화 환산의 합"
+          },
+          "jpTotalJpy": {
+            "type": "integer",
+            "title": "Jptotaljpy",
+            "description": "시술별 일본 평균의 합"
+          },
+          "savingsJpy": {
+            "type": "integer",
+            "title": "Savingsjpy",
+            "description": "일본 평균 합계 대비 절약액(엔). 음수면 일본보다 비쌈"
+          },
+          "savingsPct": {
+            "type": "integer",
+            "title": "Savingspct"
+          },
+          "separateTotalKrw": {
+            "type": "integer",
+            "title": "Separatetotalkrw",
+            "description": "같은 조건(지역·일본어)에서 시술마다 가장 싼 병원에서 따로 받을 때의 합계(원). 병원을 여러 곳 가야 할 수 있다"
+          },
+          "separateTotalJpy": {
+            "type": "integer",
+            "title": "Separatetotaljpy"
+          },
+          "separateClinicCount": {
+            "type": "integer",
+            "title": "Separatecliniccount",
+            "description": "따로 받을 때 가야 하는 병원 수. 1이면 한 병원이 모든 시술의 최저가다"
+          },
+          "separatePicks": {
+            "items": {
+              "$ref": "#/components/schemas/SeparatePick"
+            },
+            "type": "array",
+            "title": "Separatepicks",
+            "description": "따로 받을 때 시술마다 가는 병원. 예산은 보지 않는다"
+          },
+          "extraVsSeparateKrw": {
+            "type": "integer",
+            "title": "Extravsseparatekrw",
+            "description": "이 병원 묶음 합계 - 따로 받을 때 합계(원). 0이면 따로 받는 것과 같다"
+          },
+          "extraVsSeparateJpy": {
+            "type": "integer",
+            "title": "Extravsseparatejpy"
+          },
+          "krwPer100Jpy": {
+            "type": "number",
+            "title": "Krwper100Jpy",
+            "description": "엔화 환산에 쓴 환율(100엔당 원)"
+          },
+          "fxDateLabel": {
+            "type": "string",
+            "title": "Fxdatelabel",
+            "description": "환율 기준일"
+          },
+          "distanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancemeters",
+            "description": "기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null"
+          },
+          "walkMinutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walkminutes"
+          },
+          "rating": {
+            "type": "number",
+            "title": "Rating"
+          },
+          "ratingScope": {
+            "type": "string",
+            "enum": [
+              "branch",
+              "brand"
+            ],
+            "title": "Ratingscope"
+          },
+          "ratingTier": {
+            "type": "string",
+            "enum": [
+              "jp_kr_verified",
+              "kr_verified",
+              "limited"
+            ],
+            "title": "Ratingtier"
+          },
+          "bookingChannels": {
+            "items": {
+              "$ref": "#/components/schemas/BookingChannel"
+            },
+            "type": "array",
+            "title": "Bookingchannels"
+          },
+          "centralChannel": {
+            "type": "boolean",
+            "title": "Centralchannel"
+          },
+          "priceConditionJa": {
+            "type": "string",
+            "title": "Priceconditionja"
+          },
+          "priceConditionKo": {
+            "type": "string",
+            "title": "Priceconditionko"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl"
+          },
+          "kind": {
+            "type": "string",
+            "const": "bundle",
+            "title": "Kind"
+          },
+          "searchId": {
+            "type": "string",
+            "title": "Searchid",
+            "description": "어느 묶음 검색의 카드인지(이번 턴 묶음 검색 순서, 예: b1). 같은 시술 묶음을 지역끼리 비교하면 검색마다 값이 다르고, 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cardId",
+          "placeId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "area",
+          "stationJa",
+          "stationKo",
+          "japaneseSupport",
+          "items",
+          "totalKrw",
+          "totalJpy",
+          "jpTotalJpy",
+          "savingsJpy",
+          "savingsPct",
+          "separateTotalKrw",
+          "separateTotalJpy",
+          "separateClinicCount",
+          "separatePicks",
+          "extraVsSeparateKrw",
+          "extraVsSeparateJpy",
+          "krwPer100Jpy",
+          "fxDateLabel",
+          "distanceMeters",
+          "walkMinutes",
+          "rating",
+          "ratingScope",
+          "ratingTier",
+          "bookingChannels",
+          "centralChannel",
+          "priceConditionJa",
+          "priceConditionKo",
+          "sourceUrl",
+          "kind",
+          "searchId",
+          "reason"
+        ],
+        "title": "BundleCard"
+      },
+      "BundleItem": {
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "menuNameJa": {
+            "type": "string",
+            "title": "Menunameja"
+          },
+          "menuNameKo": {
+            "type": "string",
+            "title": "Menunameko"
+          },
+          "baseKrw": {
+            "type": "integer",
+            "title": "Basekrw",
+            "description": "병원 게시가(원)"
+          },
+          "vatKrw": {
+            "type": "integer",
+            "title": "Vatkrw",
+            "description": "게시가에 더하는 부가세(원). 이미 포함이면 0"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "부가세 포함 가격(원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy",
+            "description": "부가세 포함 가격의 엔화 환산"
+          },
+          "jpAverageJpy": {
+            "type": "integer",
+            "title": "Jpaveragejpy",
+            "description": "이 시술의 일본 주요 병원 평균(세금 포함)"
+          },
+          "priceTags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "first_visit",
+                "event",
+                "day_limited",
+                "app_benefit",
+                "anesthesia",
+                "extra_fee"
+              ]
+            },
+            "type": "array",
+            "title": "Pricetags"
+          },
+          "priceNoteJa": {
+            "type": "string",
+            "title": "Pricenoteja"
+          },
+          "priceNoteKo": {
+            "type": "string",
+            "title": "Pricenoteko"
+          },
+          "proof": {
+            "$ref": "#/components/schemas/PriceProof",
+            "description": "이 시술 가격의 가격표 증빙 링크"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "menuId",
+          "menuNameJa",
+          "menuNameKo",
+          "baseKrw",
+          "vatKrw",
+          "totalKrw",
+          "totalJpy",
+          "jpAverageJpy",
+          "priceTags",
+          "priceNoteJa",
+          "priceNoteKo",
+          "proof"
+        ],
+        "title": "BundleItem",
+        "description": "묶음 카드 안의 시술 하나. 금액은 같은 병원의 병원 추천 카드와 같은 계산이다."
+      },
       "ChatRequest": {
         "properties": {
           "userId": {
@@ -398,6 +737,9 @@
                   "$ref": "#/components/schemas/JpMatchCard"
                 },
                 {
+                  "$ref": "#/components/schemas/BundleCard"
+                },
+                {
                   "$ref": "#/components/schemas/BookingCard"
                 }
               ],
@@ -405,6 +747,7 @@
                 "propertyName": "kind",
                 "mapping": {
                   "booking": "#/components/schemas/BookingCard",
+                  "bundle": "#/components/schemas/BundleCard",
                   "jp_match": "#/components/schemas/JpMatchCard",
                   "location": "#/components/schemas/LocationCard",
                   "recommendation": "#/components/schemas/RecommendationCard"
@@ -413,7 +756,7 @@
             },
             "type": "array",
             "title": "Cards",
-            "description": "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다"
+            "description": "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), bundle(한 병원 묶음), booking(예약 채널과 문의 문장) 순서로 온다"
           },
           "exclusions": {
             "items": {
@@ -1262,6 +1605,57 @@
           "reason"
         ],
         "title": "RecommendationCard"
+      },
+      "SeparatePick": {
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "menuNameJa": {
+            "type": "string",
+            "title": "Menunameja"
+          },
+          "menuNameKo": {
+            "type": "string",
+            "title": "Menunameko"
+          },
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "이 병원의 부가세 포함 가격(원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "menuId",
+          "menuNameJa",
+          "menuNameKo",
+          "placeId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "totalKrw",
+          "totalJpy"
+        ],
+        "title": "SeparatePick",
+        "description": "따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준)."
       },
       "ValidationError": {
         "properties": {

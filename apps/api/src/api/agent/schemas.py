@@ -370,8 +370,105 @@ class BookingCard(BookingCardData):
     kind: Literal["booking"]
 
 
+class BundleItem(ResponseModel):
+    """묶음 카드 안의 시술 하나. 금액은 같은 병원의 병원 추천 카드와 같은 계산이다."""
+
+    menu_id: str
+    menu_name_ja: str
+    menu_name_ko: str
+    base_krw: int = Field(description="병원 게시가(원)")
+    vat_krw: int = Field(description="게시가에 더하는 부가세(원). 이미 포함이면 0")
+    total_krw: int = Field(description="부가세 포함 가격(원)")
+    total_jpy: int = Field(description="부가세 포함 가격의 엔화 환산")
+    jp_average_jpy: int = Field(description="이 시술의 일본 주요 병원 평균(세금 포함)")
+    price_tags: list[PriceTag]
+    price_note_ja: str
+    price_note_ko: str
+    proof: PriceProof = Field(description="이 시술 가격의 가격표 증빙 링크")
+
+
+class SeparatePick(ResponseModel):
+    """따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준)."""
+
+    menu_id: str
+    menu_name_ja: str
+    menu_name_ko: str
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    total_krw: int = Field(description="이 병원의 부가세 포함 가격(원)")
+    total_jpy: int
+
+
+class BundleCardData(ResponseModel):
+    """search_bundle이 찾은 한 병원 묶음(설계 문서 FR-03, #43). 시술을 모두 이 병원에서 받을 때의 합계다."""
+
+    card_id: str = Field(
+        description="<place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣을 수 있다"
+    )
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    area: AreaId
+    station_ja: str
+    station_ko: str
+    japanese_support: bool
+    items: list[BundleItem] = Field(description="묶음 시술. 사용자가 말한 순서")
+    total_krw: int = Field(description="시술 합계(부가세 포함, 원)")
+    total_jpy: int = Field(description="시술별 엔화 환산의 합")
+    jp_total_jpy: int = Field(description="시술별 일본 평균의 합")
+    savings_jpy: int = Field(
+        description="일본 평균 합계 대비 절약액(엔). 음수면 일본보다 비쌈"
+    )
+    savings_pct: int
+    separate_total_krw: int = Field(
+        description=(
+            "같은 조건(지역·일본어)에서 시술마다 가장 싼 병원에서 따로 받을 때의 합계(원). "
+            "병원을 여러 곳 가야 할 수 있다"
+        )
+    )
+    separate_total_jpy: int
+    separate_clinic_count: int = Field(
+        description="따로 받을 때 가야 하는 병원 수. 1이면 한 병원이 모든 시술의 최저가다"
+    )
+    separate_picks: list[SeparatePick] = Field(
+        description="따로 받을 때 시술마다 가는 병원. 예산은 보지 않는다"
+    )
+    extra_vs_separate_krw: int = Field(
+        description="이 병원 묶음 합계 - 따로 받을 때 합계(원). 0이면 따로 받는 것과 같다"
+    )
+    extra_vs_separate_jpy: int
+    krw_per_100_jpy: float = Field(description="엔화 환산에 쓴 환율(100엔당 원)")
+    fx_date_label: str = Field(description="환율 기준일")
+    distance_meters: int | None = Field(
+        description="기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null"
+    )
+    walk_minutes: int | None
+    rating: float
+    rating_scope: RatingScope
+    rating_tier: RatingTier
+    booking_channels: list[BookingChannel]
+    central_channel: bool
+    price_condition_ja: str
+    price_condition_ko: str
+    source_url: str
+
+
+class BundleCard(BundleCardData):
+    kind: Literal["bundle"]
+    search_id: str = Field(
+        description=(
+            "어느 묶음 검색의 카드인지(이번 턴 묶음 검색 순서, 예: b1). 같은 시술 묶음을 지역끼리 비교하면 "
+            "검색마다 값이 다르고, 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다"
+        )
+    )
+    reason: str | None = Field(
+        description="LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null"
+    )
+
+
 Card = Annotated[
-    RecommendationCard | LocationCard | JpMatchCard | BookingCard,
+    RecommendationCard | LocationCard | JpMatchCard | BundleCard | BookingCard,
     Field(discriminator="kind"),
 ]
 
@@ -393,7 +490,7 @@ class ChatResponse(ResponseModel):
     cards: list[Card] = Field(
         description=(
             "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), "
-            "recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다"
+            "recommendation(병원 추천), bundle(한 병원 묶음), booking(예약 채널과 문의 문장) 순서로 온다"
         )
     )
     exclusions: list[Exclusion] = Field(
