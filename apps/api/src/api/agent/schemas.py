@@ -467,8 +467,160 @@ class BundleCard(BundleCardData):
     )
 
 
+Visitor = Literal["traveler", "resident"]
+
+PlanReason = Literal["downtime", "budget", "needle", "far", "no_clinic", "one_clinic"]
+
+
+class PlanItem(BundleItem):
+    """일정에 넣은 시술 하나. 금액은 병원 추천 카드와 같은 계산이다."""
+
+    downtime_max_days: int = Field(description="겉으로 보이는 회복 기간(최대 일수)")
+
+
+class PlanVisit(ResponseModel):
+    """병원 한 곳에 한 번 가는 일정. 같은 병원에서 받는 시술은 한 번 방문으로 묶는다."""
+
+    card_id: str = Field(
+        description=(
+            "<place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣으면 이 방문의 시술이 "
+            "모두 문의 문장에 들어간다"
+        )
+    )
+    day: int | None = Field(
+        description=(
+            "여행자: 몇째 날에 가는지(1 = 병원에 갈 수 있는 첫날, tripDays = 귀국일). 거주자는 null"
+            "(약속 전 언제든, 회복이 긴 방문부터 순서대로)"
+        )
+    )
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    area: AreaId
+    station_ja: str
+    station_ko: str
+    japanese_support: bool
+    items: list[PlanItem]
+    total_krw: int = Field(description="이 방문의 시술 합계(부가세 포함, 원)")
+    total_jpy: int = Field(description="시술별 엔화 환산의 합")
+    downtime_max_days: int = Field(description="이 방문 시술 중 가장 긴 회복 기간")
+    distance_meters: int | None = Field(
+        description="기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null"
+    )
+    walk_minutes: int | None
+    rating: float
+    rating_scope: RatingScope
+    rating_tier: RatingTier
+    booking_channels: list[BookingChannel]
+    central_channel: bool
+    price_condition_ja: str
+    price_condition_ko: str
+
+
+class PlanOption(ResponseModel):
+    """일정에서 뺀 시술을 받는다면 가장 싼 병원(거르기 조건 안)."""
+
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    total_krw: int = Field(description="부가세 포함 가격(원)")
+    total_jpy: int
+    distance_meters: int | None
+
+
+class PlanDeferred(ResponseModel):
+    """이번 일정에 넣지 않은 시술과 그 이유."""
+
+    menu_id: str
+    menu_name_ja: str
+    menu_name_ko: str
+    downtime_max_days: int
+    reasons: list[PlanReason] = Field(
+        description=(
+            "downtime 회복 기간 초과(여행자: 귀국 전에 회복되지 않음, 거주자: 약속 뒤로 미룸), "
+            "budget 예산 초과(여행자: 이번 여행 예산, 거주자: 다음 달로 미룸), needle 바늘 시술 기피, "
+            "far 기준 위치 6km 안에 병원 없음(거주자), no_clinic 조건에 맞는 병원 없음, "
+            "one_clinic 한 병원에서 같이 받을 수 있는 곳이 없거나 시술 3개를 넘음"
+        )
+    )
+    cheapest: PlanOption | None = Field(
+        description="이 시술을 받는다면 가장 싼 병원. 병원이 없으면(far, no_clinic) null"
+    )
+
+
+class PlanAlternative(ResponseModel):
+    """같은 시술을 다른 방식으로 받을 때의 합계. 일정과 비교해 보여 준다."""
+
+    one_clinic: bool = Field(
+        description="true: 모든 시술을 한 병원에서 같이, false: 시술마다 가장 싼 병원에 따로"
+    )
+    clinic_count: int
+    place_id: str | None = Field(description="한 병원이면 그 병원 ID, 아니면 null")
+    clinic_name_ja: str | None
+    clinic_name_ko: str | None
+    total_krw: int
+    total_jpy: int
+    extra_krw: int = Field(
+        description="이 방식의 합계 - 일정 합계(원). 음수면 이 방식이 쌈"
+    )
+    extra_jpy: int
+
+
+class PlanBudget(ResponseModel):
+    currency: Literal["JPY", "KRW"]
+    amount: int
+    left: int = Field(
+        description="예산 - 일정 합계(예산 통화). 일정은 예산을 넘지 않는다"
+    )
+
+
+class TripPlanCardData(ResponseModel):
+    """plan_trip이 만든 일정(설계 문서 FR-11, 9장, #45)."""
+
+    visitor: Visitor
+    trip_days: int | None = Field(
+        description="여행자: 병원에 갈 수 있는 첫날부터 귀국일까지 날 수(2박 3일이면 3). 거주자는 null"
+    )
+    days_until_event: int | None = Field(
+        description="거주자: 오늘부터 다음 약속(얼굴이 깨끗해야 하는 날)까지 날 수(내일이면 1). 모르면 null"
+    )
+    one_clinic: bool = Field(
+        description="모든 시술을 한 병원에서 같이 받는 일정이면 true"
+    )
+    radius_meters: int | None = Field(
+        description=(
+            "거주자: 기준 위치에서 이 거리 안의 병원만 골랐다(3km, 3km 안에 없는 시술이 있으면 6km). "
+            "기준 위치가 없거나 여행자면 null"
+        )
+    )
+    visits: list[PlanVisit] = Field(
+        description="이번에 받을 방문. 여행자는 날짜 순, 거주자는 회복이 긴 순"
+    )
+    total_krw: int = Field(description="일정 합계(부가세 포함, 원)")
+    total_jpy: int
+    jp_total_jpy: int = Field(description="일정 시술의 일본 평균 합계")
+    savings_jpy: int
+    savings_pct: int
+    budget: PlanBudget | None
+    alternative: PlanAlternative | None = Field(
+        description="같은 시술을 다른 방식(한 병원 또는 따로)으로 받을 때의 합계. 비교할 것이 없으면 null"
+    )
+    deferred: list[PlanDeferred]
+    krw_per_100_jpy: float
+    fx_date_label: str
+
+
+class TripPlanCard(TripPlanCardData):
+    kind: Literal["trip_plan"]
+
+
 Card = Annotated[
-    RecommendationCard | LocationCard | JpMatchCard | BundleCard | BookingCard,
+    RecommendationCard
+    | LocationCard
+    | JpMatchCard
+    | BundleCard
+    | TripPlanCard
+    | BookingCard,
     Field(discriminator="kind"),
 ]
 
@@ -490,7 +642,8 @@ class ChatResponse(ResponseModel):
     cards: list[Card] = Field(
         description=(
             "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), "
-            "recommendation(병원 추천), bundle(한 병원 묶음), booking(예약 채널과 문의 문장) 순서로 온다"
+            "recommendation(병원 추천), bundle(한 병원 묶음), trip_plan(일정), booking(예약 채널과 문의 문장) "
+            "순서로 온다"
         )
     )
     exclusions: list[Exclusion] = Field(

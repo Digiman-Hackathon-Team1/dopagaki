@@ -40,7 +40,8 @@ class GetBookingOptionsInput(BaseModel):
         description=(
             "병원 ID. search_clinics 결과 card_id(<place_id>:<menu_id>)의 ':' 앞부분을 그대로 쓴다. "
             "예: card_id=vands-hongdae:shrink-300 이면 vands-hongdae. card_id를 그대로 넣어도 된다. "
-            "search_bundle 묶음 card_id(<place_id>:<menu_id>+<menu_id>)는 그대로 넣으면 시술이 모두 들어간다. "
+            "search_bundle 묶음 card_id와 plan_trip 방문 card_id(<place_id>:<menu_id>+<menu_id>)는 그대로 "
+            "넣으면 시술이 모두 들어간다. "
             "ID를 지어내지 않는다"
         ),
     )
@@ -114,7 +115,7 @@ DESCRIPTION = """\
 병원 한 곳의 공식 예약·상담 채널(LINE, 카카오톡, 네이버 예약, 인스타그램, 공식 웹 예약)과 한국어·일본어
 문장 두 가지를 만든다. 문의 문장은 방문 전에 채널로 보내고, 접수 메모는 방문한 날 접수대에서 보여 준다.
 결과는 화면에 예약 카드로 나간다. 채널 링크와 문장은 카드에만 있으니 답변에 URL이나 문장을 옮겨 적지 않는다.
-필수 입력: place_id(search_clinics 결과의 card_id 앞부분, 또는 search_bundle 묶음 card_id 그대로). "첫 번째 병원"처럼 앞에서 보여 준 병원을 가리키면
+필수 입력: place_id(search_clinics 결과의 card_id 앞부분, 또는 search_bundle 묶음·plan_trip 방문 card_id 그대로). "첫 번째 병원"처럼 앞에서 보여 준 병원을 가리키면
 그 결과의 순위로 card_id를 찾는다. 어느 병원인지 모르면 부르지 말고 먼저 묻는다.
 기본값: 날짜 미정, 시간 무관, 1명, 첫 방문, 접수 메모 부탁은 추가 권유 사양·총액 먼저 확인. 사용자가 말한 값만
 넣는다. 이름은 받지 않는다(문장에 빈칸으로 남음).

@@ -2,6 +2,7 @@
 
 from api.agent.tools.get_booking_options import get_booking_options
 from api.agent.tools.match_jp_treatment import match_jp_treatment
+from api.agent.tools.plan_trip import plan_trip
 from api.agent.tools.recommend_treatments import recommend_treatments
 from api.agent.tools.resolve_location import resolve_location
 from api.agent.tools.search_bundle import search_bundle
@@ -13,5 +14,6 @@ TOOLS = [
     resolve_location,
     search_clinics,
     search_bundle,
+    plan_trip,
     get_booking_options,
 ]

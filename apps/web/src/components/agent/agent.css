@@ -49,3 +49,10 @@
 .agent-bundle-items { display: grid; gap: 6px; padding-left: 0; list-style: none; }
 .agent-bundle-items li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .agent-bundle-items li > span:first-child { font-weight: 700; }
+.agent-plan-visits { display: grid; gap: 12px; padding-left: 0; list-style: none; }
+.agent-plan-visits > li { border-left: 3px solid var(--color-select); padding-left: 12px; display: grid; gap: 6px; min-width: 0; }
+.agent-plan-visits > li > small { font-weight: 700; color: var(--color-select); }
+.agent-plan-deferred { display: grid; gap: 6px; padding-left: 0; list-style: none; }
+.agent-plan-deferred li { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+.agent-plan-deferred li > span:first-child { font-weight: 700; }
+.agent-plan-deferred li > small { flex-basis: 100%; color: var(--color-ink-2); }

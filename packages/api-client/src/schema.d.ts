@@ -362,9 +362,9 @@ export interface components {
             answer: string;
             /**
              * Cards
-             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), bundle(한 병원 묶음), booking(예약 채널과 문의 문장) 순서로 온다
+             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), bundle(한 병원 묶음), trip_plan(일정), booking(예약 채널과 문의 문장) 순서로 온다
              */
-            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"] | components["schemas"]["BundleCard"] | components["schemas"]["BookingCard"])[];
+            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"] | components["schemas"]["BundleCard"] | components["schemas"]["TripPlanCard"] | components["schemas"]["BookingCard"])[];
             /**
              * Exclusions
              * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
@@ -554,6 +554,223 @@ export interface components {
              * @enum {string}
              */
             kind: "location";
+        };
+        /**
+         * PlanAlternative
+         * @description 같은 시술을 다른 방식으로 받을 때의 합계. 일정과 비교해 보여 준다.
+         */
+        PlanAlternative: {
+            /**
+             * Oneclinic
+             * @description true: 모든 시술을 한 병원에서 같이, false: 시술마다 가장 싼 병원에 따로
+             */
+            oneClinic: boolean;
+            /** Cliniccount */
+            clinicCount: number;
+            /**
+             * Placeid
+             * @description 한 병원이면 그 병원 ID, 아니면 null
+             */
+            placeId: string | null;
+            /** Clinicnameja */
+            clinicNameJa: string | null;
+            /** Clinicnameko */
+            clinicNameKo: string | null;
+            /** Totalkrw */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
+            /**
+             * Extrakrw
+             * @description 이 방식의 합계 - 일정 합계(원). 음수면 이 방식이 쌈
+             */
+            extraKrw: number;
+            /** Extrajpy */
+            extraJpy: number;
+        };
+        /** PlanBudget */
+        PlanBudget: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "JPY" | "KRW";
+            /** Amount */
+            amount: number;
+            /**
+             * Left
+             * @description 예산 - 일정 합계(예산 통화). 일정은 예산을 넘지 않는다
+             */
+            left: number;
+        };
+        /**
+         * PlanDeferred
+         * @description 이번 일정에 넣지 않은 시술과 그 이유.
+         */
+        PlanDeferred: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /** Downtimemaxdays */
+            downtimeMaxDays: number;
+            /**
+             * Reasons
+             * @description downtime 회복 기간 초과(여행자: 귀국 전에 회복되지 않음, 거주자: 약속 뒤로 미룸), budget 예산 초과(여행자: 이번 여행 예산, 거주자: 다음 달로 미룸), needle 바늘 시술 기피, far 기준 위치 6km 안에 병원 없음(거주자), no_clinic 조건에 맞는 병원 없음, one_clinic 한 병원에서 같이 받을 수 있는 곳이 없거나 시술 3개를 넘음
+             */
+            reasons: ("downtime" | "budget" | "needle" | "far" | "no_clinic" | "one_clinic")[];
+            /** @description 이 시술을 받는다면 가장 싼 병원. 병원이 없으면(far, no_clinic) null */
+            cheapest: components["schemas"]["PlanOption"] | null;
+        };
+        /**
+         * PlanItem
+         * @description 일정에 넣은 시술 하나. 금액은 병원 추천 카드와 같은 계산이다.
+         */
+        PlanItem: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Basekrw
+             * @description 병원 게시가(원)
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 게시가에 더하는 부가세(원). 이미 포함이면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /**
+             * Jpaveragejpy
+             * @description 이 시술의 일본 주요 병원 평균(세금 포함)
+             */
+            jpAverageJpy: number;
+            /** Pricetags */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
+            /** Pricenoteja */
+            priceNoteJa: string;
+            /** Pricenoteko */
+            priceNoteKo: string;
+            /** @description 이 시술 가격의 가격표 증빙 링크 */
+            proof: components["schemas"]["PriceProof"];
+            /**
+             * Downtimemaxdays
+             * @description 겉으로 보이는 회복 기간(최대 일수)
+             */
+            downtimeMaxDays: number;
+        };
+        /**
+         * PlanOption
+         * @description 일정에서 뺀 시술을 받는다면 가장 싼 병원(거르기 조건 안).
+         */
+        PlanOption: {
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
+            /** Distancemeters */
+            distanceMeters: number | null;
+        };
+        /**
+         * PlanVisit
+         * @description 병원 한 곳에 한 번 가는 일정. 같은 병원에서 받는 시술은 한 번 방문으로 묶는다.
+         */
+        PlanVisit: {
+            /**
+             * Cardid
+             * @description <place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣으면 이 방문의 시술이 모두 문의 문장에 들어간다
+             */
+            cardId: string;
+            /**
+             * Day
+             * @description 여행자: 몇째 날에 가는지(1 = 병원에 갈 수 있는 첫날, tripDays = 귀국일). 거주자는 null(약속 전 언제든, 회복이 긴 방문부터 순서대로)
+             */
+            day: number | null;
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /** Items */
+            items: components["schemas"]["PlanItem"][];
+            /**
+             * Totalkrw
+             * @description 이 방문의 시술 합계(부가세 포함, 원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 시술별 엔화 환산의 합
+             */
+            totalJpy: number;
+            /**
+             * Downtimemaxdays
+             * @description 이 방문 시술 중 가장 긴 회복 기간
+             */
+            downtimeMaxDays: number;
+            /**
+             * Distancemeters
+             * @description 기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null
+             */
+            distanceMeters: number | null;
+            /** Walkminutes */
+            walkMinutes: number | null;
+            /** Rating */
+            rating: number;
+            /**
+             * Ratingscope
+             * @enum {string}
+             */
+            ratingScope: "branch" | "brand";
+            /**
+             * Ratingtier
+             * @enum {string}
+             */
+            ratingTier: "jp_kr_verified" | "kr_verified" | "limited";
+            /** Bookingchannels */
+            bookingChannels: components["schemas"]["BookingChannel"][];
+            /** Centralchannel */
+            centralChannel: boolean;
+            /** Priceconditionja */
+            priceConditionJa: string;
+            /** Priceconditionko */
+            priceConditionKo: string;
         };
         /**
          * PriceProof
@@ -782,6 +999,69 @@ export interface components {
             totalKrw: number;
             /** Totaljpy */
             totalJpy: number;
+        };
+        /** TripPlanCard */
+        TripPlanCard: {
+            /**
+             * Visitor
+             * @enum {string}
+             */
+            visitor: "traveler" | "resident";
+            /**
+             * Tripdays
+             * @description 여행자: 병원에 갈 수 있는 첫날부터 귀국일까지 날 수(2박 3일이면 3). 거주자는 null
+             */
+            tripDays: number | null;
+            /**
+             * Daysuntilevent
+             * @description 거주자: 오늘부터 다음 약속(얼굴이 깨끗해야 하는 날)까지 날 수(내일이면 1). 모르면 null
+             */
+            daysUntilEvent: number | null;
+            /**
+             * Oneclinic
+             * @description 모든 시술을 한 병원에서 같이 받는 일정이면 true
+             */
+            oneClinic: boolean;
+            /**
+             * Radiusmeters
+             * @description 거주자: 기준 위치에서 이 거리 안의 병원만 골랐다(3km, 3km 안에 없는 시술이 있으면 6km). 기준 위치가 없거나 여행자면 null
+             */
+            radiusMeters: number | null;
+            /**
+             * Visits
+             * @description 이번에 받을 방문. 여행자는 날짜 순, 거주자는 회복이 긴 순
+             */
+            visits: components["schemas"]["PlanVisit"][];
+            /**
+             * Totalkrw
+             * @description 일정 합계(부가세 포함, 원)
+             */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
+            /**
+             * Jptotaljpy
+             * @description 일정 시술의 일본 평균 합계
+             */
+            jpTotalJpy: number;
+            /** Savingsjpy */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            budget: components["schemas"]["PlanBudget"] | null;
+            /** @description 같은 시술을 다른 방식(한 병원 또는 따로)으로 받을 때의 합계. 비교할 것이 없으면 null */
+            alternative: components["schemas"]["PlanAlternative"] | null;
+            /** Deferred */
+            deferred: components["schemas"]["PlanDeferred"][];
+            /** Krwper100Jpy */
+            krwPer100Jpy: number;
+            /** Fxdatelabel */
+            fxDateLabel: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "trip_plan";
         };
         /** ValidationError */
         ValidationError: {

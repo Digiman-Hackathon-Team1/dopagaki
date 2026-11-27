@@ -657,6 +657,9 @@
                   "$ref": "#/components/schemas/BundleCard"
                 },
                 {
+                  "$ref": "#/components/schemas/TripPlanCard"
+                },
+                {
                   "$ref": "#/components/schemas/BookingCard"
                 }
               ],
@@ -667,13 +670,14 @@
                   "bundle": "#/components/schemas/BundleCard",
                   "jp_match": "#/components/schemas/JpMatchCard",
                   "location": "#/components/schemas/LocationCard",
-                  "recommendation": "#/components/schemas/RecommendationCard"
+                  "recommendation": "#/components/schemas/RecommendationCard",
+                  "trip_plan": "#/components/schemas/TripPlanCard"
                 }
               }
             },
             "type": "array",
             "title": "Cards",
-            "description": "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), bundle(한 병원 묶음), booking(예약 채널과 문의 문장) 순서로 온다"
+            "description": "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), bundle(한 병원 묶음), trip_plan(일정), booking(예약 채널과 문의 문장) 순서로 온다"
           },
           "exclusions": {
             "items": {
@@ -1071,6 +1075,489 @@
           "kind"
         ],
         "title": "LocationCard"
+      },
+      "PlanAlternative": {
+        "properties": {
+          "oneClinic": {
+            "type": "boolean",
+            "title": "Oneclinic",
+            "description": "true: 모든 시술을 한 병원에서 같이, false: 시술마다 가장 싼 병원에 따로"
+          },
+          "clinicCount": {
+            "type": "integer",
+            "title": "Cliniccount"
+          },
+          "placeId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeid",
+            "description": "한 병원이면 그 병원 ID, 아니면 null"
+          },
+          "clinicNameJa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinicnameko"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy"
+          },
+          "extraKrw": {
+            "type": "integer",
+            "title": "Extrakrw",
+            "description": "이 방식의 합계 - 일정 합계(원). 음수면 이 방식이 쌈"
+          },
+          "extraJpy": {
+            "type": "integer",
+            "title": "Extrajpy"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "oneClinic",
+          "clinicCount",
+          "placeId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "totalKrw",
+          "totalJpy",
+          "extraKrw",
+          "extraJpy"
+        ],
+        "title": "PlanAlternative",
+        "description": "같은 시술을 다른 방식으로 받을 때의 합계. 일정과 비교해 보여 준다."
+      },
+      "PlanBudget": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "enum": [
+              "JPY",
+              "KRW"
+            ],
+            "title": "Currency"
+          },
+          "amount": {
+            "type": "integer",
+            "title": "Amount"
+          },
+          "left": {
+            "type": "integer",
+            "title": "Left",
+            "description": "예산 - 일정 합계(예산 통화). 일정은 예산을 넘지 않는다"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "currency",
+          "amount",
+          "left"
+        ],
+        "title": "PlanBudget"
+      },
+      "PlanDeferred": {
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "menuNameJa": {
+            "type": "string",
+            "title": "Menunameja"
+          },
+          "menuNameKo": {
+            "type": "string",
+            "title": "Menunameko"
+          },
+          "downtimeMaxDays": {
+            "type": "integer",
+            "title": "Downtimemaxdays"
+          },
+          "reasons": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "downtime",
+                "budget",
+                "needle",
+                "far",
+                "no_clinic",
+                "one_clinic"
+              ]
+            },
+            "type": "array",
+            "title": "Reasons",
+            "description": "downtime 회복 기간 초과(여행자: 귀국 전에 회복되지 않음, 거주자: 약속 뒤로 미룸), budget 예산 초과(여행자: 이번 여행 예산, 거주자: 다음 달로 미룸), needle 바늘 시술 기피, far 기준 위치 6km 안에 병원 없음(거주자), no_clinic 조건에 맞는 병원 없음, one_clinic 한 병원에서 같이 받을 수 있는 곳이 없거나 시술 3개를 넘음"
+          },
+          "cheapest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanOption"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "이 시술을 받는다면 가장 싼 병원. 병원이 없으면(far, no_clinic) null"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "menuId",
+          "menuNameJa",
+          "menuNameKo",
+          "downtimeMaxDays",
+          "reasons",
+          "cheapest"
+        ],
+        "title": "PlanDeferred",
+        "description": "이번 일정에 넣지 않은 시술과 그 이유."
+      },
+      "PlanItem": {
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "menuNameJa": {
+            "type": "string",
+            "title": "Menunameja"
+          },
+          "menuNameKo": {
+            "type": "string",
+            "title": "Menunameko"
+          },
+          "baseKrw": {
+            "type": "integer",
+            "title": "Basekrw",
+            "description": "병원 게시가(원)"
+          },
+          "vatKrw": {
+            "type": "integer",
+            "title": "Vatkrw",
+            "description": "게시가에 더하는 부가세(원). 이미 포함이면 0"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "부가세 포함 가격(원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy",
+            "description": "부가세 포함 가격의 엔화 환산"
+          },
+          "jpAverageJpy": {
+            "type": "integer",
+            "title": "Jpaveragejpy",
+            "description": "이 시술의 일본 주요 병원 평균(세금 포함)"
+          },
+          "priceTags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "first_visit",
+                "event",
+                "day_limited",
+                "app_benefit",
+                "anesthesia",
+                "extra_fee"
+              ]
+            },
+            "type": "array",
+            "title": "Pricetags"
+          },
+          "priceNoteJa": {
+            "type": "string",
+            "title": "Pricenoteja"
+          },
+          "priceNoteKo": {
+            "type": "string",
+            "title": "Pricenoteko"
+          },
+          "proof": {
+            "$ref": "#/components/schemas/PriceProof",
+            "description": "이 시술 가격의 가격표 증빙 링크"
+          },
+          "downtimeMaxDays": {
+            "type": "integer",
+            "title": "Downtimemaxdays",
+            "description": "겉으로 보이는 회복 기간(최대 일수)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "menuId",
+          "menuNameJa",
+          "menuNameKo",
+          "baseKrw",
+          "vatKrw",
+          "totalKrw",
+          "totalJpy",
+          "jpAverageJpy",
+          "priceTags",
+          "priceNoteJa",
+          "priceNoteKo",
+          "proof",
+          "downtimeMaxDays"
+        ],
+        "title": "PlanItem",
+        "description": "일정에 넣은 시술 하나. 금액은 병원 추천 카드와 같은 계산이다."
+      },
+      "PlanOption": {
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "부가세 포함 가격(원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy"
+          },
+          "distanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancemeters"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "totalKrw",
+          "totalJpy",
+          "distanceMeters"
+        ],
+        "title": "PlanOption",
+        "description": "일정에서 뺀 시술을 받는다면 가장 싼 병원(거르기 조건 안)."
+      },
+      "PlanVisit": {
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "title": "Cardid",
+            "description": "<place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣으면 이 방문의 시술이 모두 문의 문장에 들어간다"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day",
+            "description": "여행자: 몇째 날에 가는지(1 = 병원에 갈 수 있는 첫날, tripDays = 귀국일). 거주자는 null(약속 전 언제든, 회복이 긴 방문부터 순서대로)"
+          },
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "area": {
+            "type": "string",
+            "enum": [
+              "sinchon",
+              "hongdae",
+              "myeongdong",
+              "yongsan",
+              "gangnam",
+              "jamsil",
+              "seongsu",
+              "yeouido",
+              "magok",
+              "nowon",
+              "cheonho",
+              "gwanak"
+            ],
+            "title": "Area"
+          },
+          "stationJa": {
+            "type": "string",
+            "title": "Stationja"
+          },
+          "stationKo": {
+            "type": "string",
+            "title": "Stationko"
+          },
+          "japaneseSupport": {
+            "type": "boolean",
+            "title": "Japanesesupport"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlanItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "이 방문의 시술 합계(부가세 포함, 원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy",
+            "description": "시술별 엔화 환산의 합"
+          },
+          "downtimeMaxDays": {
+            "type": "integer",
+            "title": "Downtimemaxdays",
+            "description": "이 방문 시술 중 가장 긴 회복 기간"
+          },
+          "distanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancemeters",
+            "description": "기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null"
+          },
+          "walkMinutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walkminutes"
+          },
+          "rating": {
+            "type": "number",
+            "title": "Rating"
+          },
+          "ratingScope": {
+            "type": "string",
+            "enum": [
+              "branch",
+              "brand"
+            ],
+            "title": "Ratingscope"
+          },
+          "ratingTier": {
+            "type": "string",
+            "enum": [
+              "jp_kr_verified",
+              "kr_verified",
+              "limited"
+            ],
+            "title": "Ratingtier"
+          },
+          "bookingChannels": {
+            "items": {
+              "$ref": "#/components/schemas/BookingChannel"
+            },
+            "type": "array",
+            "title": "Bookingchannels"
+          },
+          "centralChannel": {
+            "type": "boolean",
+            "title": "Centralchannel"
+          },
+          "priceConditionJa": {
+            "type": "string",
+            "title": "Priceconditionja"
+          },
+          "priceConditionKo": {
+            "type": "string",
+            "title": "Priceconditionko"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cardId",
+          "day",
+          "placeId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "area",
+          "stationJa",
+          "stationKo",
+          "japaneseSupport",
+          "items",
+          "totalKrw",
+          "totalJpy",
+          "downtimeMaxDays",
+          "distanceMeters",
+          "walkMinutes",
+          "rating",
+          "ratingScope",
+          "ratingTier",
+          "bookingChannels",
+          "centralChannel",
+          "priceConditionJa",
+          "priceConditionKo"
+        ],
+        "title": "PlanVisit",
+        "description": "병원 한 곳에 한 번 가는 일정. 같은 병원에서 받는 시술은 한 번 방문으로 묶는다."
       },
       "PriceProof": {
         "properties": {
@@ -1508,6 +1995,152 @@
         ],
         "title": "SeparatePick",
         "description": "따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준)."
+      },
+      "TripPlanCard": {
+        "properties": {
+          "visitor": {
+            "type": "string",
+            "enum": [
+              "traveler",
+              "resident"
+            ],
+            "title": "Visitor"
+          },
+          "tripDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tripdays",
+            "description": "여행자: 병원에 갈 수 있는 첫날부터 귀국일까지 날 수(2박 3일이면 3). 거주자는 null"
+          },
+          "daysUntilEvent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daysuntilevent",
+            "description": "거주자: 오늘부터 다음 약속(얼굴이 깨끗해야 하는 날)까지 날 수(내일이면 1). 모르면 null"
+          },
+          "oneClinic": {
+            "type": "boolean",
+            "title": "Oneclinic",
+            "description": "모든 시술을 한 병원에서 같이 받는 일정이면 true"
+          },
+          "radiusMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Radiusmeters",
+            "description": "거주자: 기준 위치에서 이 거리 안의 병원만 골랐다(3km, 3km 안에 없는 시술이 있으면 6km). 기준 위치가 없거나 여행자면 null"
+          },
+          "visits": {
+            "items": {
+              "$ref": "#/components/schemas/PlanVisit"
+            },
+            "type": "array",
+            "title": "Visits",
+            "description": "이번에 받을 방문. 여행자는 날짜 순, 거주자는 회복이 긴 순"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "일정 합계(부가세 포함, 원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy"
+          },
+          "jpTotalJpy": {
+            "type": "integer",
+            "title": "Jptotaljpy",
+            "description": "일정 시술의 일본 평균 합계"
+          },
+          "savingsJpy": {
+            "type": "integer",
+            "title": "Savingsjpy"
+          },
+          "savingsPct": {
+            "type": "integer",
+            "title": "Savingspct"
+          },
+          "budget": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanBudget"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alternative": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanAlternative"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "같은 시술을 다른 방식(한 병원 또는 따로)으로 받을 때의 합계. 비교할 것이 없으면 null"
+          },
+          "deferred": {
+            "items": {
+              "$ref": "#/components/schemas/PlanDeferred"
+            },
+            "type": "array",
+            "title": "Deferred"
+          },
+          "krwPer100Jpy": {
+            "type": "number",
+            "title": "Krwper100Jpy"
+          },
+          "fxDateLabel": {
+            "type": "string",
+            "title": "Fxdatelabel"
+          },
+          "kind": {
+            "type": "string",
+            "const": "trip_plan",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "visitor",
+          "tripDays",
+          "daysUntilEvent",
+          "oneClinic",
+          "radiusMeters",
+          "visits",
+          "totalKrw",
+          "totalJpy",
+          "jpTotalJpy",
+          "savingsJpy",
+          "savingsPct",
+          "budget",
+          "alternative",
+          "deferred",
+          "krwPer100Jpy",
+          "fxDateLabel",
+          "kind"
+        ],
+        "title": "TripPlanCard"
       },
       "ValidationError": {
         "properties": {
