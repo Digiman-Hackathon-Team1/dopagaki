@@ -17,7 +17,7 @@ class AgentSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
     anthropic_api_key: SecretStr | None = None
-    agent_model: str = "claude-sonnet-5-5"
+    agent_model: str = "claude-haiku-5-5"
     agent_effort: Effort = "medium"
     agent_max_tokens: int = 16000
     # 배포된 web의 환율 파일(예: https://<web 주소>/naver-fx.json). 없으면 스냅샷 환율을 쓴다(ADR 0010).
