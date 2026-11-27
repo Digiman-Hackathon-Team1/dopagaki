@@ -1,11 +1,13 @@
 """에이전트 테스트용 가짜 LLM. API 키 없이 그래프를 돌린다."""
 
 import json
+import re
 from collections.abc import Sequence
 from typing import Any
 
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
+from langchain_core.outputs import ChatGenerationChunk
 from pydantic import Field
 
 
@@ -20,6 +22,45 @@ class FakeChatModel(GenericFakeChatModel):
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
         self.calls.append(list(messages))
         return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+
+    def _stream(self, messages, stop=None, run_manager=None, **kwargs):
+        """스트리밍(stream_mode="messages")에서도 도구 호출을 잃지 않게 한다.
+
+        GenericFakeChatModel은 스트리밍 때 글만 조각내 보내고 tool_calls를 버린다. 도구 호출 메시지는
+        한 조각으로 보내고, 글은 공백 단위로 나눠 보낸다.
+        """
+        message = (
+            self._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+            .generations[0]
+            .message
+        )
+        if message.tool_calls or not message.content:
+            chunks = [
+                AIMessageChunk(
+                    content=message.content,
+                    id=message.id,
+                    tool_call_chunks=[
+                        {
+                            "name": call["name"],
+                            "args": json.dumps(call["args"], ensure_ascii=False),
+                            "id": call["id"],
+                            "index": i,
+                        }
+                        for i, call in enumerate(message.tool_calls)
+                    ],
+                )
+            ]
+        else:
+            chunks = [
+                AIMessageChunk(content=token, id=message.id)
+                for token in re.split(r"(\s)", message.content)
+                if token
+            ]
+        for chunk in chunks:
+            generation = ChatGenerationChunk(message=chunk)
+            if run_manager:
+                run_manager.on_llm_new_token(chunk.text, chunk=generation)
+            yield generation
 
 
 def fake_model(*responses: AIMessage) -> FakeChatModel:

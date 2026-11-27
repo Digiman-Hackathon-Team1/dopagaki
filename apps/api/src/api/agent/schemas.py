@@ -653,3 +653,39 @@ class ChatResponse(ResponseModel):
     suggestions: list[str]
     cautions: list[str]
     disclaimer: str
+
+
+class ChatStreamStart(ResponseModel):
+    """스트림 첫 이벤트. 새 대화면 여기서 대화 ID를 알 수 있다."""
+
+    type: Literal["start"]
+    thread_id: UUID
+
+
+class ChatStreamDelta(ResponseModel):
+    """답변(answer)에 이어 붙일 글. 화면은 받은 순서대로 이어 붙여 보여 준다."""
+
+    type: Literal["delta"]
+    text: str = Field(
+        description=(
+            "이번에 늘어난 답변 글. 도구 결과에 없는 금액이 든 문장은 보내지 않으므로, 문장이나 줄이 끝날 때 "
+            "한꺼번에 온다"
+        )
+    )
+
+
+class ChatStreamDone(ResponseModel):
+    """스트림 마지막 이벤트. `POST /api/agent/chat`과 같은 응답 전체."""
+
+    type: Literal["done"]
+    response: ChatResponse = Field(
+        description=(
+            "최종 응답. 화면은 delta로 이어 붙인 답변을 response.answer로 바꾼다. 시세표 안내(fallback)도 "
+            "이 이벤트로 온다"
+        )
+    )
+
+
+ChatStreamEvent = Annotated[
+    ChatStreamStart | ChatStreamDelta | ChatStreamDone, Field(discriminator="type")
+]
