@@ -207,7 +207,9 @@ function MisregWord({ word }: { word: string }) {
   );
 }
 
-const AgentDev = import.meta.env.DEV ? lazy(() => import('./dev/AgentDev')) : null;
+// 개발 서버에서는 항상, 배포 빌드에서는 VITE_AGENT_DEV=true일 때만 개발용 상담 화면을 넣는다.
+const AGENT_DEV_ENABLED = import.meta.env.DEV || import.meta.env.VITE_AGENT_DEV === 'true';
+const AgentDev = AGENT_DEV_ENABLED ? lazy(() => import('./dev/AgentDev')) : null;
 
 export function App() {
   if (AgentDev && /^\/agent-dev\/?$/.test(window.location.pathname)) {
