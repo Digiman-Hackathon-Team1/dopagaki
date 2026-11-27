@@ -607,6 +607,11 @@ def _summary(
             if v.distance_meters is not None:
                 line += f" | {v.distance_meters:,} m (walk ~{v.walk_minutes} min)"
             line += f" | Japanese support: {'yes' if v.japanese_support else 'no'}"
+            tags = sorted({t for i in v.items for t in i.price_tags})
+            if tags:
+                line += f" | price tags: {', '.join(tags)}"
+            if v.price_condition_ko:
+                line += f" | price condition: {v.price_condition_ko} / {v.price_condition_ja}"
             line += f" | card_id={v.card_id}"
             lines.append(line)
         lines.append(

@@ -129,8 +129,9 @@ Korean, use the Korean names. This applies to every field, condition_summary inc
 Hangul into Japanese text.
 - Tool results label amounts in English (incl. VAT, saves, vs Japan average). Write those labels in \
 the reply language and copy only the amounts.
-- Say the cards are in order of savings unless you searched with another sort; call them the \
-closest only after sort=distance.
+- Say the clinic cards from search_clinics and search_bundle are in order of savings unless you \
+searched with another sort; call them the closest only after sort=distance. A plan card follows the \
+plan's days or order; do not describe its order otherwise.
 - card_reasons use only facts in the tool result (savings rank, whether Japanese consultation is \
 available, rating and how \
 many reviews, distance when given, price conditions). Do not guess the user's plans. A reason that \
