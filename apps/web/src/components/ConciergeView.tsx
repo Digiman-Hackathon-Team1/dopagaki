@@ -610,7 +610,7 @@ export function ConciergeView({
       const { data } = await api.POST('/api/agent/chat', {
         body: { userId: anonymousId(), threadId: agentThread.current, message, lang }
       });
-      if (!data || data.fallback) return null;
+      if (!data) return null;
       agentThread.current = data.threadId;
       return data;
     } catch {
@@ -625,22 +625,21 @@ export function ConciergeView({
     setDraft('');
     setSafetyStop(null);
     const rules = parseConciergeText(text);
-    // 안전 문구(임신·질환 등)는 서버로 보내지 않고 화면에서 바로 멈춘다.
-    if (!rules.safety) {
-      const id = Date.now();
-      setExchange(null);
-      setAgentTurns((prev) => [...prev, { id, me: text }]);
-      setThinking(true);
-      const reply = await askAgent(text);
-      setThinking(false);
-      if (reply) {
-        setAgentTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, reply } : turn)));
-        track('concierge_agent', { cards: reply.cards.length });
-        return;
-      }
-      // 에이전트가 답하지 못하면(키 없음·한도·오류) 기존 문장 해석으로 이어간다.
-      setAgentTurns((prev) => prev.filter((turn) => turn.id !== id));
+    // 안전 판정은 서버가 문맥으로 한다("수유역", "임신 계획은 없어요"는 멈추지 않음). 화면 규칙은 서버가 판정하지 못했을 때만 쓴다.
+    const id = Date.now();
+    setExchange(null);
+    setAgentTurns((prev) => [...prev, { id, me: text }]);
+    setThinking(true);
+    const reply = await askAgent(text);
+    setThinking(false);
+    if (reply) {
+      setAgentTurns((prev) => prev.map((turn) => (turn.id === id ? { ...turn, reply } : turn)));
+      track('concierge_agent', { cards: reply.cards.length, fallback: reply.fallback ?? 'none' });
+      // 실패 응답(키 없음·하루 한도·오류)은 Reply가 시세표 안내를 보여 준다. 추천 카드가 없으므로 화면 규칙으로 넘기지 않는다.
+      return;
     }
+    // 응답 자체가 없으면(연결 실패·5xx) 기존 문장 해석으로 이어 간다.
+    setAgentTurns((prev) => prev.filter((turn) => turn.id !== id));
     let parsed = rules;
     let usedAi = false;
     if (!rules.safety && rules.fieldCount < 2 && conciergeAiEnabled && text.length >= 4) {
