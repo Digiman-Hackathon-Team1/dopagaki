@@ -54,7 +54,7 @@ Node 프로세스나 별도 서비스로 web 계산을 그대로 실행한다.
 | 파일 | 역할 |
 | --- | --- |
 | `apps/api/scripts/export-web-snapshot.mts` | web 데이터·코드를 읽어 아래 두 파일을 만든다. 실행: `pnpm --filter @repo/api export:web-data` |
-| `apps/api/src/api/domain/data/web-snapshot.json` | `prices.json` + 환율(`naver-fx.json`) + 회복 기간·바늘 여부(`concierge.ts`) + 후기 평점(`ai-rating.ts`) |
+| `apps/api/src/api/domain/data/web-snapshot.json` | `prices.json` + 환율(`naver-fx.json`) + 회복 기간·바늘 여부(`concierge.ts`) + 후기 평점(`ai-rating.ts`) + 예약 채널(`clinic-channels.ts`)·가격표 증빙(`official-proofs.ts`, ADR 0013) |
 | `apps/api/tests/fixtures/calc-expected.json` | `calc.ts buildRankedRows`로 만든 기대값(시술별 전체 행, 정렬·위치·필터 조합별 순서) |
 | `apps/api/src/api/domain/catalog.py` | 스냅샷 조회 계층. DB 전환 시 `get_catalog` 구현만 바꾼다(ADR 0001) |
 | `apps/api/src/api/domain/calc.py` | 가격 계산 |
@@ -70,5 +70,5 @@ Node 프로세스나 별도 서비스로 web 계산을 그대로 실행한다.
 * API 배포에 web 소스와 Node 런타임을 넣지 않는다.
 
 **후속 작업**
-* T5 #8 예약 채널 등 나머지 `.ts` 데이터도 같은 스크립트로 내보낸다
+* T5 #8 예약 채널 등 나머지 `.ts` 데이터도 같은 스크립트로 내보낸다(ADR 0013에서 처리. 문의 문장은 `inquiry.py`로 옮기고 web 기대값과 대조)
 * 가격 계산을 API 공용 모듈로 둘지는 이우진 님이 결정한다(설계 문서 15장)

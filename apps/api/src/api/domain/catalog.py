@@ -109,6 +109,32 @@ class Offer(SnapshotModel):
     note_ko: str
 
 
+ChannelKind = Literal["kakao", "line", "instagram", "naver_booking", "direct_reserve"]
+
+
+class Channel(SnapshotModel):
+    """예약 채널 하나(web clinic-channels.ts의 getClinicChannels 결과). 링크는 언어별로 다를 수 있다."""
+
+    kind: ChannelKind
+    label_ja: str
+    label_ko: str
+    url_ja: str
+    url_ko: str
+
+
+class Proof(SnapshotModel):
+    """가격표 증빙(web official-proofs.ts의 getOfficialMenuProof 결과)."""
+
+    url_ja: str
+    url_ko: str
+    domain_ja: str
+    domain_ko: str
+    captured_date: str
+    # 공식 페이지 스크린샷에서 이 가격을 확인했는지. web은 이때만 스크린샷을 보여 준다.
+    has_screenshot: bool
+    matched_text: str | None
+
+
 class Place(SnapshotModel):
     id: str
     category: str
@@ -130,6 +156,15 @@ class Place(SnapshotModel):
     prices: dict[str, Offer]
     # web ai-rating.ts가 후기 데이터로 계산한 5점 평점(후기 순 정렬에 씀)
     ai_rating: float
+    # 평점 근거. branch 지점 후기, brand 같은 브랜드 후기 참고.
+    # jp_kr_verified 일본·한국 후기 확인, kr_verified 한국 후기 확인, limited 확인된 후기가 적음
+    rating_scope: Literal["branch", "brand"]
+    rating_tier: Literal["jp_kr_verified", "kr_verified", "limited"]
+    channels: tuple[Channel, ...]
+    # 브랜드 공통 예약 창구라 지점을 직접 골라 예약해야 하는지
+    central_channel: bool
+    # 시술 ID → 가격표 증빙. prices에 있는 시술마다 있다.
+    proofs: dict[str, Proof]
 
 
 class Catalog(SnapshotModel):
@@ -147,6 +182,12 @@ class Catalog(SnapshotModel):
             if menu.id == menu_id:
                 return menu
         raise KeyError(menu_id)
+
+    def place(self, place_id: str) -> Place:
+        for place in self.places:
+            if place.id == place_id:
+                return place
+        raise KeyError(place_id)
 
     def concern(self, concern_id: str) -> Concern:
         for concern in self.concerns:

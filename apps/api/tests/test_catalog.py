@@ -30,14 +30,24 @@ def test_snapshot_matches_web_prices_json() -> None:
         {k: v for k, v in m.items() if k not in added_menu_keys}
         for m in snapshot["menus"]
     ] == web["menus"]
+    added_place_keys = {
+        "aiRating",
+        "ratingScope",
+        "ratingTier",
+        "channels",
+        "centralChannel",
+        "proofs",
+    }
     assert [
-        {k: v for k, v in p.items() if k != "aiRating"} for p in snapshot["places"]
+        {k: v for k, v in p.items() if k not in added_place_keys}
+        for p in snapshot["places"]
     ] == web["places"]
 
 
 @pytest.mark.skipif(not WEB_PRICES.exists(), reason="web 데이터가 없는 환경")
 def test_snapshot_sources_are_unchanged() -> None:
     """회복 기간·바늘(concierge.ts), 후기 평점(ai-rating.ts·후기 데이터), calc.ts,
+    예약 채널(clinic-channels.ts), 가격표 증빙(official-proofs.ts), 문의 문장(clinic-helpers.ts),
     내보내기 스크립트가 바뀌면 실패한다.
 
     스냅샷과 calc 기대값이 그 원본으로 만들어졌으므로 다시 내보내야 한다.
@@ -81,3 +91,12 @@ def test_concern_table_has_six_concerns_with_known_menus() -> None:
 def test_unknown_menu_raises() -> None:
     with pytest.raises(KeyError):
         get_catalog().menu("nope")
+
+
+def test_every_offer_has_a_price_proof() -> None:
+    """가격표 증빙(web getOfficialMenuProof)은 병원이 가격을 낸 시술마다 있다."""
+    for place in get_catalog().places:
+        assert set(place.proofs) == set(place.prices), place.id
+        for proof in place.proofs.values():
+            assert proof.url_ko.startswith("http")
+            assert proof.url_ja.startswith("http")

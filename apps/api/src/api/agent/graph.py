@@ -29,6 +29,8 @@ from pydantic import TypeAdapter
 
 from api.agent.schemas import (
     AgentReply,
+    BookingCard,
+    BookingCardData,
     Card,
     Exclusion,
     JpMatchCard,
@@ -38,6 +40,8 @@ from api.agent.schemas import (
     LocationCardData,
     RecommendationCard,
 )
+from api.agent.tools.get_booking_options import TOOL_NAME as GET_BOOKING_OPTIONS
+from api.agent.tools.get_booking_options import GetBookingOptionsArtifact
 from api.agent.tools.match_jp_treatment import TOOL_NAME as MATCH_JP_TREATMENT
 from api.agent.tools.match_jp_treatment import MatchJpTreatmentArtifact
 from api.agent.tools.resolve_location import TOOL_NAME as RESOLVE_LOCATION
@@ -65,6 +69,10 @@ which one; if there is no match, say so instead of offering a different treatmen
 When the user names the Japanese clinic they went to, pass it as jp_clinic. When the user mentions \
 where they stay or live, call resolve_location first and pass its location_id as origin_id. \
 A location it finds is shown as a card; mention it in condition_summary.
+When the user asks how to book a clinic (for example "the first clinic"), call \
+get_booking_options with the place_id from that clinic's card_id in the earlier search_clinics \
+result. Its booking channels, the inquiry to send before the visit and the order sheet to show \
+at reception are shown as a card, so never write booking links yourself. You cannot book or pay; tell the user to book through the channel themselves.
 Write every field of your reply in the language named by the note at the end of the \
 latest user message."""
 
@@ -171,6 +179,19 @@ def jp_match_cards(messages: Sequence[BaseMessage]) -> list[JpMatchCardData]:
         if earlier and earlier.jp_clinic and match.jp_clinic is None:
             continue
         found[match.menu_id] = match
+    return list(found.values())
+
+
+def booking_cards(messages: Sequence[BaseMessage]) -> list[BookingCardData]:
+    """이번 턴에 get_booking_options가 만든 예약 안내(설계 문서 9장, 11.2).
+
+    같은 병원을 두 번 부르면(예: 날짜를 넣어 다시 부름) 한 장만 내고 마지막 결과를 쓴다. 자리는 처음
+    부른 순서를 지킨다. 병원이 다르면 모두 낸다.
+    """
+    found: dict[str, BookingCardData] = {}
+    for message in _this_turn(messages, GET_BOOKING_OPTIONS):
+        booking = GetBookingOptionsArtifact.model_validate(message.artifact).booking
+        found[booking.place_id] = booking
     return list(found.values())
 
 
@@ -290,7 +311,11 @@ def build_graph(
             JpMatchCard(**m.model_dump(), kind="jp_match")
             for m in jp_match_cards(state["messages"])
         ]
-        cards = [*jp_matches, *locations, *assemble_cards(results, reply)]
+        bookings = [
+            BookingCard(**b.model_dump(), kind="booking")
+            for b in booking_cards(state["messages"])
+        ]
+        cards = [*jp_matches, *locations, *assemble_cards(results, reply), *bookings]
         exclusions = assemble_exclusions(results)
         return {
             "reply": reply.model_dump(),

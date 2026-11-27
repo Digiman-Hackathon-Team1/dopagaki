@@ -70,6 +70,164 @@
   },
   "components": {
     "schemas": {
+      "BookingCard": {
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "menuIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Menuids",
+            "description": "문의 문장에 넣은 시술 ID. 이 병원에 가격이 없는 시술은 빠진다"
+          },
+          "japaneseSupport": {
+            "type": "boolean",
+            "title": "Japanesesupport"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/BookingChannel"
+            },
+            "type": "array",
+            "title": "Channels",
+            "description": "공식 예약·상담 채널. web 예약 시트와 같은 순서다. 없으면 빈 배열(공식 사이트로 안내)"
+          },
+          "centralChannel": {
+            "type": "boolean",
+            "title": "Centralchannel",
+            "description": "브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true"
+          },
+          "officialSiteUrl": {
+            "type": "string",
+            "title": "Officialsiteurl",
+            "description": "병원 공식 사이트"
+          },
+          "inquiryKo": {
+            "type": "string",
+            "title": "Inquiryko",
+            "description": "방문 전에 채널로 보낼 한국어 예약 문의(web buildInquiryMessages와 같은 틀). 희망 날짜·시간대·인원이 들어가고 가격은 없다. 이름 칸은 비워 둔다"
+          },
+          "inquiryJa": {
+            "type": "string",
+            "title": "Inquiryja",
+            "description": "같은 문의 문장의 일본어판"
+          },
+          "orderSheetKo": {
+            "type": "string",
+            "title": "Ordersheetko",
+            "description": "방문한 날 접수대에서 보여 줄 한국어 메모(web 예약 시트의 접수 메모와 같은 틀). 시술별 공식가, 부가세 포함 예상 합계, 부탁(추가 시술 권유 사양 등)이 들어간다"
+          },
+          "orderSheetJa": {
+            "type": "string",
+            "title": "Ordersheetja",
+            "description": "같은 접수 메모의 일본어판"
+          },
+          "orderTotalKrw": {
+            "type": "integer",
+            "title": "Ordertotalkrw",
+            "description": "접수 메모의 부가세 포함 예상 합계(원). 시술이 없으면 0"
+          },
+          "orderTotalJpy": {
+            "type": "integer",
+            "title": "Ordertotaljpy",
+            "description": "같은 합계의 엔화 환산. 시술 하나면 병원 추천 카드의 totalJpy와 같다"
+          },
+          "krwPer100Jpy": {
+            "type": "number",
+            "title": "Krwper100Jpy",
+            "description": "접수 메모 환산에 쓴 환율(100엔당 원)"
+          },
+          "fxDateLabel": {
+            "type": "string",
+            "title": "Fxdatelabel",
+            "description": "환율 기준일"
+          },
+          "kind": {
+            "type": "string",
+            "const": "booking",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "menuIds",
+          "japaneseSupport",
+          "channels",
+          "centralChannel",
+          "officialSiteUrl",
+          "inquiryKo",
+          "inquiryJa",
+          "orderSheetKo",
+          "orderSheetJa",
+          "orderTotalKrw",
+          "orderTotalJpy",
+          "krwPer100Jpy",
+          "fxDateLabel",
+          "kind"
+        ],
+        "title": "BookingCard"
+      },
+      "BookingChannel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "kakao",
+              "line",
+              "instagram",
+              "naver_booking",
+              "direct_reserve"
+            ],
+            "title": "Kind",
+            "description": "kakao 카카오톡, line LINE, instagram 인스타그램, naver_booking 네이버 예약, direct_reserve 공식 웹 예약"
+          },
+          "labelJa": {
+            "type": "string",
+            "title": "Labelja",
+            "description": "버튼 문구. 예: LINE公式相談・予約"
+          },
+          "labelKo": {
+            "type": "string",
+            "title": "Labelko"
+          },
+          "urlJa": {
+            "type": "string",
+            "title": "Urlja",
+            "description": "일본어 화면에서 쓸 링크(일본어 계정·페이지가 있으면 그쪽)"
+          },
+          "urlKo": {
+            "type": "string",
+            "title": "Urlko"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "labelJa",
+          "labelKo",
+          "urlJa",
+          "urlKo"
+        ],
+        "title": "BookingChannel",
+        "description": "병원 공식 예약·상담 채널 하나. web clinic-channels.ts의 링크 그대로다(FR-05)."
+      },
       "ChatRequest": {
         "properties": {
           "userId": {
@@ -142,11 +300,15 @@
                 },
                 {
                   "$ref": "#/components/schemas/JpMatchCard"
+                },
+                {
+                  "$ref": "#/components/schemas/BookingCard"
                 }
               ],
               "discriminator": {
                 "propertyName": "kind",
                 "mapping": {
+                  "booking": "#/components/schemas/BookingCard",
                   "jp_match": "#/components/schemas/JpMatchCard",
                   "location": "#/components/schemas/LocationCard",
                   "recommendation": "#/components/schemas/RecommendationCard"
@@ -155,7 +317,7 @@
             },
             "type": "array",
             "title": "Cards",
-            "description": "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천) 순서로 온다"
+            "description": "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다"
           },
           "exclusions": {
             "items": {
@@ -553,6 +715,63 @@
         ],
         "title": "LocationCard"
       },
+      "PriceProof": {
+        "properties": {
+          "urlJa": {
+            "type": "string",
+            "title": "Urlja",
+            "description": "공식 가격 페이지. 일본어 페이지가 있으면 그쪽"
+          },
+          "urlKo": {
+            "type": "string",
+            "title": "Urlko"
+          },
+          "domainJa": {
+            "type": "string",
+            "title": "Domainja",
+            "description": "링크에 표시할 도메인. 예: hongdaejp.vandsclinics.com"
+          },
+          "domainKo": {
+            "type": "string",
+            "title": "Domainko"
+          },
+          "capturedDate": {
+            "type": "string",
+            "title": "Captureddate",
+            "description": "가격을 확인한 날짜. 예: 2026-11-23"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "공식 페이지 스크린샷에서 이 가격을 확인했으면 true. false면 링크만 있음"
+          },
+          "matchedText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matchedtext",
+            "description": "스크린샷에서 찾은 가격 문구(한국어). verified가 false면 null"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "urlJa",
+          "urlKo",
+          "domainJa",
+          "domainKo",
+          "capturedDate",
+          "verified",
+          "matchedText"
+        ],
+        "title": "PriceProof",
+        "description": "가격표 증빙. web 병원 화면의 공식 가격 링크와 같다(설계 문서 4.7)."
+      },
       "Question": {
         "properties": {
           "question": {
@@ -771,6 +990,47 @@
             "title": "Sourceurl",
             "description": "병원 공식 가격 출처"
           },
+          "rating": {
+            "type": "number",
+            "title": "Rating",
+            "description": "후기 평점(5점 만점, web AI 평점과 같음). 순서에는 영향이 없다(sort=rating 제외)"
+          },
+          "ratingScope": {
+            "type": "string",
+            "enum": [
+              "branch",
+              "brand"
+            ],
+            "title": "Ratingscope",
+            "description": "평점 근거. branch 이 지점 후기, brand 같은 브랜드 다른 지점 후기를 참고"
+          },
+          "ratingTier": {
+            "type": "string",
+            "enum": [
+              "jp_kr_verified",
+              "kr_verified",
+              "limited"
+            ],
+            "title": "Ratingtier",
+            "description": "후기 확인 수준. jp_kr_verified 일본·한국 후기 확인, kr_verified 한국 후기만 확인, limited 확인된 후기가 적음. 후기 수는 데이터에 없다"
+          },
+          "bookingChannels": {
+            "items": {
+              "$ref": "#/components/schemas/BookingChannel"
+            },
+            "type": "array",
+            "title": "Bookingchannels",
+            "description": "공식 예약·상담 채널. 데이터에 없으면 빈 배열"
+          },
+          "centralChannel": {
+            "type": "boolean",
+            "title": "Centralchannel",
+            "description": "브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true"
+          },
+          "proof": {
+            "$ref": "#/components/schemas/PriceProof",
+            "description": "이 시술 가격의 가격표 증빙 링크"
+          },
           "kind": {
             "type": "string",
             "const": "recommendation",
@@ -829,6 +1089,12 @@
           "priceNoteJa",
           "priceNoteKo",
           "sourceUrl",
+          "rating",
+          "ratingScope",
+          "ratingTier",
+          "bookingChannels",
+          "centralChannel",
+          "proof",
           "kind",
           "searchId",
           "reason"

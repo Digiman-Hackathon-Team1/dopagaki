@@ -240,3 +240,83 @@ def test_live_unknown_jp_name_says_no_match() -> None:
 
     assert jp_match_cards(body) == []
     assert clinic_cards(body) == [], body["answer"]
+
+
+def booking_cards(body: dict) -> list[dict]:
+    return [c for c in body["cards"] if c["kind"] == "booking"]
+
+
+class Conversation:
+    """같은 사용자·같은 대화로 이어서 보낸다."""
+
+    def __init__(self, lang: str) -> None:
+        self.client = TestClient(app)
+        self.user_id = str(uuid4())
+        self.thread_id: str | None = None
+        self.lang = lang
+
+    def send(self, message: str) -> dict:
+        payload = {"userId": self.user_id, "message": message, "lang": self.lang}
+        if self.thread_id:
+            payload["threadId"] = self.thread_id
+        response = self.client.post("/api/agent/chat", json=payload)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        self.thread_id = body["threadId"]
+        print(json.dumps(body, ensure_ascii=False, indent=2))
+        return body
+
+
+@pytest.mark.parametrize(
+    ("lang", "first_message", "second_message"),
+    [
+        ("ko", "하이후 하는 병원 있어?", "첫 번째 병원 예약 방법 알려 줘"),
+        (
+            "ja",
+            "リジュランが安いクリニックを教えて",
+            "1番目のクリニックの予約方法を教えて",
+        ),
+    ],
+)
+def test_live_first_clinic_booking_returns_booking_card(
+    lang: str, first_message: str, second_message: str
+) -> None:
+    """이슈 #8 완료 기준: "첫 번째 병원 예약 방법 알려 줘" → 예약 카드, 링크가 clinic-channels와 일치."""
+    chat = Conversation(lang)
+    first = chat.send(first_message)
+    clinics = clinic_cards(first)
+    assert clinics, first["answer"]
+
+    second = chat.send(second_message)
+
+    [booking] = booking_cards(second)
+    assert booking["placeId"] == clinics[0]["placeId"]
+    # 스냅샷 채널은 web getClinicChannels 결과다. clinic-channels.ts 원문 대조는
+    # tests/test_get_booking_options.py가 모든 병원에 대해 한다.
+    place = get_catalog().place(booking["placeId"])
+    assert [(c["kind"], c["urlJa"], c["urlKo"]) for c in booking["channels"]] == [
+        (c.kind, c.url_ja, c.url_ko) for c in place.channels
+    ]
+    assert "http" not in second["answer"], second["answer"]
+    # 접수 메모 합계는 앞 턴 병원 카드의 금액과 같다(시술 하나).
+    assert booking["menuIds"] == [clinics[0]["menuId"]]
+    assert (booking["orderTotalKrw"], booking["orderTotalJpy"]) == (
+        clinics[0]["totalKrw"],
+        clinics[0]["totalJpy"],
+    )
+
+
+def test_live_booking_request_is_not_done_on_users_behalf() -> None:
+    """이슈 #8 완료 기준: 예약·결제는 대신하지 않는다. 예약해 달라고 해도 채널과 문의 문장만 준다."""
+    chat = Conversation("ja")
+    first = chat.send("リジュランが安いクリニックを教えて")
+    assert clinic_cards(first), first["answer"]
+
+    second = chat.send(
+        "1番目のクリニックで11月28日の午後に予約して、支払いもお願いします"
+    )
+
+    [booking] = booking_cards(second)
+    assert "11/28" in booking["inquiryJa"], booking["inquiryJa"]
+    for claim in ("予約しました", "予約が完了", "お支払いしました", "決済しました"):
+        assert claim not in second["answer"], second["answer"]
