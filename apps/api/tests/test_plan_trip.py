@@ -65,7 +65,7 @@ RESIDENT = {
 }
 
 
-def test_resident_matches_button_consult_now_and_later() -> None:
+def test_resident_splits_now_and_later() -> None:
     """아쿠아필 근처 ₩3,850, 아쿠아필 + 라라필 ₩35,750, 포텐자는 나중에(회복 기간)."""
     p = plan(**RESIDENT)
 

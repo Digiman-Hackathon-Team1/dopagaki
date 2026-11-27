@@ -87,14 +87,13 @@ export function CameraEmoji({ size = 22, className }: { size?: number; className
   return render(Camera, size, className);
 }
 
-
 /** 시술 정보 화면(TreatmentInfoView)이 쓰는 아이콘. */
-const CONCIERGE_EMOJI = {
+const INFO_EMOJI = {
   stopwatch: Stopwatch
 } as const;
 
-export type ConciergeEmojiName = keyof typeof CONCIERGE_EMOJI;
+export type InfoEmojiName = keyof typeof INFO_EMOJI;
 
-export function ConciergeEmoji({ name, size = 22, className }: { name: ConciergeEmojiName; size?: number; className?: string }) {
-  return render(CONCIERGE_EMOJI[name], size, className);
+export function InfoEmoji({ name, size = 22, className }: { name: InfoEmojiName; size?: number; className?: string }) {
+  return render(INFO_EMOJI[name], size, className);
 }
