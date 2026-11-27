@@ -18,13 +18,17 @@ export default function AgentDev() {
   const log = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const scrollTarget = useRef<number>(undefined);
-  const chat = useAgentChat(lang, turn => { scrollTarget.current = turn.id; });
+  // 글을 이어 받은 답은 이미 보이고 있으므로 최종 응답으로 바뀔 때 다시 스크롤하지 않는다.
+  const chat = useAgentChat(lang, turn => { if (!turn.streamed) scrollTarget.current = turn.id; });
   useEffect(() => {
     if (scrollTarget.current !== undefined && follow.current) {
       const turn = log.current?.querySelector('[data-turn="' + scrollTarget.current + '"]');
       const reply = turn?.querySelector('.agent-reply');
       if (reply) reply.scrollIntoView({ block: 'start' });
       else if (log.current) log.current.scrollTop = log.current.scrollHeight;
+    } else if (follow.current && log.current && chat.turns.at(-1)?.streamed) {
+      // 글을 이어 받는 동안에는 맨 아래를 따라간다(사용자가 위로 올려 읽으면 멈춘다).
+      log.current.scrollTop = log.current.scrollHeight;
     }
     scrollTarget.current = undefined;
   }, [chat.turns]);

@@ -8,11 +8,13 @@ import { Turns } from '@/components/agent/Turns';
 import { failed, type AgentChat, type Turn } from '@/components/agent/useAgentChat';
 import '@/components/agent/agent.css';
 
-const settledTurn = (turn: Turn) => Boolean(turn.reply) || failed(turn.status);
+type Phase = 'pending' | 'streaming' | 'settled';
+const phaseOf = (turn: Turn): Phase =>
+  turn.reply || failed(turn.status) ? 'settled' : turn.streamed?.trim() ? 'streaming' : 'pending';
 
 /**
- * AI 상담 탭. 에이전트 대화(POST /api/agent/chat) 하나로 상담한다(설계 문서 1장, ADR 0002).
- * 에이전트가 답하지 못하면 시세표로 안내한다(FR-08).
+ * AI 상담 탭. 에이전트 대화(POST /api/agent/chat/stream) 하나로 상담한다(설계 문서 1장, ADR 0002, #44).
+ * 답변 글은 만들어지는 대로 보여 주고, 에이전트가 답하지 못하면 시세표로 안내한다(FR-08).
  */
 export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
   lang: Lang;
@@ -25,21 +27,22 @@ export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
   const [draft, setDraft] = useState('');
   const tooLong = [...draft.trim()].length > 2000;
   const log = useRef<HTMLDivElement>(null);
-  // 턴마다 마지막으로 본 상태(끝났는지). 처음 그릴 때는 이미 있는 대화로 스크롤하지 않는다.
-  const seen = useRef<Map<number, boolean>>(null);
-  seen.current ??= new Map(chat.turns.map(turn => [turn.id, settledTurn(turn)]));
+  // 턴마다 마지막으로 본 단계. 처음 그릴 때는 이미 있는 대화로 스크롤하지 않는다.
+  const seen = useRef<Map<number, Phase>>(null);
+  seen.current ??= new Map(chat.turns.map(turn => [turn.id, phaseOf(turn)]));
 
-  // 새로 보낸 말은 그 턴으로, 새로 온 답이나 실패 안내는 그 위치로 스크롤한다.
+  // 새로 보낸 말은 그 턴으로, 답이 처음 보이면(글 또는 최종 응답·실패 안내) 그 위치로 스크롤한다.
+  // 글을 이어 받던 답이 최종 응답으로 바뀔 때는 읽던 자리를 지키도록 움직이지 않는다.
   useEffect(() => {
     const known = seen.current!;
     let target: Element | null | undefined;
     for (const turn of chat.turns) {
-      const settled = settledTurn(turn);
+      const phase = phaseOf(turn);
       const before = known.get(turn.id);
-      known.set(turn.id, settled);
-      if (before === settled) continue;
+      known.set(turn.id, phase);
+      if (before === phase || (before === 'streaming' && phase === 'settled')) continue;
       const el = log.current?.querySelector('[data-turn="' + turn.id + '"]');
-      target = settled ? el?.querySelector('.agent-reply, .agent-status') ?? el : el;
+      target = phase === 'pending' ? el : el?.querySelector('.agent-reply, .agent-status') ?? el;
     }
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [chat.turns]);
