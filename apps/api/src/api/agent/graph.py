@@ -45,6 +45,7 @@ from api.agent.schemas import (
     AgentReply,
     BookingCard,
     BookingCardData,
+    BundleCard,
     Card,
     Exclusion,
     JpMatchCard,
@@ -60,6 +61,8 @@ from api.agent.tools.match_jp_treatment import TOOL_NAME as MATCH_JP_TREATMENT
 from api.agent.tools.match_jp_treatment import MatchJpTreatmentArtifact
 from api.agent.tools.resolve_location import TOOL_NAME as RESOLVE_LOCATION
 from api.agent.tools.resolve_location import ResolveLocationArtifact, location_card
+from api.agent.tools.search_bundle import TOOL_NAME as SEARCH_BUNDLE
+from api.agent.tools.search_bundle import SearchBundleArtifact
 from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
 from api.agent.tools.search_clinics import SearchClinicsArtifact
 from api.domain.locations import get_locations
@@ -135,10 +138,12 @@ user's voice, for example "Show the closest ones first" or "How do I book the fi
 are not questions to the user.
 Never state prices or savings that did not come from a tool result. Copy each amount exactly as \
 the tool result writes it: do not round it, add amounts up, subtract them, or convert currencies \
-yourself. The app removes any amount that is not in a tool result. If the user asks for a total \
-over several treatments, show each treatment's amounts separately and say that a combined total is \
-not available yet.
-Clinics returned by search_clinics are shown to the user as cards. Give each card a \
+yourself. The app removes any amount that is not in a tool result. When the user wants two or three \
+treatments at one clinic in one visit, or asks for their combined total, call search_bundle with all \
+of them instead of adding search_clinics results up. It returns the cheapest single-clinic totals and \
+how they compare with getting each treatment at its cheapest clinic separately; copy those totals \
+as written.
+Clinics returned by search_clinics and search_bundle are shown to the user as cards. Give each card a \
 one-line reason in card_reasons, by card_id. The app fills in the card's prices.
 When the user names a concern instead of a treatment, call recommend_treatments first, \
 explain the choice and any exclusions, then call search_clinics. When the user names a \
@@ -151,10 +156,10 @@ where they stay or live, call resolve_location first and pass its location_id as
 A location it finds is shown as a card; mention it in condition_summary.
 When the user asks how to book a clinic (for example "the first clinic"), call \
 get_booking_options with the place_id from that clinic's card_id in the earlier search_clinics \
-result. Its booking channels, the inquiry to send before the visit and the order sheet to show \
+result, or with the whole bundle card_id from search_bundle. Its booking channels, the inquiry to send before the visit and the order sheet to show \
 at reception are shown as a card, so never write booking links yourself. You cannot book or pay; tell the user to book through the channel themselves.
 Safety: if the user is currently pregnant, breastfeeding, has a disease, or takes medication, \
-do not recommend clinics or treatments and do not call search_clinics. Set safety_stop to true and \
+do not recommend clinics or treatments and do not call search_clinics or search_bundle. Set safety_stop to true and \
 write answer in this order: first, in one or two plain sentences, that you suggest not getting the \
 treatment now and why (no medical claims beyond that, no diagnosis); then a short list of what to do \
 on this trip: tell the clinic about the condition when booking or consulting, ask their own doctor \
@@ -250,7 +255,9 @@ def _found_locations(messages: Sequence[BaseMessage]) -> list[LocationCardData]:
 
 
 def location_cards(
-    messages: Sequence[BaseMessage], results: Sequence[SearchClinicsArtifact]
+    messages: Sequence[BaseMessage],
+    results: Sequence[SearchClinicsArtifact],
+    bundles: Sequence[SearchBundleArtifact] = (),
 ) -> list[LocationCardData]:
     """이번 턴에 보여 줄 기준 위치(설계 문서 4.3, ADR 0011).
 
@@ -261,8 +268,10 @@ def location_cards(
       어느 턴에서도 찾지 않은 ID면 null이다.
     """
     this_turn = _found_locations(messages[_turn_start(messages) + 1 :])
-    if results:
-        ids = [r.target.origin_id for r in results if r.target.origin_id]
+    if results or bundles:
+        ids = [r.target.origin_id for r in results if r.target.origin_id] + [
+            b.origin_id for b in bundles if b.origin_id
+        ]
     else:
         ids = [loc.location_id for loc in this_turn]
     earlier = _found_locations(messages)
@@ -363,6 +372,31 @@ def assemble_cards(
             search_id=result.search_id,
             reason=reasons.get(card.card_id),
         )
+        for result in results
+        for card in result.cards
+    ]
+
+
+def bundle_results(messages: Sequence[BaseMessage]) -> list[SearchBundleArtifact]:
+    """이번 턴의 성공한 search_bundle 결과. 같은 시술 묶음을 다시 찾으면(예: 예산을 바꿔) 마지막 결과만 둔다."""
+    found: dict[frozenset[str], SearchBundleArtifact] = {}
+    for message in _this_turn(messages, SEARCH_BUNDLE):
+        result = SearchBundleArtifact.model_validate(message.artifact)
+        key = frozenset(result.menu_ids)
+        found.pop(key, None)
+        found[key] = result
+    return list(found.values())
+
+
+def assemble_bundle_cards(
+    results: Sequence[SearchBundleArtifact], reply: AgentReply
+) -> list[BundleCard]:
+    """묶음 카드에 LLM이 쓴 이유를 붙인다. 금액과 순서는 도구 결과 그대로다."""
+    reasons: dict[str, str] = {}
+    for r in reply.card_reasons:
+        reasons.setdefault(r.card_id, r.reason)
+    return [
+        BundleCard(**card.model_dump(), kind="bundle", reason=reasons.get(card.card_id))
         for result in results
         for card in result.cards
     ]
@@ -562,12 +596,13 @@ def build_graph(
             return {"reply": None, "cards": [], "exclusions": [], "failure": failure}
         reply = screen_reply(reply, state["messages"], state["lang"])
         results = search_results(state["messages"])
+        bundles = bundle_results(state["messages"])
         if reply.safety_stop:
             # 추천을 멈추면 병원·대응 카드와 제외 사유는 내보내지 않는다(FR-06). 기준 위치 카드는 건강 정보가
             # 아니고 다시 찾을 때 쓰므로 남긴다.
             locations = [
                 LocationCard(**loc.model_dump(), kind="location")
-                for loc in location_cards(state["messages"], results)
+                for loc in location_cards(state["messages"], results, bundles)
             ]
             return {
                 "reply": reply.model_dump(),
@@ -576,7 +611,7 @@ def build_graph(
             }
         locations = [
             LocationCard(**loc.model_dump(), kind="location")
-            for loc in location_cards(state["messages"], results)
+            for loc in location_cards(state["messages"], results, bundles)
         ]
         jp_matches = [
             JpMatchCard(**m.model_dump(), kind="jp_match")
@@ -586,7 +621,13 @@ def build_graph(
             BookingCard(**b.model_dump(), kind="booking")
             for b in booking_cards(state["messages"])
         ]
-        cards = [*jp_matches, *locations, *assemble_cards(results, reply), *bookings]
+        cards = [
+            *jp_matches,
+            *locations,
+            *assemble_cards(results, reply),
+            *assemble_bundle_cards(bundles, reply),
+            *bookings,
+        ]
         exclusions = assemble_exclusions(results)
         return {
             "reply": reply.model_dump(),
