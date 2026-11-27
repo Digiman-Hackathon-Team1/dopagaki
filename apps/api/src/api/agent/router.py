@@ -18,6 +18,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 
 from api.agent.config import AgentSettings, get_settings
+from api.agent.demo import DemoSessions, demo_response, load_demo, recorded_messages
 from api.agent.graph import (
     build_graph,
     read_cards,
@@ -93,6 +94,7 @@ class DailyUsage:
 
 
 daily_usage = DailyUsage()
+demo_sessions = DemoSessions()
 
 
 @lru_cache
@@ -161,6 +163,42 @@ def fallback_response(
     )
 
 
+def _demo_reply(
+    agent: CompiledStateGraph | None,
+    config: dict,
+    key: str,
+    body: ChatRequest,
+    thread_id: UUID,
+) -> ChatResponse | None:
+    """대본과 같은 메시지면 녹화 응답(설계 문서 13장 데모 고정, ADR 0015). 아니면 None.
+
+    API 키가 없거나 Claude에 닿지 않아도 대본 안에서는 답하고, 하루 한도에 세지 않는다. 키가 없으면
+    대화 기억을 볼 수 없어, 대본이 처음 보는 대화 ID는 모두 새 대화로 본다. 녹화본이 잘못돼도(파일 형식,
+    녹화 뒤 바뀐 응답 형식) 데모 때문에 대화가 실패하지 않도록 로그만 남기고 실제 경로로 넘어간다.
+    """
+    try:
+        is_new = body.thread_id is None or (
+            agent is None or not agent.get_state(config).values.get("messages")
+        )
+        hit = demo_sessions.take(load_demo(), key, is_new, body.message, body.lang)
+        if hit is None:
+            return None
+        script, turn = hit
+        response = demo_response(turn, thread_id)
+        if agent is not None:
+            # 대본에서 벗어난 다음 턴을 실제 Claude가 앞 맥락과 함께 이어 답하게 한다.
+            agent.update_state(
+                config,
+                {"messages": recorded_messages(turn), "lang": body.lang},
+                as_node="finalize",
+            )
+    except Exception:
+        logger.exception("데모 녹화 응답을 쓰지 못해 실제 경로로 답한다")
+        return None
+    logger.info("데모 대본 %s의 녹화 응답으로 답한다", script.id)
+    return response
+
+
 @router.post("/chat", operation_id="postAgentChat")
 def post_agent_chat(
     body: ChatRequest,
@@ -168,6 +206,17 @@ def post_agent_chat(
     settings: Annotated[AgentSettings, Depends(get_settings)],
 ) -> ChatResponse:
     thread_id = body.thread_id or uuid4()
+    # 다른 사용자의 대화 ID로 대화를 이어 읽지 못하도록 사용자 ID와 묶어 저장한다.
+    key = f"{body.user_id}:{thread_id}"
+    config = {
+        "configurable": {"thread_id": key},
+        # 단계 한도는 그래프가 먼저 멈춘다. 이 값은 그보다 넉넉한 안전장치다(노드 4개 + 단계마다 2개).
+        "recursion_limit": settings.agent_max_steps * 2 + 10,
+    }
+    if settings.agent_demo_cache and (
+        demo := _demo_reply(agent, config, key, body, thread_id)
+    ):
+        return demo
     if agent is None:
         logger.warning("API 키가 없어 시세표 안내로 답한다")
         return fallback_response(thread_id, body.lang, "error")
@@ -176,12 +225,6 @@ def post_agent_chat(
     ):
         logger.warning("하루 호출 한도를 넘어 시세표 안내로 답한다")
         return fallback_response(thread_id, body.lang, "daily_limit")
-    # 다른 사용자의 대화 ID로 대화를 이어 읽지 못하도록 사용자 ID와 묶어 저장한다.
-    config = {
-        "configurable": {"thread_id": f"{body.user_id}:{thread_id}"},
-        # 단계 한도는 그래프가 먼저 멈춘다. 이 값은 그보다 넉넉한 안전장치다(노드 4개 + 단계마다 2개).
-        "recursion_limit": settings.agent_max_steps * 2 + 10,
-    }
     try:
         state = agent.invoke(
             {"messages": [HumanMessage(body.message)], "lang": body.lang},
