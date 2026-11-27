@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/agent", tags=["agent"])
 @router.post("/chat", operation_id="postAgentChat")
 def post_agent_chat(
     body: ChatRequest,
-    service: Annotated[ChatService, Depends(get_chat_service)],
+    service: Annotated[ChatService, Depends(get_chat_service, scope="request")],
 ) -> ChatResponse:
     return service.chat(body)
 
@@ -31,7 +31,7 @@ def post_agent_chat(
 )
 def stream_agent_chat(
     body: ChatRequest,
-    service: Annotated[ChatService, Depends(get_chat_service)],
+    service: Annotated[ChatService, Depends(get_chat_service, scope="request")],
 ) -> Iterator[ChatStreamEvent]:
     """`/chat`과 같은 처리를 SSE로 보낸다. start → delta(답변 글, 0개 이상) → done(응답 전체)."""
     yield from service.stream(body)

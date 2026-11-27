@@ -305,3 +305,157 @@ def test_expired_thread_is_removed_from_memory(client: TestClient, monkeypatch) 
 
     assert saver.get_tuple({"configurable": {"thread_id": f"{USER_ID}:{old}"}}) is None
     assert history(saver, new) == ["새 대화"]
+
+
+def test_error_after_lock_releases_it(client: TestClient, monkeypatch) -> None:
+    model = fake_model(reply_message("다음 답"))
+    saver = InMemorySaver()
+    app.dependency_overrides[get_agent] = lambda: build_graph(model, checkpointer=saver)
+    thread_id = str(uuid4())
+
+    def broken(*args) -> bool:
+        raise RuntimeError("하루 한도 저장소 오류")
+
+    monkeypatch.setattr(agent_service.daily_usage, "take", broken)
+    failed = post_chat(client, "첫 질문", thread_id)
+    monkeypatch.undo()
+    monkeypatch.setattr(agent_service, "daily_usage", DailyUsage())
+
+    assert failed["fallback"] == "error"
+    # 잠금이 풀려 같은 대화의 다음 요청이 기다리지 않고 처리된다.
+    use_settings(agent_thread_wait_seconds=0.2)
+    assert post_chat(client, "다시", thread_id)["fallback"] is None
+
+
+def test_busy_reply_is_not_counted_in_daily_limit(client: TestClient) -> None:
+    use_settings(agent_thread_wait_seconds=0.2, agent_user_daily_limit=2)
+    model, _ = gated("첫 답", "다음 답")
+    thread_id = str(uuid4())
+
+    one, _ = run_in_thread(post_chat, client, "첫 질문", thread_id)
+    assert model.entered.wait(5)
+    assert post_chat(client, "둘째 질문", thread_id)["fallback"] == "busy"
+    model.gate.set()
+    one.join(5)
+
+    # 하루 한도 2회 중 첫 질문만 셌으므로 한 번 더 답한다.
+    assert post_chat(client, "셋째 질문", thread_id)["fallback"] is None
+
+
+def test_rejected_requests_do_not_push_out_stored_threads(
+    client: TestClient,
+) -> None:
+    use_settings(agent_max_threads=1, agent_user_daily_limit=1)
+    model = fake_model(reply_message("답"))
+    saver = InMemorySaver()
+    app.dependency_overrides[get_agent] = lambda: build_graph(model, checkpointer=saver)
+    kept = str(uuid4())
+    post_chat(client, "저장된 대화", kept)
+
+    # 하루 한도를 넘긴 요청은 대화 기억에 남지 않으므로 상한(1개)을 차지하지 않는다.
+    for _ in range(3):
+        assert post_chat(client, "새 대화", str(uuid4()))["fallback"] == "daily_limit"
+
+    assert history(saver, kept) == ["저장된 대화"]
+
+
+def test_waiting_request_keeps_thread() -> None:
+    clock = Clock()
+    conversations = Conversations(clock=clock)
+    deleted: list[str] = []
+    finish(conversations, "a", deleted)
+    assert conversations.acquire("a", timeout=1)
+    waiter, got = run_in_thread(conversations.acquire, "a", 5)
+    # 잠금을 잡은 요청이 끝나도 기다리는 요청이 있으면 a를 지우지 않는다.
+    clock.now = 500
+    conversations.release("a", deleted.append, 100, 10)
+    waiter.join(5)
+    assert got == [True]
+    # a는 보관 시간(100초)을 넘겼지만, 잠금을 이어받은 요청이 처리 중이라 지우지 않는다.
+    clock.now = 700
+    finish(conversations, "b", deleted, ttl=100)
+    assert deleted == []
+
+
+def test_third_request_does_not_wait(client: TestClient) -> None:
+    model, _ = gated("첫 답", "둘째 답")
+    thread_id = str(uuid4())
+
+    one, _ = run_in_thread(post_chat, client, "첫 질문", thread_id)
+    assert model.entered.wait(5)
+    two, second = run_in_thread(post_chat, client, "둘째 질문", thread_id)
+    two.join(0.3)
+    # 처리 중인 요청과 기다리는 요청이 이미 있으면, 기본 대기(60초)를 쓰지 않고 바로 busy로 답한다.
+    third = post_chat(client, "셋째 질문", thread_id)
+    model.gate.set()
+    one.join(5)
+    two.join(5)
+
+    assert third["fallback"] == "busy"
+    assert second[0]["answer"] == "둘째 답"
+
+
+def test_disconnected_stream_releases_lock(monkeypatch) -> None:
+    import asyncio
+    import gc
+
+    monkeypatch.setattr(agent_service, "daily_usage", DailyUsage())
+    monkeypatch.setattr(agent_service, "conversations", Conversations())
+    # 문장이 끝나 delta가 나가는 답. 끊긴 뒤 스트림이 delta를 낸 자리에서 멈춘다.
+    model, _ = gated("첫 답. 이어지는 글")
+    thread_id = str(uuid4())
+    key = f"{USER_ID}:{thread_id}"
+    payload = json.dumps(body("첫 질문", thread_id)).encode()
+
+    async def run() -> None:
+        disconnected = asyncio.Event()
+        started = asyncio.Event()
+        received = False
+
+        async def receive() -> dict:
+            nonlocal received
+            if not received:
+                received = True
+                return {"type": "http.request", "body": payload, "more_body": False}
+            await disconnected.wait()
+            return {"type": "http.disconnect"}
+
+        async def send(message: dict) -> None:
+            if b'"start"' in message.get("body", b""):
+                started.set()
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": "POST",
+            "scheme": "http",
+            "path": "/api/agent/chat/stream",
+            "raw_path": b"/api/agent/chat/stream",
+            "query_string": b"",
+            "root_path": "",
+            "headers": [(b"content-type", b"application/json")],
+            "client": ("test", 1),
+            "server": ("test", 80),
+        }
+        task = asyncio.create_task(app(scope, receive, send))
+        await asyncio.wait_for(started.wait(), 5)
+        await asyncio.to_thread(model.entered.wait, 5)
+        # LLM이 답을 만드는 도중에 연결이 끊기고, LLM은 그 뒤에 끝난다.
+        disconnected.set()
+        asyncio.get_running_loop().call_later(0.3, model.gate.set)
+        await asyncio.wait_for(task, 5)
+        # 끊긴 뒤에도 그래프 실행은 스레드에서 끝까지 간다. 그 단계가 끝날 시간을 준다.
+        await asyncio.sleep(0.5)
+        # 이벤트 루프가 끝나면 남은 객체가 정리되며 풀릴 수 있어, 루프 안에서 확인한다.
+        released.append(agent_service.conversations.acquire(key, timeout=0))
+
+    released: list[bool] = []
+    gc.disable()
+    try:
+        asyncio.run(run())
+        # 가비지 컬렉터를 기다리지 않고, 요청이 끝날 때 잠금이 풀린다.
+        assert released == [True]
+    finally:
+        gc.enable()
+        app.dependency_overrides.clear()

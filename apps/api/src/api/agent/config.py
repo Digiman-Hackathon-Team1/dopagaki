@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # apps/api/.env (이 파일 기준 상대 경로라 실행 위치와 무관하다)
@@ -42,10 +42,10 @@ class AgentSettings(BaseSettings):
     # 대화 기억 관리(설계 문서 8장). 같은 대화의 요청은 앞 요청이 끝날 때까지 기다렸다가 처리하고, 이 시간(초)을
     # 넘기면 busy 안내로 답한다. 한 대화의 최대 턴 수를 넘으면 LLM을 부르지 않고 새 대화를 열라고 안내한다.
     # 마지막 요청 뒤 보관 시간(초)이 지난 대화와, 대화 수 상한을 넘은 오래된 대화는 서버 메모리에서 지운다.
-    agent_thread_wait_seconds: float = 60
-    agent_max_turns: int = 50
-    agent_thread_ttl_seconds: float = 24 * 60 * 60
-    agent_max_threads: int = 1000
+    agent_thread_wait_seconds: float = Field(default=60, ge=0)
+    agent_max_turns: int = Field(default=50, ge=1)
+    agent_thread_ttl_seconds: float = Field(default=24 * 60 * 60, ge=0)
+    agent_max_threads: int = Field(default=1000, ge=1)
 
 
 @lru_cache

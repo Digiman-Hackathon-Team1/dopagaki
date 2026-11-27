@@ -15,7 +15,7 @@ import re
 import threading
 import time
 from collections import OrderedDict
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from functools import lru_cache
@@ -157,9 +157,16 @@ class Conversations:
         self._seen: OrderedDict[str, float] = OrderedDict()
 
     def acquire(self, key: str, timeout: float) -> bool:
-        """대화의 잠금을 잡으면 True, 시간 안에 못 잡으면 False."""
+        """대화의 잠금을 잡으면 True, 시간 안에 못 잡으면 False.
+
+        대화마다 기다리는 요청은 하나까지다. 처리 중인 요청과 기다리는 요청이 이미 있으면 기다리지 않고
+        False를 돌려준다. 기다리는 요청은 서버 스레드를 하나씩 잡으므로, 한 대화로 연달아 보내 스레드를
+        모두 차지하지 못하게 한다.
+        """
         with self._guard:
             thread = self._threads.setdefault(key, _Thread())
+            if thread.users >= 2:
+                return False
             thread.users += 1
         if thread.lock.acquire(timeout=timeout):
             return True
@@ -173,22 +180,37 @@ class Conversations:
         delete: Callable[[str], None] | None,
         ttl: float,
         max_threads: int,
+        *,
+        stored: bool = True,
     ) -> None:
-        """잠금을 풀고, 보관 기한이 지났거나 상한을 넘은 대화를 delete로 지운다."""
+        """잠금을 풀고, 보관 기한이 지났거나 상한을 넘은 대화를 delete로 지운다.
+
+        stored는 이 대화가 대화 기억에 남아 있는지다. 하루 한도·키 없음처럼 기록 없이 끝난 요청은 보관 목록과
+        상한에 넣지 않는다. 그렇지 않으면 새 대화 ID로 거절된 요청만 보내도 다른 대화가 밀려 지워진다.
+        삭제는 _guard 안에서 해, 지우는 동안 같은 대화의 새 요청이 잠금을 잡지 못하게 한다.
+        """
         with self._guard:
             thread = self._threads[key]
             thread.users -= 1
             thread.lock.release()
+            if not stored:
+                if thread.users == 0 and key not in self._seen:
+                    del self._threads[key]
+                return
             now = self._clock()
             self._seen[key] = now
             self._seen.move_to_end(key)
-            expired = self._expired(now, ttl, max_threads, keep=key)
-        for old in expired:
-            if delete is not None:
-                delete(old)
-            logger.info(
-                "보관 기한이 지났거나 대화 수 상한을 넘은 대화를 지운다: %s", old
-            )
+            for old in self._expired(now, ttl, max_threads, keep=key):
+                logger.info(
+                    "보관 기한이 지났거나 대화 수 상한을 넘은 대화를 지운다: %s", old
+                )
+                if delete is None:
+                    continue
+                try:
+                    delete(old)
+                except Exception:
+                    # 다른 대화를 지우다 난 오류로 지금 요청을 실패시키지 않는다.
+                    logger.exception("대화 기억에서 대화를 지우지 못했다: %s", old)
 
     def _expired(
         self, now: float, ttl: float, max_threads: int, keep: str
@@ -306,6 +328,19 @@ class ChatService:
     ) -> None:
         self._agent = agent
         self._settings = settings
+        self._streams: list[Generator[ChatStreamEvent, None, None]] = []
+
+    def close(self) -> None:
+        """요청이 끝날 때(연결이 끊긴 경우 포함) 이 요청이 연 스트림을 닫아 대화 잠금을 푼다.
+
+        FastAPI는 연결이 끊겨도 스트림 generator를 닫지 않아, 닫지 않으면 가비지 컬렉터가 돌 때까지 잠금이
+        남는다. generator가 그래프를 실행하는 중이면 그 단계가 끝나 멈출 때까지 기다렸다가 닫는다.
+        """
+        for gen in self._streams:
+            while gen.gi_running:
+                time.sleep(0.05)
+            gen.close()
+        self._streams.clear()
 
     def chat(self, body: ChatRequest) -> ChatResponse:
         turn = self._begin(*self._open(body), body)
@@ -322,13 +357,19 @@ class ChatService:
             self._end(turn)
 
     def stream(self, body: ChatRequest) -> Iterator[ChatStreamEvent]:
+        gen = self._stream(body)
+        self._streams.append(gen)
+        return gen
+
+    def _stream(self, body: ChatRequest) -> Generator[ChatStreamEvent, None, None]:
         """chat과 같은 순서로 처리하되, 답변 글을 만들어지는 대로 보낸다.
 
         start → delta(0개 이상) → done 순서다. done의 응답은 chat과 같고, 화면은 이어 붙인 답변을
         done의 answer로 바꾼다. 답변은 finalize가 금액을 거르기 전의 글이므로, 문장·줄이 끝날 때마다
         같은 규칙(`drop_unknown_amounts`)으로 걸러 지금까지 보낸 글 뒤에 이어지는 부분만 보낸다.
 
-        start는 대화 잠금을 기다리기 전에 보낸다. 잠금은 done을 보낸 뒤나 연결이 끊겨 스트림이 닫힐 때 푼다.
+        start는 대화 잠금을 기다리기 전에 보낸다. 잠금은 done을 보낸 뒤 풀고, 연결이 끊기면 요청이 끝날 때
+        `close`가 스트림을 닫아 푼다.
         """
         thread_id, key, config = self._open(body)
         yield ChatStreamStart(type="start", thread_id=thread_id)
@@ -394,25 +435,12 @@ class ChatService:
                 early=fallback_response(thread_id, body.lang, "busy"),
                 conversations=None,
             )
-        early: ChatResponse | None = None
-        if self._agent is not None and (
-            count_turns(self._agent.get_state(config).values.get("messages", []))
-            >= self._settings.agent_max_turns
-        ):
-            logger.warning("한 대화의 최대 턴 수를 넘어 새 대화를 안내한다")
-            early = fallback_response(thread_id, body.lang, "turn_limit")
-        if early is None and self._settings.agent_demo_cache:
-            early = self._demo_reply(config, key, body, thread_id)
-        if early is None and self._agent is None:
-            logger.warning("API 키가 없어 시세표 안내로 답한다")
+        try:
+            early = self._early_reply(thread_id, key, config, body)
+        except Exception:
+            # 잠금을 잡은 뒤라 예외를 그대로 올리면 잠금이 풀리지 않는다. 시세표 안내로 끝내고 _end가 푼다.
+            logger.exception("턴 시작 처리 실패")
             early = fallback_response(thread_id, body.lang, "error")
-        if early is None and not daily_usage.take(
-            body.user_id,
-            self._settings.agent_daily_limit,
-            self._settings.agent_user_daily_limit,
-        ):
-            logger.warning("하루 호출 한도를 넘어 시세표 안내로 답한다")
-            early = fallback_response(thread_id, body.lang, "daily_limit")
         return _Turn(
             thread_id=thread_id,
             key=key,
@@ -421,15 +449,47 @@ class ChatService:
             conversations=registry,
         )
 
+    def _early_reply(
+        self, thread_id: UUID, key: str, config: dict, body: ChatRequest
+    ) -> ChatResponse | None:
+        """그래프 없이 끝낼 턴이면 그 응답(턴 상한·데모·키 없음·하루 한도), 아니면 None."""
+        if self._agent is not None and (
+            count_turns(self._agent.get_state(config).values.get("messages", []))
+            >= self._settings.agent_max_turns
+        ):
+            logger.warning("한 대화의 최대 턴 수를 넘어 새 대화를 안내한다")
+            return fallback_response(thread_id, body.lang, "turn_limit")
+        if self._settings.agent_demo_cache and (
+            demo := self._demo_reply(config, key, body, thread_id)
+        ):
+            return demo
+        if self._agent is None:
+            logger.warning("API 키가 없어 시세표 안내로 답한다")
+            return fallback_response(thread_id, body.lang, "error")
+        if not daily_usage.take(
+            body.user_id,
+            self._settings.agent_daily_limit,
+            self._settings.agent_user_daily_limit,
+        ):
+            logger.warning("하루 호출 한도를 넘어 시세표 안내로 답한다")
+            return fallback_response(thread_id, body.lang, "daily_limit")
+        return None
+
     def _end(self, turn: _Turn) -> None:
         if turn.conversations is None:
             return
         saver = self._agent.checkpointer if self._agent is not None else None
+        try:
+            stored = saver is not None and saver.get_tuple(turn.config) is not None
+        except Exception:
+            logger.exception("대화 기억을 읽지 못했다")
+            stored = False
         turn.conversations.release(
             turn.key,
             saver.delete_thread if saver else None,
             self._settings.agent_thread_ttl_seconds,
             self._settings.agent_max_threads,
+            stored=stored,
         )
 
     @staticmethod
@@ -543,5 +603,13 @@ class _AnswerStream:
 def get_chat_service(
     agent: Annotated[CompiledStateGraph | None, Depends(get_agent)],
     settings: Annotated[AgentSettings, Depends(get_settings)],
-) -> ChatService:
-    return ChatService(agent, settings)
+) -> Iterator[ChatService]:
+    """요청마다 서비스를 만들고, 응답이 끝나면(연결이 끊긴 경우 포함) 서비스가 연 스트림을 닫는다.
+
+    router는 `scope="request"`로 받아 응답을 다 보낸 뒤에 닫히게 한다.
+    """
+    service = ChatService(agent, settings)
+    try:
+        yield service
+    finally:
+        service.close()
