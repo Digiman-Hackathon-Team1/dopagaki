@@ -5,13 +5,18 @@ router는 요청을 받아 `ChatService`를 부르고 응답을 돌려주기만 
 
 에이전트가 답하지 못하면 오류 대신 시세표 안내를 돌려준다(FR-08). API 키가 없거나 틀림,
 LLM 오류·시간 초과, 한 턴 단계 한도, 사용자별·전체 하루 한도가 그 경우다.
+
+같은 대화의 요청은 하나씩 처리하고, 한 대화의 턴 수와 서버 메모리에 남기는 대화를 제한한다(설계 문서 8장
+대화 기억 관리). 이 규칙은 `/chat`과 `/chat/stream`이 함께 쓰는 시작 처리(`_begin`)에 있다.
 """
 
 import logging
 import re
 import threading
+import time
+from collections import OrderedDict
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from functools import lru_cache
 from typing import Annotated
@@ -19,7 +24,7 @@ from uuid import UUID, uuid4
 
 from fastapi import Depends
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import AIMessageChunk, HumanMessage
+from langchain_core.messages import AIMessageChunk, BaseMessage, HumanMessage
 from langchain_core.utils.json import parse_partial_json
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
@@ -79,6 +84,26 @@ FALLBACK_ANSWER: dict[FallbackReason, dict[Lang, str]] = {
             "볼 수 있어요. AI 상담은 내일 다시 이용해 주세요."
         ),
     },
+    "busy": {
+        "ja": (
+            "前のメッセージにまだお答えしています。回答が届いてから、もう一度送ってください。"
+            "急ぎの場合は相場表で施術ごとの価格を確認できます。"
+        ),
+        "ko": (
+            "앞 메시지에 아직 답하는 중이에요. 답이 온 뒤 다시 보내 주세요. 급하면 시세표에서 시술별 가격을 "
+            "볼 수 있어요."
+        ),
+    },
+    "turn_limit": {
+        "ja": (
+            "この相談は長くなったため、これ以上続けられません。新しい相談を始めてください。"
+            "相場表で施術ごとの価格も確認できます。"
+        ),
+        "ko": (
+            "이 대화가 길어져 더 이어 갈 수 없어요. 새 대화를 열어 주세요. 시세표에서 시술별 가격도 볼 수 "
+            "있어요."
+        ),
+    },
 }
 
 
@@ -109,8 +134,90 @@ class DailyUsage:
             return True
 
 
+@dataclass
+class _Thread:
+    lock: threading.Lock = field(default_factory=threading.Lock)
+    # 잠금을 기다리거나 잡고 있는 요청 수. 0일 때만 지울 수 있다.
+    users: int = 0
+
+
+class Conversations:
+    """대화별 잠금과 보관(설계 문서 8장 대화 기억 관리).
+
+    같은 대화의 요청은 앞 요청이 끝날 때까지 기다린다. 마지막 요청 뒤 보관 시간이 지난 대화와, 대화 수
+    상한을 넘은 가장 오래된 대화는 요청이 끝날 때마다 대화 기억에서 지운다. 처리 중이거나 기다리는 요청이
+    있는 대화는 지우지 않는다. 서버 메모리에 두므로 재시작하면 대화 기억과 함께 사라진다.
+    """
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+        self._clock = clock
+        self._guard = threading.Lock()
+        self._threads: dict[str, _Thread] = {}
+        # 마지막 요청이 끝난 시각. 오래된 대화가 앞에 온다.
+        self._seen: OrderedDict[str, float] = OrderedDict()
+
+    def acquire(self, key: str, timeout: float) -> bool:
+        """대화의 잠금을 잡으면 True, 시간 안에 못 잡으면 False."""
+        with self._guard:
+            thread = self._threads.setdefault(key, _Thread())
+            thread.users += 1
+        if thread.lock.acquire(timeout=timeout):
+            return True
+        with self._guard:
+            thread.users -= 1
+        return False
+
+    def release(
+        self,
+        key: str,
+        delete: Callable[[str], None] | None,
+        ttl: float,
+        max_threads: int,
+    ) -> None:
+        """잠금을 풀고, 보관 기한이 지났거나 상한을 넘은 대화를 delete로 지운다."""
+        with self._guard:
+            thread = self._threads[key]
+            thread.users -= 1
+            thread.lock.release()
+            now = self._clock()
+            self._seen[key] = now
+            self._seen.move_to_end(key)
+            expired = self._expired(now, ttl, max_threads, keep=key)
+        for old in expired:
+            if delete is not None:
+                delete(old)
+            logger.info(
+                "보관 기한이 지났거나 대화 수 상한을 넘은 대화를 지운다: %s", old
+            )
+
+    def _expired(
+        self, now: float, ttl: float, max_threads: int, keep: str
+    ) -> list[str]:
+        """지울 대화를 골라 목록에서 뺀다. 오래된 대화부터 보고, 방금 끝난 대화(keep)는 남긴다.
+
+        _guard 안에서 부른다.
+        """
+        idle = [k for k in self._seen if k != keep and self._threads[k].users == 0]
+        over = len(self._seen) - max_threads
+        expired = []
+        for key in idle:
+            if now - self._seen[key] > ttl or over > 0:
+                expired.append(key)
+                over -= 1
+        for key in expired:
+            del self._seen[key]
+            del self._threads[key]
+        return expired
+
+
+def count_turns(messages: list[BaseMessage]) -> int:
+    """대화 기억에 남은 사용자 턴 수."""
+    return sum(isinstance(m, HumanMessage) for m in messages)
+
+
 daily_usage = DailyUsage()
 demo_sessions = DemoSessions()
+conversations = Conversations()
 
 
 @lru_cache
@@ -184,8 +291,11 @@ class _Turn:
     """한 턴을 시작할 때 정한 값. early가 있으면 그래프를 돌리지 않고 그 응답으로 끝낸다."""
 
     thread_id: UUID
+    key: str
     config: dict
     early: ChatResponse | None
+    # 잠금을 잡은 대화 목록. 잡았으면 _end에서 같은 목록에 푼다. 못 잡았으면 None.
+    conversations: Conversations | None
 
 
 class ChatService:
@@ -198,15 +308,18 @@ class ChatService:
         self._settings = settings
 
     def chat(self, body: ChatRequest) -> ChatResponse:
-        turn = self._begin(body)
-        if turn.early is not None:
-            return turn.early
+        turn = self._begin(*self._open(body), body)
         try:
-            state = self._agent.invoke(self._input(body), turn.config)
-        except Exception:
-            logger.exception("에이전트 실행 실패")
-            return fallback_response(turn.thread_id, body.lang, "error")
-        return self._respond(state, turn.thread_id, body.lang)
+            if turn.early is not None:
+                return turn.early
+            try:
+                state = self._agent.invoke(self._input(body), turn.config)
+            except Exception:
+                logger.exception("에이전트 실행 실패")
+                return fallback_response(turn.thread_id, body.lang, "error")
+            return self._respond(state, turn.thread_id, body.lang)
+        finally:
+            self._end(turn)
 
     def stream(self, body: ChatRequest) -> Iterator[ChatStreamEvent]:
         """chat과 같은 순서로 처리하되, 답변 글을 만들어지는 대로 보낸다.
@@ -214,9 +327,18 @@ class ChatService:
         start → delta(0개 이상) → done 순서다. done의 응답은 chat과 같고, 화면은 이어 붙인 답변을
         done의 answer로 바꾼다. 답변은 finalize가 금액을 거르기 전의 글이므로, 문장·줄이 끝날 때마다
         같은 규칙(`drop_unknown_amounts`)으로 걸러 지금까지 보낸 글 뒤에 이어지는 부분만 보낸다.
+
+        start는 대화 잠금을 기다리기 전에 보낸다. 잠금은 done을 보낸 뒤나 연결이 끊겨 스트림이 닫힐 때 푼다.
         """
-        turn = self._begin(body)
-        yield ChatStreamStart(type="start", thread_id=turn.thread_id)
+        thread_id, key, config = self._open(body)
+        yield ChatStreamStart(type="start", thread_id=thread_id)
+        turn = self._begin(thread_id, key, config, body)
+        try:
+            yield from self._stream_turn(turn, body)
+        finally:
+            self._end(turn)
+
+    def _stream_turn(self, turn: _Turn, body: ChatRequest) -> Iterator[ChatStreamEvent]:
         if turn.early is not None:
             yield ChatStreamDone(type="done", response=turn.early)
             return
@@ -243,8 +365,8 @@ class ChatService:
             type="done", response=self._respond(state, turn.thread_id, body.lang)
         )
 
-    def _begin(self, body: ChatRequest) -> _Turn:
-        """대화 ID와 그래프 설정을 정하고, 그래프 없이 끝낼 턴(데모·키 없음·하루 한도)을 가린다."""
+    def _open(self, body: ChatRequest) -> tuple[UUID, str, dict]:
+        """대화 ID, 대화 기억 키, 그래프 설정을 정한다."""
         thread_id = body.thread_id or uuid4()
         # 다른 사용자의 대화 ID로 대화를 이어 읽지 못하도록 사용자 ID와 묶어 저장한다.
         key = f"{body.user_id}:{thread_id}"
@@ -253,8 +375,33 @@ class ChatService:
             # 단계 한도는 그래프가 먼저 멈춘다. 이 값은 그보다 넉넉한 안전장치다(노드 4개 + 단계마다 2개).
             "recursion_limit": self._settings.agent_max_steps * 2 + 10,
         }
+        return thread_id, key, config
+
+    def _begin(
+        self, thread_id: UUID, key: str, config: dict, body: ChatRequest
+    ) -> _Turn:
+        """대화 잠금을 잡고, 그래프 없이 끝낼 턴(대기 초과·턴 상한·데모·키 없음·하루 한도)을 가린다.
+
+        턴 상한과 대기 초과는 LLM을 부르지 않으므로 하루 한도에 세지 않는다.
+        """
+        registry = conversations
+        if not registry.acquire(key, self._settings.agent_thread_wait_seconds):
+            logger.warning("같은 대화의 앞 요청이 끝나지 않아 기다리지 않고 답한다")
+            return _Turn(
+                thread_id=thread_id,
+                key=key,
+                config=config,
+                early=fallback_response(thread_id, body.lang, "busy"),
+                conversations=None,
+            )
         early: ChatResponse | None = None
-        if self._settings.agent_demo_cache:
+        if self._agent is not None and (
+            count_turns(self._agent.get_state(config).values.get("messages", []))
+            >= self._settings.agent_max_turns
+        ):
+            logger.warning("한 대화의 최대 턴 수를 넘어 새 대화를 안내한다")
+            early = fallback_response(thread_id, body.lang, "turn_limit")
+        if early is None and self._settings.agent_demo_cache:
             early = self._demo_reply(config, key, body, thread_id)
         if early is None and self._agent is None:
             logger.warning("API 키가 없어 시세표 안내로 답한다")
@@ -266,7 +413,24 @@ class ChatService:
         ):
             logger.warning("하루 호출 한도를 넘어 시세표 안내로 답한다")
             early = fallback_response(thread_id, body.lang, "daily_limit")
-        return _Turn(thread_id=thread_id, config=config, early=early)
+        return _Turn(
+            thread_id=thread_id,
+            key=key,
+            config=config,
+            early=early,
+            conversations=registry,
+        )
+
+    def _end(self, turn: _Turn) -> None:
+        if turn.conversations is None:
+            return
+        saver = self._agent.checkpointer if self._agent is not None else None
+        turn.conversations.release(
+            turn.key,
+            saver.delete_thread if saver else None,
+            self._settings.agent_thread_ttl_seconds,
+            self._settings.agent_max_threads,
+        )
 
     @staticmethod
     def _input(body: ChatRequest) -> dict:

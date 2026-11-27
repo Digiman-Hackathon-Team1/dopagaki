@@ -625,7 +625,7 @@ Card = Annotated[
 ]
 
 
-FallbackReason = Literal["error", "daily_limit"]
+FallbackReason = Literal["error", "daily_limit", "busy", "turn_limit"]
 
 
 class ChatResponse(ResponseModel):
@@ -633,7 +633,9 @@ class ChatResponse(ResponseModel):
     fallback: FallbackReason | None = Field(
         description=(
             "에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·"
-            "시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 "
+            "시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도, "
+            "busy는 같은 대화의 앞 요청이 대기 시간 안에 끝나지 않음, turn_limit은 한 대화 최대 턴 수를 넘음(새 대화를 열어야 함). "
+            "화면은 시세표로 가는 길을 "
             "보여 준다. 정상 답변이면 null"
         )
     )

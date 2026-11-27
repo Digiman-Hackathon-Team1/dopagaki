@@ -39,6 +39,13 @@ class AgentSettings(BaseSettings):
     agent_demo_cache: bool = False
     agent_daily_limit: int = 500
     agent_user_daily_limit: int = 50
+    # 대화 기억 관리(설계 문서 8장). 같은 대화의 요청은 앞 요청이 끝날 때까지 기다렸다가 처리하고, 이 시간(초)을
+    # 넘기면 busy 안내로 답한다. 한 대화의 최대 턴 수를 넘으면 LLM을 부르지 않고 새 대화를 열라고 안내한다.
+    # 마지막 요청 뒤 보관 시간(초)이 지난 대화와, 대화 수 상한을 넘은 오래된 대화는 서버 메모리에서 지운다.
+    agent_thread_wait_seconds: float = 60
+    agent_max_turns: int = 50
+    agent_thread_ttl_seconds: float = 24 * 60 * 60
+    agent_max_threads: int = 1000
 
 
 @lru_cache
