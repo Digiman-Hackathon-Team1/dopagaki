@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from api.domain.calc import js_round
-from api.domain.catalog import SNAPSHOT_PATH, get_catalog
+from api.domain.catalog import SNAPSHOT_PATH, ConcernId, get_catalog
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 WEB_PRICES = REPO_ROOT / "apps" / "web" / "src" / "data" / "prices.json"
@@ -63,6 +63,19 @@ def test_catalog_loads_every_menu_and_place() -> None:
         prices = [b.price_jpy for b in menu.jp_benchmarks]
         assert len(prices) >= 5
         assert menu.jp_benchmark_jpy == js_round(sum(prices) / len(prices))
+
+
+def test_concern_table_has_six_concerns_with_known_menus() -> None:
+    """고민별 시술표(설계 문서 9장)는 web concierge.ts의 CONCERN_MENUS와 같다."""
+    catalog = get_catalog()
+    menu_ids = {m.id for m in catalog.menus}
+
+    assert [c.id for c in catalog.concerns] == list(ConcernId.__args__)
+    for concern in catalog.concerns:
+        assert concern.menu_ids
+        assert set(concern.menu_ids) <= menu_ids
+    # 처짐(lift)은 슈링크가 가장 직접적이고 인모드가 다음이다.
+    assert catalog.concern("lift").menu_ids == ("shrink-300", "inmode-fx")
 
 
 def test_unknown_menu_raises() -> None:
