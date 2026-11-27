@@ -27,6 +27,9 @@ class AgentSettings(BaseSettings):
     # 한 번도 여기에 들어간다. SDK 재시도는 따로다. 실제 Sonnet이
     # 돌아가다 끝낸 턴이 7번까지 있었고 8번에서 잘린 턴이 있어 10으로 둔다. 끝없는 반복을 막는 값이다.
     agent_max_steps: int = 10
+    # 한 턴 전체 시간 상한(초). 넘으면 다음 LLM 호출을 하지 않고 시세표 안내로 끝낸다. 이미 시작한 호출은
+    # 끝까지 기다리므로 최악은 이 값 + 호출 하나(시간 제한 × 시도 횟수)다. 180초는 사용자가 정한 출발점이다.
+    agent_turn_timeout_seconds: float = 180
     # LLM 호출 하나의 시간 제한(초)과 SDK 재시도 횟수(429·529·연결 오류).
     agent_timeout_seconds: float = 60
     agent_max_retries: int = 2

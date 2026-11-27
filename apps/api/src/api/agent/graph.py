@@ -15,7 +15,8 @@ Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을 그 블록이 만들�
 """
 
 import logging
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from typing import Literal
 
 from langchain_core.language_models import BaseChatModel
@@ -118,7 +119,9 @@ AMOUNT_CAUTION: dict[Lang, str] = {
 }
 
 # 실패 이유(로그용). router는 모두 시세표 안내로 바꾼다.
-Failure = Literal["llm_error", "empty_reply", "step_limit", "invalid_reply"]
+Failure = Literal[
+    "llm_error", "empty_reply", "step_limit", "turn_timeout", "invalid_reply"
+]
 
 
 class AgentState(MessagesState):
@@ -131,6 +134,8 @@ class AgentState(MessagesState):
     failure: Failure | None
     # 이번 턴에 빈 응답을 이미 한 번 다시 요청했는지. load_context가 턴마다 지운다.
     empty_retried: bool
+    # 이번 턴을 시작한 시각(time.monotonic 기준 초). 한 턴 시간 상한에 쓴다.
+    turn_started_at: float
 
 
 def read_reply(state: AgentState) -> AgentReply:
@@ -391,6 +396,8 @@ def build_graph(
     tools: Sequence[BaseTool] = (),
     checkpointer: BaseCheckpointSaver | None = None,
     max_steps: int = 10,
+    max_seconds: float = 180,
+    clock: Callable[[], float] = time.monotonic,
 ) -> CompiledStateGraph:
     """그래프를 만든다. 모델과 도구를 주입받아 테스트에서 가짜 LLM으로 바꿀 수 있다."""
     if tools:
@@ -404,15 +411,12 @@ def build_graph(
         # 같은 id로 돌려주면 add_messages가 그 메시지를 교체한다(아직 LLM에 보내기 전이라 덧붙이기 조건을 해치지 않는다).
         # 사용자 기억(프로필) 읽기는 P1에서 추가한다.
         last = state["messages"][-1]
+        turn = {"failure": None, "empty_retried": False, "turn_started_at": clock()}
         if not isinstance(last, HumanMessage):
-            return {"failure": None, "empty_retried": False}
+            return turn
         note = LANG_NOTE.format(language=LANG_NAME[state["lang"]])
         blocks = [{"type": "text", "text": last.text}, {"type": "text", "text": note}]
-        return {
-            "messages": [HumanMessage(content=blocks, id=last.id)],
-            "failure": None,
-            "empty_retried": False,
-        }
+        return {"messages": [HumanMessage(content=blocks, id=last.id)], **turn}
 
     def safety_check(state: AgentState) -> dict:
         # 키워드는 표시만 하고, 멈출지는 Claude가 문맥으로 정한다(설계 문서 12장).
@@ -436,10 +440,22 @@ def build_graph(
         if steps >= max_steps:
             logger.warning("한 턴의 LLM 호출이 %d번에 이르러 멈췄다", steps)
             return {"failure": "step_limit"}
+
+        def out_of_time() -> bool:
+            return clock() - state["turn_started_at"] >= max_seconds
+
+        if out_of_time():
+            logger.warning("한 턴이 %d초를 넘어 멈췄다", max_seconds)
+            return {"failure": "turn_timeout"}
         request = [SystemMessage(SYSTEM_PROMPT), *messages]
         try:
             response = bound.invoke(request)
-            if _is_empty(response) and not retried and steps + 1 < max_steps:
+            if (
+                _is_empty(response)
+                and not retried
+                and steps + 1 < max_steps
+                and not out_of_time()
+            ):
                 # 빈 응답은 기록에 넣지 않고 턴마다 한 번만 다시 요청한다(설계 문서 12장).
                 logger.warning("빈 응답을 받아 한 번 다시 요청한다")
                 retried = True

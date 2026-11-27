@@ -256,6 +256,26 @@ def test_step_limit_returns_fallback_and_keeps_history_valid(
     assert next_turn["answer"] == "다음 턴"
 
 
+def test_turn_time_limit_returns_fallback(client: TestClient) -> None:
+    """한 턴 시간 상한(기본 180초)을 넘으면 다음 LLM 호출을 하지 않고 시세표 안내로 끝낸다."""
+    times = iter([0.0, 10.0, 200.0])  # 턴 시작, 첫 호출 전, 도구 다음 호출 전
+    model = fake_model(
+        tool_call("search_clinics", {"menu_id": "rejuran-2cc", "limit": 1}),
+        reply_message("늦은 답"),
+    )
+    graph = build_graph(
+        model,
+        tools=TOOLS,
+        checkpointer=InMemorySaver(),
+        max_seconds=180,
+        clock=lambda: next(times),
+    )
+    use_graph(graph)
+
+    assert_price_table_fallback(chat(client, "리쥬란"), "error")
+    assert len(model.calls) == 1
+
+
 def test_empty_reply_is_retried_once(client: TestClient) -> None:
     model = fake_model(AIMessage(content=""), reply_message("두 번째"))
     use_graph(build_graph(model, checkpointer=InMemorySaver()))
