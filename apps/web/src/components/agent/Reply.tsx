@@ -57,6 +57,23 @@ function Card({ card, lang, showSearch, send }: { showSearch: boolean; lang: Lan
   </article>;
 }
 
+/** 따로 받을 때와의 비교 문장. 시술마다 최저가 병원이 한 곳이면 그곳이 가장 싼 묶음이다. */
+function separateText(card: Schemas['BundleCard'], ja: boolean, n: (value: number) => string, won: string, yen: string) {
+  const extra = card.extraVsSeparateKrw;
+  const extraJpy = card.extraVsSeparateJpy;
+  if (card.separateClinicCount === 1) {
+    const best = card.separatePicks[0];
+    const name = best ? (ja ? best.clinicNameJa : best.clinicNameKo) : '';
+    if (extra === 0) return ja ? '施術ごとの最安値がすべてこの院です。いちばん安い組み合わせです。' : '시술마다 최저가가 모두 이 병원이에요. 가장 싼 묶음이에요.';
+    return ja ? `いちばん安い組み合わせは${name}（合計 ${n(card.separateTotalKrw)}${won}）で、この院は ${n(extra)}${won}（${n(extraJpy)}${yen}）高くなります。` : `가장 싼 묶음은 ${name}(합계 ${n(card.separateTotalKrw)}${won})이고, 이 병원은 ${n(extra)}${won}(${n(extraJpy)}${yen}) 더 들어요.`;
+  }
+  const where = card.separatePicks.map(p => `${ja ? p.menuNameJa : p.menuNameKo}: ${ja ? p.clinicNameJa : p.clinicNameKo}`).join(ja ? '、' : ', ');
+  const base = ja ? `施術ごとに一番安い院へ別々に行くと合計 ${n(card.separateTotalKrw)}${won}（${card.separateClinicCount}院: ${where}）。` : `시술마다 가장 싼 병원에 따로 가면 합계 ${n(card.separateTotalKrw)}${won}(병원 ${card.separateClinicCount}곳: ${where}). `;
+  if (extra > 0) return base + (ja ? `この院1か所なら ${n(extra)}${won}（${n(extraJpy)}${yen}）多くかかります。` : `이 병원 한 곳이면 ${n(extra)}${won}(${n(extraJpy)}${yen}) 더 들어요.`);
+  if (extra === 0) return base + (ja ? 'この院1か所でも合計は同じです。' : '이 병원 한 곳에서 받아도 합계가 같아요.');
+  return base + (ja ? `この院1か所のほうが ${n(-extra)}${won} 安くなります。` : `이 병원 한 곳이 ${n(-extra)}${won} 더 싸요.`);
+}
+
 function BundleCard({ card, lang, send }: { lang: Lang; card: Schemas['BundleCard']; send: Send }) {
   const ja = lang === 'ja';
   const n = (value: number) => value.toLocaleString(lang);
@@ -73,20 +90,17 @@ function BundleCard({ card, lang, send }: { lang: Lang; card: Schemas['BundleCar
       <span>{ja ? item.menuNameJa : item.menuNameKo}</span> <span>{n(item.totalKrw)}{won} · {n(item.totalJpy)}{yen}</span>
       <ExternalLink url={ja ? item.proof.urlJa : item.proof.urlKo}>{ja ? '公式料金表' : '공식 가격표'}</ExternalLink>
     </li>)}</ul>
-    <p className="agent-comparison">{card.extraVsSeparateKrw > 0
-      ? (ja ? `施術ごとに一番安い院へ別々に行くと合計 ${n(card.separateTotalKrw)}${won}（${card.separateClinicCount}院）。この院1か所なら ${n(card.extraVsSeparateKrw)}${won}（${n(card.extraVsSeparateJpy)}${yen}）多くかかります。`
-        : `시술마다 가장 싼 병원에 따로 가면 합계 ${n(card.separateTotalKrw)}${won}(병원 ${card.separateClinicCount}곳). 이 병원 한 곳이면 ${n(card.extraVsSeparateKrw)}${won}(${n(card.extraVsSeparateJpy)}${yen}) 더 들어요.`)
-      : (ja ? '施術ごとに一番安い院へ別々に行く場合と同じ合計です。' : '시술마다 가장 싼 병원에 따로 가는 것과 합계가 같아요.')}</p>
+    <p className="agent-comparison">{separateText(card, ja, n, won, yen)}</p>
     {tags.length > 0 && <p className="agent-tags">{tags.map(tag => <span key={tag}>{ja ? japaneseTags[tag] : priceLabels[tag]}</span>)}</p>}
     {card.reason && <p>{card.reason}</p>}
     <p>{ja ? 'AI口コミ評価' : 'AI 후기 평점'} {card.rating.toFixed(1)} / 5 · {card.ratingScope === 'branch' ? (ja ? 'この支店の口コミ' : '이 지점 후기') : (ja ? '同ブランドの他支店を参考' : '같은 브랜드의 다른 지점 참고')}</p>
     <Channels channels={card.bookingChannels} central={card.centralChannel} lang={lang} />
-    <button onClick={() => send(ja ? `${card.clinicNameJa}で${names.join('と')}をまとめて受ける予約方法を教えてください。` : `${card.clinicNameKo}에서 ${names.join('·')}를 같이 받는 예약 방법을 알려 주세요.`)}>{ja ? '予約方法と問い合わせ文' : '예약 방법과 문의 문장'}</button>
+    <button onClick={() => send(ja ? `${card.clinicNameJa}で${names.join('と')}をまとめて受ける予約方法を教えてください。` : `${card.clinicNameKo}에서 ${names.join(' + ')} 묶음으로 받는 예약 방법을 알려 주세요.`)}>{ja ? '予約方法と問い合わせ文' : '예약 방법과 문의 문장'}</button>
     <details><summary>{ja ? '料金条件と比較の根拠' : '가격 조건과 비교 근거'}</summary>
       {card.items.map(item => <p key={item.menuId}>{ja ? item.menuNameJa : item.menuNameKo} · {ja ? '表示価格' : '표시가'} {n(item.baseKrw)}{won} · {ja ? '追加の付加価値税' : '추가 부가세'} {n(item.vatKrw)}{won} · {ja ? '日本の平均' : '일본 평균'} {n(item.jpAverageJpy)}{yen} · {ja ? item.priceNoteJa : item.priceNoteKo}</p>)}
       <p>{ja ? '為替' : '환율'} {card.fxDateLabel} {ja ? '時点、100円につき' : '기준 100엔당'} {n(card.krwPer100Jpy)}{won}</p>
       {card.distanceMeters !== null && <p>{ja ? '直線距離' : '직선거리'} {n(card.distanceMeters)}m {card.walkMinutes !== null && (ja ? '· 徒歩約' : '· 도보 약 ') + card.walkMinutes + (ja ? '分' : '분')}</p>}
-      <p>{ja ? card.priceConditionJa : card.priceConditionKo}</p>
+      {(ja ? card.priceConditionJa : card.priceConditionKo) && <p>{ja ? card.priceConditionJa : card.priceConditionKo}</p>}
       {/^https?:\/\//i.test(card.sourceUrl) && <a href={card.sourceUrl} target="_blank" rel="noreferrer">{ja ? '公式料金を確認' : '공식 가격 확인'} <SvgIcon name="external" /></a>}
     </details>
   </article>;
@@ -112,7 +126,7 @@ export function Reply({ reply, send, lang }: { lang: Lang; reply: Schemas['ChatR
         case 'jp_match': return <JpMatchCard key={'jp:' + index} card={card} lang={lang} />;
         case 'location': return <LocationCard key={'location:' + index} card={card} lang={lang} />;
         case 'recommendation': return <Card showSearch={searchIds.size > 1} lang={lang} key={card.searchId + ':' + card.cardId} card={card} send={send} />;
-        case 'bundle': return <BundleCard key={'bundle:' + card.cardId} card={card} lang={lang} send={send} />;
+        case 'bundle': return <BundleCard key={card.searchId + ':' + card.cardId} card={card} lang={lang} send={send} />;
         case 'booking': return <BookingCard key={'booking:' + index} card={card} lang={lang} />;
       }
     })}
