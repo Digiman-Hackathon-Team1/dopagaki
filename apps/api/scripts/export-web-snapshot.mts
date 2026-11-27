@@ -69,12 +69,12 @@ const SOURCE_FILES = [
   'apps/web/src/data/official-proofs.ts',
   'apps/web/src/lib/clinic-helpers.ts',
   'apps/api/scripts/export-web-snapshot.mts',
-  // official-proofs.ts가 읽는 스크린샷 숨김 목록(PR #22에서 추가). 파일이 있을 때만 넣는다.
+  // official-proofs.ts가 읽는 스크린샷 숨김 목록(PR #22에서 추가)
   'apps/web/src/data/proof-hidden.ts'
 ];
 const repoRoot = path.resolve(apiDir, '../..');
 const sources = Object.fromEntries(
-  SOURCE_FILES.filter((file) => fs.existsSync(path.join(repoRoot, file))).map((file) => {
+  SOURCE_FILES.map((file) => {
     const text = fs.readFileSync(path.join(repoRoot, file), 'utf8').replace(/\r\n/g, '\n');
     return [file, createHash('sha256').update(text, 'utf8').digest('hex')];
   })
