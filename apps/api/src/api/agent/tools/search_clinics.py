@@ -13,9 +13,11 @@ from pydantic import BaseModel, Field
 
 from api.agent.config import get_settings
 from api.agent.schemas import (
+    BookingChannel,
     ExcludeReason,
     ExclusionData,
     JpClinicSavings,
+    PriceProof,
     RecommendationCardData,
 )
 from api.agent.tools.match_jp_treatment import (
@@ -30,7 +32,7 @@ from api.domain.calc import (
     rank_rows,
     savings_against,
 )
-from api.domain.catalog import AreaId, Fx, JpBenchmark, Menu, get_catalog
+from api.domain.catalog import AreaId, Fx, JpBenchmark, Menu, Place, get_catalog
 from api.domain.fx import FxProvider
 from api.domain.jp_names import find_jp_clinic
 from api.domain.locations import get_locations
@@ -265,17 +267,47 @@ def _card(
         price_note_ja=row.offer.note_ja,
         price_note_ko=row.offer.note_ko,
         source_url=row.place.source_url,
+        rating=row.place.ai_rating,
+        rating_scope=row.place.rating_scope,
+        rating_tier=row.place.rating_tier,
+        booking_channels=booking_channels(row.place),
+        central_channel=row.place.central_channel,
+        proof=_proof(row.place, row.menu.id),
     )
 
 
-def _summary_line(rank: int, card: RecommendationCardData, rating: float) -> str:
+def booking_channels(place: Place) -> list[BookingChannel]:
+    return [BookingChannel(**c.model_dump()) for c in place.channels]
+
+
+def _proof(place: Place, menu_id: str) -> PriceProof:
+    proof = place.proofs[menu_id]
+    return PriceProof(
+        url_ja=proof.url_ja,
+        url_ko=proof.url_ko,
+        domain_ja=proof.domain_ja,
+        domain_ko=proof.domain_ko,
+        captured_date=proof.captured_date,
+        verified=proof.has_screenshot,
+        matched_text=proof.matched_text,
+    )
+
+
+def channel_names(place: Place) -> str:
+    """LLM용 채널 이름 목록. 링크는 LLM에 보내지 않는다(카드에만 있음)."""
+    return ", ".join(c.kind for c in place.channels) or "none in data"
+
+
+def _summary_line(rank: int, card: RecommendationCardData, place: Place) -> str:
     parts = [
         f"{rank}. card_id={card.card_id}",
         f"{card.clinic_name_ko} / {card.clinic_name_ja} ({card.area})",
         f"₩{card.total_krw:,} incl. VAT ≈ ¥{card.total_jpy:,}",
         f"saves ¥{card.savings_jpy:,} ({card.savings_pct}%) vs Japan average",
         f"Japanese support: {'yes' if card.japanese_support else 'no'}",
-        f"rating {rating}",
+        f"rating {card.rating}"
+        + (" (few verified reviews)" if card.rating_tier == "limited" else ""),
+        f"booking channels: {channel_names(place)}",
     ]
     if card.jp_clinic:
         parts.insert(
@@ -430,7 +462,7 @@ def search_clinics(
     else:
         lines.append(f"Top {len(top)}:")
         lines += [
-            _summary_line(i, card, row.place.ai_rating)
+            _summary_line(i, card, row.place)
             for i, (card, row) in enumerate(zip(cards, top, strict=True), start=1)
         ]
     return "\n".join(lines), _artifact(menu_id, target, cards, excluded)

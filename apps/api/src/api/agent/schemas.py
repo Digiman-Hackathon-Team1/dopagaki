@@ -15,7 +15,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pydantic.alias_generators import to_camel
 
-from api.domain.catalog import AreaId
+from api.domain.catalog import AreaId, ChannelKind
 from api.domain.price_tags import PriceTag
 
 Lang = Literal["ja", "ko"]
@@ -120,6 +120,45 @@ class JpClinicSavings(JpClinicPrice):
     savings_pct: int
 
 
+class BookingChannel(ResponseModel):
+    """병원 공식 예약·상담 채널 하나. web clinic-channels.ts의 링크 그대로다(FR-05)."""
+
+    kind: ChannelKind = Field(
+        description=(
+            "kakao 카카오톡, line LINE, instagram 인스타그램, naver_booking 네이버 예약, "
+            "direct_reserve 공식 웹 예약"
+        )
+    )
+    label_ja: str = Field(description="버튼 문구. 예: LINE公式相談・予約")
+    label_ko: str
+    url_ja: str = Field(
+        description="일본어 화면에서 쓸 링크(일본어 계정·페이지가 있으면 그쪽)"
+    )
+    url_ko: str
+
+
+class PriceProof(ResponseModel):
+    """가격표 증빙. web 병원 화면의 공식 가격 링크와 같다(설계 문서 4.7)."""
+
+    url_ja: str = Field(description="공식 가격 페이지. 일본어 페이지가 있으면 그쪽")
+    url_ko: str
+    domain_ja: str = Field(
+        description="링크에 표시할 도메인. 예: hongdaejp.vandsclinics.com"
+    )
+    domain_ko: str
+    captured_date: str = Field(description="가격을 확인한 날짜. 예: 2026-11-23")
+    verified: bool = Field(
+        description="공식 페이지 스크린샷에서 이 가격을 확인했으면 true. false면 링크만 있음"
+    )
+    matched_text: str | None = Field(
+        description="스크린샷에서 찾은 가격 문구(한국어). verified가 false면 null"
+    )
+
+
+RatingScope = Literal["branch", "brand"]
+RatingTier = Literal["jp_kr_verified", "kr_verified", "limited"]
+
+
 class RecommendationCardData(ResponseModel):
     """search_clinics가 만드는 병원 추천 카드의 데이터. 금액은 모두 calc.py 결과다."""
 
@@ -170,6 +209,25 @@ class RecommendationCardData(ResponseModel):
     price_note_ja: str = Field(description="가격 출처 메모")
     price_note_ko: str
     source_url: str = Field(description="병원 공식 가격 출처")
+    rating: float = Field(
+        description="후기 평점(5점 만점, web AI 평점과 같음). 순서에는 영향이 없다(sort=rating 제외)"
+    )
+    rating_scope: RatingScope = Field(
+        description="평점 근거. branch 이 지점 후기, brand 같은 브랜드 다른 지점 후기를 참고"
+    )
+    rating_tier: RatingTier = Field(
+        description=(
+            "후기 확인 수준. jp_kr_verified 일본·한국 후기 확인, kr_verified 한국 후기만 확인, "
+            "limited 확인된 후기가 적음. 후기 수는 데이터에 없다"
+        )
+    )
+    booking_channels: list[BookingChannel] = Field(
+        description="공식 예약·상담 채널. 데이터에 없으면 빈 배열"
+    )
+    central_channel: bool = Field(
+        description="브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true"
+    )
+    proof: PriceProof = Field(description="이 시술 가격의 가격표 증빙 링크")
 
 
 ExcludeReason = Literal["needle", "downtime", "area", "japanese", "budget"]
@@ -252,8 +310,39 @@ class JpMatchCard(JpMatchCardData):
     kind: Literal["jp_match"]
 
 
+class BookingCardData(ResponseModel):
+    """get_booking_options가 만드는 예약 안내(설계 문서 9장, 11.2, FR-05).
+
+    예약과 결제는 앱이 대신하지 않는다. 사용자가 채널을 눌러 문의 문장을 보내고 직접 예약한다.
+    """
+
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    menu_ids: list[str] = Field(
+        description="문의 문장에 넣은 시술 ID. 이 병원에 가격이 없는 시술은 빠진다"
+    )
+    japanese_support: bool
+    channels: list[BookingChannel] = Field(
+        description="공식 예약·상담 채널. web 예약 시트와 같은 순서다. 없으면 빈 배열(공식 사이트로 안내)"
+    )
+    central_channel: bool = Field(
+        description="브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true"
+    )
+    official_site_url: str = Field(description="병원 공식 사이트")
+    inquiry_ko: str = Field(
+        description="병원에 보낼 한국어 문의 문장(web 예약 문의 문장과 같은 틀). 이름 칸은 비워 둔다"
+    )
+    inquiry_ja: str = Field(description="같은 문의 문장의 일본어판(사용자 확인용)")
+
+
+class BookingCard(BookingCardData):
+    kind: Literal["booking"]
+
+
 Card = Annotated[
-    RecommendationCard | LocationCard | JpMatchCard, Field(discriminator="kind")
+    RecommendationCard | LocationCard | JpMatchCard | BookingCard,
+    Field(discriminator="kind"),
 ]
 
 
@@ -264,7 +353,7 @@ class ChatResponse(ResponseModel):
     cards: list[Card] = Field(
         description=(
             "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), "
-            "recommendation(병원 추천) 순서로 온다"
+            "recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다"
         )
     )
     exclusions: list[Exclusion] = Field(
