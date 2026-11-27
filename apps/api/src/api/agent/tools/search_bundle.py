@@ -128,6 +128,33 @@ search_clinics로 보여 주고 합계는 말하지 않는다), 아래 목록에
 {_menu_lines()}"""
 
 
+def separate_picks(ranked: list[list[PriceRow]]) -> list[PriceRow]:
+    """시술마다 가장 싼(절약액 큰) 병원. `ranked`는 시술마다 절약액 순으로 정렬한 행이다.
+
+    절약액이 같은 병원이 여럿이면, 다른 시술에서도 최저가인 병원을 먼저 골라 병원 수를 줄인다.
+    병원이 없는 시술은 건너뛴다(결과가 시술 수보다 짧다).
+    """
+    ties = [
+        [r for r in rows if r.savings_jpy == rows[0].savings_jpy]
+        for rows in ranked
+        if rows
+    ]
+    tie_places = [{r.place.id for r in t} for t in ties]
+    picks: list[PriceRow] = []
+    for t in ties:
+        chosen = {r.place.id for r in picks}
+        picks.append(
+            min(
+                t,
+                key=lambda r: (
+                    r.place.id not in chosen,
+                    -sum(r.place.id in ids for ids in tie_places),
+                ),
+            )
+        )
+    return picks
+
+
 def _item(row: PriceRow) -> BundleItem:
     return BundleItem(
         menu_id=row.menu.id,
@@ -335,25 +362,9 @@ def search_bundle(
         return None
 
     # 따로 받을 때: 같은 지역·일본어 조건에서 시술마다 가장 싼(절약액 큰) 병원. 예산은 보지 않는다.
-    # 절약액이 같은 병원이 여럿이면, 다른 시술에서도 최저가인 병원을 먼저 골라 병원 수를 줄인다.
-    ties: list[list[PriceRow]] = []
-    for m in menus:
-        rows = [r for r in by_menu[m.id] if allowed(r) is None]
-        if rows:
-            ties.append([r for r in rows if r.savings_jpy == rows[0].savings_jpy])
-    tie_places = [{r.place.id for r in t} for t in ties]
-    separate: list[PriceRow] = []
-    for t in ties:
-        chosen = {r.place.id for r in separate}
-        separate.append(
-            min(
-                t,
-                key=lambda r: (
-                    r.place.id not in chosen,
-                    -sum(r.place.id in ids for ids in tie_places),
-                ),
-            )
-        )
+    separate = separate_picks(
+        [[r for r in by_menu[m.id] if allowed(r) is None] for m in menus]
+    )
 
     rows_by_place = {m.id: {r.place.id: r for r in by_menu[m.id]} for m in menus}
     candidates = [
