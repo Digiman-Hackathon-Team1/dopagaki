@@ -1,45 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, type Schemas } from '@repo/api-client';
+import type { Schemas } from '@repo/api-client';
 import mark from '@/assets/dopagaki-mark.png';
 import { SvgIcon } from '@/components/SvgIcon';
-import { Reply } from '@/components/agent/Reply';
-import { PriceTableLink } from '@/components/agent/PriceTableLink';
-import type { QuestionAnswer } from '@/components/agent/Questions';
+import { Turns } from '@/components/agent/Turns';
+import type { Send } from '@/components/agent/Questions';
+import { useAgentChat } from '@/components/agent/useAgentChat';
 import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
 import { copy } from '@/components/agent/copy';
-import { anonymousId } from '@/components/agent/user-id';
 import './agent.css';
 
-type Turn = {
-  id: number;
-  message: string;
-  answers?: QuestionAnswer[];
-  status: 'waiting' | 'writing' | 'invalid' | 'offline' | 'serverError' | null;
-  httpStatus?: number;
-  reply?: Schemas['ChatResponse'];
-};
-
 export default function AgentDev() {
-  const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [lang, setLang] = useState<Schemas['ChatRequest']['lang']>(() => readSiteLanguage(new URLSearchParams(location.search).get('lang')));
   const t = copy[lang];
   const tooLong = [...draft.trim()].length > 2000;
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
-  const userId = useRef<string>(undefined);
-  const lifetime = useRef<AbortController>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    lifetime.current = controller;
-    return () => controller.abort();
-  }, []);
-  const chain = useRef(Promise.resolve());
-  const thread = useRef<string>(undefined);
-  const sequence = useRef(0);
   const log = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
-
   const scrollTarget = useRef<number>(undefined);
+  const chat = useAgentChat(lang, turn => { scrollTarget.current = turn.id; });
   useEffect(() => {
     if (scrollTarget.current !== undefined && follow.current) {
       const turn = log.current?.querySelector('[data-turn="' + scrollTarget.current + '"]');
@@ -48,40 +27,14 @@ export default function AgentDev() {
       else if (log.current) log.current.scrollTop = log.current.scrollHeight;
     }
     scrollTarget.current = undefined;
-  }, [turns]);
+  }, [chat.turns]);
 
-  function send(value: string, answers?: QuestionAnswer[]) {
-    const message = value.trim();
-    if (!message || [...message].length > 2000) return;
-    const id = ++sequence.current;
+  const send: Send = (value, answers) => {
+    const id = chat.send(value, answers);
+    if (id === undefined) return;
     follow.current = true;
     scrollTarget.current = id;
-    setTurns(previous => [...previous, { id, message, answers, status: 'waiting' }]);
-    function update(changes: Partial<Turn>) {
-      setTurns(previous => previous.map(turn => turn.id === id ? { ...turn, ...changes } : turn));
-    }
-    const signal = lifetime.current?.signal;
-    chain.current = chain.current.then(async () => {
-      if (signal?.aborted) return;
-      update({ status: 'writing' });
-      try {
-        userId.current ??= anonymousId();
-        const { data, response } = await api.POST('/api/agent/chat', {
-          signal,
-          body: { userId: userId.current, threadId: thread.current, message, lang }
-        });
-        if (!data) {
-          update({ status: response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status });
-          return;
-        }
-        thread.current = data.threadId;
-        scrollTarget.current = id;
-        update({ reply: data, status: null });
-      } catch {
-        update({ status: 'offline' });
-      }
-    });
-  }
+  };
 
   return <main className="agent-dev">
     <header><img src={mark} alt="" /><h1>{t.title}</h1><small>{t.dev}</small>
@@ -102,7 +55,7 @@ export default function AgentDev() {
       const el = e.currentTarget;
       follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     }}>
-      {!turns.length && <section className="agent-welcome"><img src={mark} alt="" /><h2>{t.welcome}</h2>
+      {!chat.turns.length && <section className="agent-welcome"><img src={mark} alt="" /><h2>{t.welcome}</h2>
         <p>{t.intro}</p>
         <small>{t.progress}</small>
         <div className="agent-examples">
@@ -113,18 +66,7 @@ export default function AgentDev() {
           <button onClick={() => send(t.negationPrompt)}>{t.negationExample} <SvgIcon name="chevronRight" /></button>
         </div>
       </section>}
-      {turns.map(turn => <section data-turn={turn.id} key={turn.id} className="agent-turn">
-        {turn.answers?.length ? <dl className="agent-user agent-user-answers">
-          {turn.answers.map((item, index) => <div key={index}>
-            <dt>{item.question}</dt>
-            <dd>{item.answer}</dd>
-          </div>)}
-        </dl> : <p className="agent-user">{turn.message}</p>}
-        {turn.reply ? <Reply lang={lang} reply={turn.reply} send={send} /> : <div>
-          <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>
-          {(turn.status === 'offline' || turn.status === 'serverError') && <PriceTableLink lang={lang} />}
-        </div>}
-      </section>)}
+      <Turns turns={chat.turns} lang={lang} send={send} />
     </div>
     <form className="agent-composer" onSubmit={e => { e.preventDefault(); if (!tooLong && draft.trim()) { send(draft); setDraft(''); } }}>
       <input aria-label={t.message} placeholder={t.placeholder} aria-invalid={tooLong} value={draft} onChange={e => setDraft(e.target.value)} />

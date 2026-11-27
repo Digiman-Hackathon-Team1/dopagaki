@@ -43,7 +43,7 @@ import { SvgIcon } from '@/components/SvgIcon.tsx';
 import { ClinicPageView } from '@/components/ClinicPageView.tsx';
 import { BrandGroupList } from '@/components/BrandGroupList.tsx';
 import { TreatmentInfoView } from '@/components/TreatmentInfoView.tsx';
-import { ConciergeView } from '@/components/ConciergeView.tsx';
+import { AgentConsultView } from '@/components/AgentConsultView.tsx';
 import { SavedClinicsView } from '@/components/SavedClinicsView.tsx';
 import { MenuEmoji } from '@/components/emoji.tsx';
 import QRCode from 'qrcode';
@@ -1084,25 +1084,14 @@ function ClinicApp() {
             onHaptic={() => triggerHaptic(6)}
           />
         ) : activeTab === 'recommend' ? (
-          <ConciergeView
+          <AgentConsultView
             lang={lang}
-            dataset={dataset}
-            naverFx={naverFx}
-            krwPer100Jpy={krwPer100Jpy}
-            includeVat={includeVat}
-            onOpenClinic={(pid, menus) => {
+            onOpenPriceTable={() => {
               triggerHaptic(10);
-              if (menus[0]) setMenuId(menus[0]);
-              navigateToClinic(pid, true, menus, 1);
-            }}
-            onApplyMenu={(selectedMenuId) => {
-              triggerHaptic(10);
-              setMenuId(selectedMenuId);
               lastMainTabRef.current = 'list';
               setActiveTab('list');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            onShowToast={showToast}
             onHaptic={() => triggerHaptic(6)}
           />
         ) : activeTab === 'saved' ? (

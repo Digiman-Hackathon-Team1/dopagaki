@@ -23,8 +23,6 @@
 .agent-welcome img { width: 84px; margin: auto; }
 .agent-welcome h2 { font-size: var(--text-xl); margin-top: 12px; }
 .agent-welcome p { margin: 8px 0 20px; }
-.agent-turn + .agent-turn { margin-top: 32px; }
-.agent-user { width: fit-content; max-width: 85%; margin: 0 0 18px auto; padding: 10px 16px; border-radius: 18px 18px 4px 18px; background: var(--color-select); color: white; white-space: pre-wrap; }
 .agent-examples { display: flex; flex-direction: column; align-items: stretch; gap: 8px; max-width: 400px; margin: 20px auto; }
 
 .agent-dev summary { cursor: pointer; color: var(--color-ink-2); }
@@ -33,10 +31,5 @@
 .agent-composer input { flex: 1; min-width: 0; background: var(--color-canvas); }
 .agent-dev { grid-template-columns: minmax(0, 1fr); }
 .agent-dev header, .agent-composer, .agent-log { min-width: 0; }
-.agent-turn { scroll-margin-top: var(--space-md); }
 .agent-composer { flex-wrap: wrap; }
 .agent-composer small { flex-basis: 100%; }
-.agent-user-answers { padding: 14px 18px; }
-.agent-user-answers > div + div { margin-top: 16px; }
-.agent-user-answers dt { font-size: var(--text-sm); color: var(--color-on-select); opacity: .85; }
-.agent-user-answers dd { margin: 4px 0 0; font-size: var(--text-md); font-weight: 600; }

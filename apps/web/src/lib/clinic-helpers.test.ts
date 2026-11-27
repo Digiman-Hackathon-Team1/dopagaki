@@ -812,7 +812,7 @@ test('100% of remaining 137 clinics and 735 offered prices across 9 treatments h
     '../components/ClinicBookingSheet.tsx',
     '../components/FeeTransparencyBox.tsx',
     '../components/TreatmentInfoView.tsx',
-    '../components/ConciergeView.tsx',
+    '../components/AgentConsultView.tsx',
     'i18n.ts'
   ]) {
     const content = fs.readFileSync(path.resolve(__dirname, rel), 'utf8');
@@ -1222,4 +1222,16 @@ test('motion primitives, Apple spring physics, and CSS motion craft invariants',
     [],
     `Found unguarded word-break: keep-all (breaks Japanese wrapping): ${unguardedKeepAll.join('; ')}`
   );
+});
+
+test('hidden proof screenshots: every key is a real offer and its screenshot is not shown', () => {
+  assert.ok(HIDDEN_PROOF_OFFERS.size > 0);
+  for (const key of HIDDEN_PROOF_OFFERS) {
+    const [placeId, menuId] = key.split('::');
+    const place = dataset.places.find((p) => p.id === placeId);
+    assert.ok(place && place.prices[menuId], `unknown offer ${key}`);
+    const proof = getOfficialMenuProof(place, menuId, 'ko');
+    assert.equal(proof.imageFile, null, `screenshot still shown for ${key}`);
+    assert.ok(proof.priceUrl.startsWith('http'), `official link missing for ${key}`);
+  }
 });

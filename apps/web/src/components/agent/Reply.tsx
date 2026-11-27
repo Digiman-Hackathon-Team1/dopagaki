@@ -191,7 +191,7 @@ function TripPlanCard({ card, lang, send }: { lang: Lang; card: Schemas['TripPla
   </article>;
 }
 
-export function Reply({ reply, send, lang }: { lang: Lang; reply: Schemas['ChatResponse']; send: Send }) {
+export function Reply({ reply, send, lang, onPriceTable }: { lang: Lang; reply: Schemas['ChatResponse']; send: Send; onPriceTable?: () => void }) {
   const searchIds = new Set([
     ...reply.cards.flatMap(card => card.kind === 'recommendation' ? [card.searchId] : []),
     ...reply.exclusions.map(item => item.searchId)
@@ -204,7 +204,7 @@ export function Reply({ reply, send, lang }: { lang: Lang; reply: Schemas['ChatR
     }}>{reply.answer}</Markdown></div>
     {reply.fallback && <aside className="agent-fallback">
       <p>{reply.fallback === 'daily_limit' ? copy[lang].dailyLimit : copy[lang].fallbackError}</p>
-      <PriceTableLink lang={lang} />
+      <PriceTableLink lang={lang} onClick={onPriceTable} />
     </aside>}
     {reply.cards.map((card, index) => {
       switch (card.kind) {

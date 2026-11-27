@@ -11,10 +11,7 @@ export type AnalyticsEvent =
   | 'detail_open'
   | 'share_click'
   | 'share_success'
-  | 'concierge_start'
-  | 'concierge_result'
-  | 'concierge_card_click'
-  | 'concierge_text'
+  /** AI 상담 탭의 에이전트 답 한 번(카드 수, 실패 종류) */
   | 'concierge_agent';
 
 const KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
