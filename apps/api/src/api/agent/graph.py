@@ -71,8 +71,8 @@ where they stay or live, call resolve_location first and pass its location_id as
 A location it finds is shown as a card; mention it in condition_summary.
 When the user asks how to book a clinic (for example "the first clinic"), call \
 get_booking_options with the place_id from that clinic's card_id in the earlier search_clinics \
-result. Its booking channels and inquiry messages are shown as a card, so never write booking \
-links yourself. You cannot book or pay; tell the user to book through the channel themselves.
+result. Its booking channels, the inquiry to send before the visit and the order sheet to show \
+at reception are shown as a card, so never write booking links yourself. You cannot book or pay; tell the user to book through the channel themselves.
 Write every field of your reply in the language named by the note at the end of the \
 latest user message."""
 

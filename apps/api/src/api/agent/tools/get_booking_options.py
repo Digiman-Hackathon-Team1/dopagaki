@@ -43,17 +43,17 @@ class GetBookingOptionsInput(BaseModel):
             "ID를 지어내지 않는다"
         ),
     )
-    menu_ids: list[MenuId] = Field(
-        default_factory=list,
+    menu_ids: list[MenuId] | None = Field(
+        default=None,
         max_length=3,
         description=(
-            "문의 문장과 접수 메모에 넣을 시술 ID. 보통 그 카드의 menu_id 하나. 시술을 정하지 않았으면 "
-            "빈 배열(문장에 '상담 후 결정'으로 들어감)"
+            "문의 문장과 접수 메모에 넣을 시술 ID. 보통 그 카드의 menu_id 하나. null이면 place_id에 넣은 "
+            "card_id의 시술을 쓴다. 시술을 정하지 않았으면 빈 배열(문장에 '상담 후 결정'으로 들어감)"
         ),
     )
     preferred_date: str | None = Field(
         default=None,
-        max_length=10,
+        max_length=20,
         description=(
             "사용자가 말한 희망 날짜를 월/일로. 예: 11/28. 사용자가 월과 일을 말했을 때만 넣는다. "
             "'내일', '다음 주 금요일'처럼 날짜를 계산해야 하면 오늘 날짜를 모르므로 null로 두고 날짜를 묻는다"
@@ -92,9 +92,11 @@ class GetBookingOptionsInput(BaseModel):
         """월/일만 받고 앞 0과 공백을 지운다. 없는 날짜(2/30 등)는 오류다. 연도를 몰라 2/29는 받는다."""
         if value is None:
             return None
-        parts = value.strip().split("/")
-        if len(parts) != 2 or not all(p.strip().isdigit() for p in parts):
-            raise ValueError("preferred_date must be month/day such as 11/28")
+        parts = [p.strip() for p in value.strip().split("/")]
+        if len(parts) != 2 or not all(p.isascii() and p.isdigit() for p in parts):
+            raise ValueError(
+                "preferred_date must be month/day in digits, such as 11/28"
+            )
         month, day = (int(p) for p in parts)
         if not 1 <= month <= 12 or not 1 <= day <= monthrange(2024, month)[1]:
             raise ValueError(f"{value!r} is not a real date")
@@ -136,8 +138,14 @@ def get_booking_options(
 ) -> tuple[str, dict]:
     catalog = get_catalog()
     # card_id(<place_id>:<menu_id>)를 그대로 넣었으면 병원 ID와 시술을 나눠 쓴다.
-    place_id, _, card_menu = place_id.strip().partition(":")
-    if card_menu and not menu_ids and any(m.id == card_menu for m in catalog.menus):
+    # menu_ids를 따로 주지 않았을 때만 card_id의 시술을 쓴다(빈 배열을 주면 시술 미정).
+    place_id, _, card_menu = (part.strip() for part in place_id.partition(":"))
+    if card_menu and menu_ids is None:
+        if card_menu not in {m.id for m in catalog.menus}:
+            raise ValueError(
+                f"Unknown menu {card_menu!r} in card_id. Pass place_id only, or a card_id from a "
+                "search_clinics result as is."
+            )
         menu_ids = [card_menu]
     try:
         place = catalog.place(place_id)

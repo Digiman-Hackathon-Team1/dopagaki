@@ -141,7 +141,7 @@ def test_order_sheet_has_card_prices_and_default_requests() -> None:
     assert f"예상 합계: ₩{row.total_krw:,}" in card.order_sheet_ko
     assert "+ VAT 10%" in card.order_sheet_ko
     assert "추가 시술 권유는 정중히 사양" in card.order_sheet_ko
-    assert "최종 결제 금액을 먼저 확인" in card.order_sheet_ko
+    assert "최종 총액을 시술 전에 먼저 알려주세요" in card.order_sheet_ko
     assert "마취크림을 충분히" not in card.order_sheet_ko
     assert f"目安合計: ¥{row.total_jpy:,}" in card.order_sheet_ja
     # LLM에는 합계만 알리고 메모 본문은 보내지 않는다.
@@ -201,4 +201,25 @@ def test_date_must_be_month_slash_day(date: str) -> None:
     with pytest.raises(ValueError):
         get_booking_options.invoke(
             {"place_id": "vands-hongdae", "preferred_date": date}
+        )
+
+
+def test_card_id_with_unknown_menu_is_an_error() -> None:
+    with pytest.raises(ValueError, match="Unknown menu"):
+        get_booking_options.invoke({"place_id": "vands-hongdae:nope"})
+
+
+def test_card_id_with_spaces_and_explicit_empty_menus() -> None:
+    _, artifact = call(place_id=" vands-hongdae : shrink-300 ", menu_ids=[])
+
+    assert artifact.booking.place_id == "vands-hongdae"
+    # 빈 배열은 "시술 미정"이다. card_id의 시술로 바꾸지 않는다.
+    assert artifact.booking.menu_ids == []
+    assert artifact.booking.order_total_krw == 0
+
+
+def test_fullwidth_date_digits_are_rejected() -> None:
+    with pytest.raises(ValueError):
+        get_booking_options.invoke(
+            {"place_id": "vands-hongdae", "preferred_date": "１１/２８"}
         )
