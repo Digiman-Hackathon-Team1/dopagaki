@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MotionConfig } from 'motion/react';
 import { Toaster, toast } from 'sonner';
@@ -20,6 +20,7 @@ import {
   buildRankedRows,
   isPointInSouthKorea
 } from '@/lib/calc.ts';
+import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
 import { getCopy } from '@/lib/i18n.ts';
 import { triggerHaptic } from '@/lib/fluid.ts';
 import { createBrandDopamineBurst } from '@/components/dopamine-burst.ts';
@@ -52,7 +53,6 @@ import {
   GuideDrawerModal,
   ShareQrModal
 } from '@/components/Modals.tsx';
-import BlurText from '@/components/BlurText.tsx';
 import Magnet from '@/components/Magnet.tsx';
 import { AnimatedBackground } from '@/components/motion-primitives/animated-background.tsx';
 
@@ -61,7 +61,7 @@ const TOTAL_CLINIC_COUNT = dataset.places.length;
 const TOTAL_BRAND_COUNT = new Set(dataset.places.map((p) => p.brandJa)).size;
 const initialNaverFx = rawNaverFx as unknown as NaverFxSnapshot;
 
-const STORAGE_LANG_KEY = 'seoul_payback_lang';
+
 const SESSION_LOC_KEY = 'dopagaki_user_loc_v1';
 const APP_BASE_PATH = detectAppBasePath(window.location.pathname);
 
@@ -207,7 +207,18 @@ function MisregWord({ word }: { word: string }) {
   );
 }
 
+// 개발 서버에서는 항상, 배포 빌드에서는 VITE_AGENT_DEV=true일 때만 개발용 상담 화면을 넣는다.
+const AGENT_DEV_ENABLED = import.meta.env.DEV || import.meta.env.VITE_AGENT_DEV === 'true';
+const AgentDev = AGENT_DEV_ENABLED ? lazy(() => import('./dev/AgentDev')) : null;
+
 export function App() {
+  if (AgentDev && /^\/agent-dev\/?$/.test(window.location.pathname)) {
+    return <Suspense fallback={null}><AgentDev /></Suspense>;
+  }
+  return <ClinicApp />;
+}
+
+function ClinicApp() {
   const initialQuery = useMemo(() => parseHomeQuery(window.location.search), []);
   const initialRoute = useMemo(() => parseRoute(window.location.pathname, APP_BASE_PATH), []);
   const initialClinicParams = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -217,16 +228,7 @@ export function App() {
     initialNaverFx.krwPer100Jpy || dataset.meta.defaultKrwPer100Jpy
   );
 
-  const [lang, setLang] = useState<Lang>(() => {
-    if (initialQuery.langParam === 'ko' || initialQuery.langParam === 'ja') {
-      return initialQuery.langParam;
-    }
-    try {
-      return localStorage.getItem(STORAGE_LANG_KEY) === 'ko' ? 'ko' : 'ja';
-    } catch {
-      return 'ja';
-    }
-  });
+  const [lang, setLang] = useState<Lang>(() => readSiteLanguage(initialQuery.langParam));
   const [menuId, setMenuId] = useState<string>(initialQuery.menuId);
   const [area, setArea] = useState<AreaId>(initialQuery.area);
   const [sort, setSort] = useState<SortId>(initialQuery.sort);
@@ -534,18 +536,23 @@ export function App() {
   }, []);
 
   // Desktop side panel: QR of the current page so people can continue on their phone.
+  // Debounced past the 320ms number-rolling window so canvas QR encoding & state update
+  // never trigger a mid-animation main-thread hiccup.
   useEffect(() => {
     if (!window.matchMedia('(min-width: 960px)').matches) return;
     let cancelled = false;
-    void QRCode.toDataURL(computeCurrentUrl(lang), {
-      margin: 1,
-      width: 240,
-      color: { dark: '#1f2a6b', light: '#ffffff' }
-    }).then((url) => {
-      if (!cancelled) setAsideQr(url);
-    });
+    const timer = window.setTimeout(() => {
+      void QRCode.toDataURL(computeCurrentUrl(lang), {
+        margin: 1,
+        width: 240,
+        color: { dark: '#1f2a6b', light: '#ffffff' }
+      }).then((url) => {
+        if (!cancelled) setAsideQr(url);
+      });
+    }, 450);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [computeCurrentUrl, lang, menuId]);
 
@@ -653,11 +660,7 @@ export function App() {
     triggerHaptic(6);
     setLang(nextLang);
     setShareLang(nextLang);
-    try {
-      localStorage.setItem(STORAGE_LANG_KEY, nextLang);
-    } catch {
-      // ignore
-    }
+    saveSiteLanguage(nextLang);
   };
 
   const goToDefaultHome = () => {
@@ -726,15 +729,17 @@ export function App() {
     return map;
   }, [allInMenu]);
 
-  const rowsBeforeJpFilter = useMemo(
-    () =>
-      buildRankedRows(dataset, menuId, area, sort, krwPer100Jpy, includeVat, {
-        searchQuery,
-        japaneseOnly: false,
-        origin: userLocation
-      }),
-    [menuId, area, sort, krwPer100Jpy, includeVat, searchQuery, userLocation]
-  );
+  const rowsBeforeJpFilter = useMemo(() => {
+    // Reuse `allInMenu` in the common unfiltered default case instead of recomputing all 137 clinics twice.
+    if (area === 'all' && !japaneseOnly && traitFilters.length === 0) {
+      return allInMenu;
+    }
+    return buildRankedRows(dataset, menuId, area, sort, krwPer100Jpy, includeVat, {
+      searchQuery,
+      japaneseOnly: false,
+      origin: userLocation
+    });
+  }, [allInMenu, menuId, area, sort, krwPer100Jpy, includeVat, searchQuery, japaneseOnly, traitFilters.length, userLocation]);
 
   const baseRowsForTraits = useMemo(
     () => (japaneseOnly ? rowsBeforeJpFilter.filter((r) => r.place.japaneseSupport) : rowsBeforeJpFilter),
@@ -777,32 +782,50 @@ export function App() {
     searchQuery
   });
 
-  const areaChips: FilterChip[] = [
-    { id: 'all', label: isJa ? '全体' : '전체', count: allInMenu.length, pressed: area === 'all' },
-    ...[...PRIMARY_AREAS.map((a) => a.id), ...EXTRA_AREA_IDS].map((id) => {
-      const primary = PRIMARY_AREAS.find((a) => a.id === id);
-      const label = primary ? (isJa ? primary.ja : primary.ko) : isJa ? EXTRA_SHORT[id].ja : EXTRA_SHORT[id].ko;
-      return { id, label, count: countByArea.get(id) ?? 0, pressed: area === id };
-    })
-  ];
+  const areaChips: FilterChip[] = useMemo(
+    () => [
+      { id: 'all', label: isJa ? '全体' : '전체', count: allInMenu.length, pressed: area === 'all' },
+      ...[...PRIMARY_AREAS.map((a) => a.id), ...EXTRA_AREA_IDS].map((id) => {
+        const primary = PRIMARY_AREAS.find((a) => a.id === id);
+        const label = primary ? (isJa ? primary.ja : primary.ko) : isJa ? EXTRA_SHORT[id].ja : EXTRA_SHORT[id].ko;
+        return { id, label, count: countByArea.get(id) ?? 0, pressed: area === id };
+      })
+    ],
+    [isJa, allInMenu.length, area, countByArea]
+  );
 
-  const traitChips: FilterChip[] = TRAIT_FILTERS.map((tf) => {
-    const isAll = tf.id === 'all';
-    const pressed = isAll ? traitFilters.length === 0 : traitFilters.includes(tf.id);
-    const count = isAll
-      ? baseRowsForTraits.length
-      : baseRowsForTraits.filter((r) =>
-          matchesTraitFilters(r.place, pressed ? traitFilters : [...traitFilters, tf.id])
-        ).length;
-    return {
-      id: tf.id,
-      label: isJa ? tf.labelJa : tf.labelKo,
-      count,
-      pressed,
-      disabled: !isAll && count === 0 && !pressed,
-      icon: tf.icon
-    };
-  });
+  const traitChips: FilterChip[] = useMemo(
+    () =>
+      TRAIT_FILTERS.map((tf) => {
+        const isAll = tf.id === 'all';
+        const pressed = isAll ? traitFilters.length === 0 : traitFilters.includes(tf.id);
+        const count = isAll
+          ? baseRowsForTraits.length
+          : baseRowsForTraits.filter((r) =>
+              matchesTraitFilters(r.place, pressed ? traitFilters : [...traitFilters, tf.id])
+            ).length;
+        return {
+          id: tf.id,
+          label: isJa ? tf.labelJa : tf.labelKo,
+          count,
+          pressed,
+          disabled: !isAll && count === 0 && !pressed,
+          icon: tf.icon
+        };
+      }),
+    [isJa, traitFilters, baseRowsForTraits]
+  );
+
+  const handleLightHaptic = useCallback(() => triggerHaptic(6), []);
+  const navigateToClinicRef = useRef(navigateToClinic);
+  navigateToClinicRef.current = navigateToClinic;
+  const handleOpenHomeClinic = useCallback(
+    (placeId: string) => {
+      track('detail_open', { place_id: placeId, menu: menuId, lang });
+      navigateToClinicRef.current(placeId, true, [menuId], 1);
+    },
+    [menuId, lang]
+  );
 
   const resetFilters = () => {
     const prev = { area, traitFilters: [...traitFilters], searchQuery, japaneseOnly };
@@ -888,17 +911,7 @@ export function App() {
             <div className="brand-stack">
               <span className="logo-word" id="brand-word" data-lang={lang}>
                 <MisregWord word={isJa ? 'ドパガキ' : '도파가키'} />{' '}
-                <BlurText
-                  as="span"
-                  key={`bt-${lang}`}
-                  text={isJa ? '美肌相場' : '피부시세'}
-                  trigger="load"
-                  animateBy="words"
-                  delay={30}
-                  stepDuration={0.18}
-                  blur={4}
-                  distance={6}
-                />
+                <span className="logo-sub">{isJa ? '美肌相場' : '피부시세'}</span>
               </span>
               <span className="brand-meta" id="brand-meta">
                 {isJa
@@ -1079,39 +1092,33 @@ export function App() {
         ) : (
           <div className="home-view" id="home-view">
             <section className="quickbar" id="controls" aria-label={isJa ? '施術と絞り込み' : '시술과 필터'}>
-                <div className="treat-grid treat-row has-mp-bg" id="treat-grid" role="group" aria-label="Treatment">
-                  <AnimatedBackground
-                    value={menuId}
-                    onValueChange={(nextMenu) => {
-                      if (nextMenu && nextMenu !== menuId) {
-                        triggerHaptic(6);
-                        setMenuId(nextMenu);
-                      }
-                    }}
-                    className="mp-accent-pill"
-                    transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
-                  >
-                    {dataset.menus.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        data-id={m.id}
-                        className="treat-cell"
-                        data-menu={m.id}
-                        aria-pressed={m.id === activeMenu.id}
-                      >
-                        <MenuEmoji menuId={m.id} size={16} className="treat-emoji" />
-                        {m.id === 're2o-5cc' ? (
-                          <span className="treat-label">
-                            {isJa ? 'ブナジュ' : '리투오'}
-                            <span className="treat-alias">{isJa ? '韓: リトゥオ' : '일: 부나주'}</span>
-                          </span>
-                        ) : (
-                          <span className="treat-label">{isJa ? m.shortJa : m.shortKo}</span>
-                        )}
-                      </button>
-                    ))}
-                  </AnimatedBackground>
+                <div className="treat-grid treat-row" id="treat-grid" role="group" aria-label="Treatment">
+                  {dataset.menus.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      data-id={m.id}
+                      className="treat-cell"
+                      data-menu={m.id}
+                      aria-pressed={m.id === activeMenu.id}
+                      onClick={() => {
+                        if (m.id !== menuId) {
+                          triggerHaptic(6);
+                          setMenuId(m.id);
+                        }
+                      }}
+                    >
+                      <MenuEmoji menuId={m.id} size={16} className="treat-emoji" />
+                      {m.id === 're2o-5cc' ? (
+                        <span className="treat-label">
+                          {isJa ? 'ブナジュ' : '리투오'}
+                          <span className="treat-alias">{isJa ? '韓: リトゥオ' : '일: 부나주'}</span>
+                        </span>
+                      ) : (
+                        <span className="treat-label">{isJa ? m.shortJa : m.shortKo}</span>
+                      )}
+                    </button>
+                  ))}
                 </div>
                 <div className="quick-tools">
                     <div className="sorts has-mp-bg" id="sorts-switch" role="group" aria-label="Sort">
@@ -1222,11 +1229,8 @@ export function App() {
                     lang={lang}
                     inKoreaLoc={inKoreaLoc}
                     jpSupportLabel={copy.jpSupportTag}
-                    onHaptic={() => triggerHaptic(6)}
-                    onOpenClinic={(placeId) => {
-                      track('detail_open', { place_id: placeId, menu: menuId, lang });
-                      navigateToClinic(placeId, true, [menuId], 1);
-                    }}
+                    onHaptic={handleLightHaptic}
+                    onOpenClinic={handleOpenHomeClinic}
                   />
                 )}
               </div>
@@ -1309,12 +1313,13 @@ export function App() {
           aria-current={activeTab === 'list' ? 'page' : undefined}
           onClick={() => {
             triggerHaptic(6);
+            const sameTab = activeTab === 'list' && !activeClinicId;
             lastMainTabRef.current = 'list';
             setActiveTab('list');
             if (activeClinicId) {
               navigateToHome(true, 'list');
             } else {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: sameTab ? 'smooth' : ('instant' as ScrollBehavior) });
             }
           }}
         >
@@ -1327,13 +1332,14 @@ export function App() {
           aria-current={activeTab === 'info' ? 'page' : undefined}
           onClick={() => {
             triggerHaptic(6);
+            const sameTab = activeTab === 'info' && !activeClinicId;
             setInfoMenuId(menuId);
             lastMainTabRef.current = 'info';
             setActiveTab('info');
             if (activeClinicId) {
               navigateToHome(true);
             }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: sameTab ? 'smooth' : ('instant' as ScrollBehavior) });
           }}
         >
           <SvgIcon name="info" />
@@ -1345,16 +1351,17 @@ export function App() {
           aria-current={activeTab === 'recommend' ? 'page' : undefined}
           onClick={() => {
             triggerHaptic(6);
+            const sameTab = activeTab === 'recommend' && !activeClinicId;
             lastMainTabRef.current = 'recommend';
             setActiveTab('recommend');
             if (activeClinicId) {
               navigateToHome(true);
             }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: sameTab ? 'smooth' : ('instant' as ScrollBehavior) });
           }}
         >
           <SvgIcon name="spark" />
-          <span className="apptab-lbl">{isJa ? '施術診断' : '시술추천'}</span>
+          <span className="apptab-lbl">{isJa ? 'AI相談' : 'AI 상담'}</span>
         </button>
         <button
           type="button"
@@ -1362,12 +1369,13 @@ export function App() {
           aria-current={activeTab === 'saved' ? 'page' : undefined}
           onClick={() => {
             triggerHaptic(6);
+            const sameTab = activeTab === 'saved' && !activeClinicId;
             lastMainTabRef.current = 'saved';
             setActiveTab('saved');
             if (activeClinicId) {
               navigateToHome(true);
             }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: sameTab ? 'smooth' : ('instant' as ScrollBehavior) });
           }}
         >
           <span className="apptab-icon-wrap">

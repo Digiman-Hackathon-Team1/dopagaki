@@ -33,9 +33,6 @@
               }
             }
           },
-          "503": {
-            "description": "API 키가 없어 에이전트를 사용할 수 없음"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -70,6 +67,164 @@
   },
   "components": {
     "schemas": {
+      "BookingCard": {
+        "properties": {
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "menuIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Menuids",
+            "description": "문의 문장에 넣은 시술 ID. 이 병원에 가격이 없는 시술은 빠진다"
+          },
+          "japaneseSupport": {
+            "type": "boolean",
+            "title": "Japanesesupport"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/BookingChannel"
+            },
+            "type": "array",
+            "title": "Channels",
+            "description": "공식 예약·상담 채널. web 예약 시트와 같은 순서다. 없으면 빈 배열(공식 사이트로 안내)"
+          },
+          "centralChannel": {
+            "type": "boolean",
+            "title": "Centralchannel",
+            "description": "브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true"
+          },
+          "officialSiteUrl": {
+            "type": "string",
+            "title": "Officialsiteurl",
+            "description": "병원 공식 사이트"
+          },
+          "inquiryKo": {
+            "type": "string",
+            "title": "Inquiryko",
+            "description": "방문 전에 채널로 보낼 한국어 예약 문의(web buildInquiryMessages와 같은 틀). 희망 날짜·시간대·인원이 들어가고 가격은 없다. 이름 칸은 비워 둔다"
+          },
+          "inquiryJa": {
+            "type": "string",
+            "title": "Inquiryja",
+            "description": "같은 문의 문장의 일본어판"
+          },
+          "orderSheetKo": {
+            "type": "string",
+            "title": "Ordersheetko",
+            "description": "방문한 날 접수대에서 보여 줄 한국어 메모(web 예약 시트의 접수 메모와 같은 틀). 시술별 공식가, 부가세 포함 예상 합계, 부탁(추가 시술 권유 사양 등)이 들어간다"
+          },
+          "orderSheetJa": {
+            "type": "string",
+            "title": "Ordersheetja",
+            "description": "같은 접수 메모의 일본어판"
+          },
+          "orderTotalKrw": {
+            "type": "integer",
+            "title": "Ordertotalkrw",
+            "description": "접수 메모의 부가세 포함 예상 합계(원). 시술이 없으면 0"
+          },
+          "orderTotalJpy": {
+            "type": "integer",
+            "title": "Ordertotaljpy",
+            "description": "같은 합계의 엔화 환산. 시술 하나면 병원 추천 카드의 totalJpy와 같다"
+          },
+          "krwPer100Jpy": {
+            "type": "number",
+            "title": "Krwper100Jpy",
+            "description": "접수 메모 환산에 쓴 환율(100엔당 원)"
+          },
+          "fxDateLabel": {
+            "type": "string",
+            "title": "Fxdatelabel",
+            "description": "환율 기준일"
+          },
+          "kind": {
+            "type": "string",
+            "const": "booking",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "placeId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "menuIds",
+          "japaneseSupport",
+          "channels",
+          "centralChannel",
+          "officialSiteUrl",
+          "inquiryKo",
+          "inquiryJa",
+          "orderSheetKo",
+          "orderSheetJa",
+          "orderTotalKrw",
+          "orderTotalJpy",
+          "krwPer100Jpy",
+          "fxDateLabel",
+          "kind"
+        ],
+        "title": "BookingCard"
+      },
+      "BookingChannel": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "kakao",
+              "line",
+              "instagram",
+              "naver_booking",
+              "direct_reserve"
+            ],
+            "title": "Kind",
+            "description": "kakao 카카오톡, line LINE, instagram 인스타그램, naver_booking 네이버 예약, direct_reserve 공식 웹 예약"
+          },
+          "labelJa": {
+            "type": "string",
+            "title": "Labelja",
+            "description": "버튼 문구. 예: LINE公式相談・予約"
+          },
+          "labelKo": {
+            "type": "string",
+            "title": "Labelko"
+          },
+          "urlJa": {
+            "type": "string",
+            "title": "Urlja",
+            "description": "일본어 화면에서 쓸 링크(일본어 계정·페이지가 있으면 그쪽)"
+          },
+          "urlKo": {
+            "type": "string",
+            "title": "Urlko"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "labelJa",
+          "labelKo",
+          "urlJa",
+          "urlKo"
+        ],
+        "title": "BookingChannel",
+        "description": "병원 공식 예약·상담 채널 하나. web clinic-channels.ts의 링크 그대로다(FR-05)."
+      },
       "ChatRequest": {
         "properties": {
           "userId": {
@@ -123,6 +278,22 @@
             "format": "uuid",
             "title": "Threadid"
           },
+          "fallback": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "error",
+                  "daily_limit"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback",
+            "description": "에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 보여 준다. 정상 답변이면 null"
+          },
           "conditionSummary": {
             "type": "string",
             "title": "Conditionsummary"
@@ -130,6 +301,44 @@
           "answer": {
             "type": "string",
             "title": "Answer"
+          },
+          "cards": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RecommendationCard"
+                },
+                {
+                  "$ref": "#/components/schemas/LocationCard"
+                },
+                {
+                  "$ref": "#/components/schemas/JpMatchCard"
+                },
+                {
+                  "$ref": "#/components/schemas/BookingCard"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "booking": "#/components/schemas/BookingCard",
+                  "jp_match": "#/components/schemas/JpMatchCard",
+                  "location": "#/components/schemas/LocationCard",
+                  "recommendation": "#/components/schemas/RecommendationCard"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Cards",
+            "description": "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다"
+          },
+          "exclusions": {
+            "items": {
+              "$ref": "#/components/schemas/Exclusion"
+            },
+            "type": "array",
+            "title": "Exclusions",
+            "description": "이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열"
           },
           "questions": {
             "items": {
@@ -161,14 +370,56 @@
         "type": "object",
         "required": [
           "threadId",
+          "fallback",
           "conditionSummary",
           "answer",
+          "cards",
+          "exclusions",
           "questions",
           "suggestions",
           "cautions",
           "disclaimer"
         ],
         "title": "ChatResponse"
+      },
+      "Exclusion": {
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "needle",
+              "downtime",
+              "area",
+              "japanese",
+              "budget"
+            ],
+            "title": "Reason",
+            "description": "needle 바늘 시술 기피, downtime 회복 기간 초과(이 둘은 시술 전체가 빠짐), area 다른 지역, japanese 일본어 미지원, budget 예산 초과"
+          },
+          "clinicCount": {
+            "type": "integer",
+            "title": "Cliniccount",
+            "description": "이 사유로 빠진 병원 수"
+          },
+          "searchId": {
+            "type": "string",
+            "title": "Searchid",
+            "description": "어느 검색의 제외 사유인지. 같은 턴의 카드 searchId와 같다"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "menuId",
+          "reason",
+          "clinicCount",
+          "searchId"
+        ],
+        "title": "Exclusion"
       },
       "HTTPValidationError": {
         "properties": {
@@ -197,6 +448,344 @@
         ],
         "title": "Health"
       },
+      "JpClinicPrice": {
+        "properties": {
+          "nameJa": {
+            "type": "string",
+            "title": "Nameja"
+          },
+          "nameKo": {
+            "type": "string",
+            "title": "Nameko"
+          },
+          "planJa": {
+            "type": "string",
+            "title": "Planja",
+            "description": "일본 병원의 플랜명. 단위(샷 수, cc, 단위 수)가 들어 있고 한국 메뉴와 단위가 다를 수 있다. 예: ウルトラスキンハイフ 全顔 (650ショット)"
+          },
+          "planKo": {
+            "type": "string",
+            "title": "Planko"
+          },
+          "priceJpy": {
+            "type": "integer",
+            "title": "Pricejpy",
+            "description": "세금 포함 공식가(엔)"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl",
+            "description": "일본 병원 공식 가격 출처"
+          },
+          "productNoteJa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteja",
+            "description": "이 일본 병원 가격이 한국 시술과 다른 제품일 때의 안내. 예: SBC 리쥬란은 힐러가 아니라 같은 성분 농도의 눈가용 리쥬란 i 가격이다. 같은 제품이면 null"
+          },
+          "productNoteKo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteko"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nameJa",
+          "nameKo",
+          "planJa",
+          "planKo",
+          "priceJpy",
+          "sourceUrl",
+          "productNoteJa",
+          "productNoteKo"
+        ],
+        "title": "JpClinicPrice",
+        "description": "사용자가 다니던 일본 병원의 가격. 데이터의 일본 벤치마크 병원 한 곳이다(설계 문서 4.7)."
+      },
+      "JpClinicSavings": {
+        "properties": {
+          "nameJa": {
+            "type": "string",
+            "title": "Nameja"
+          },
+          "nameKo": {
+            "type": "string",
+            "title": "Nameko"
+          },
+          "planJa": {
+            "type": "string",
+            "title": "Planja",
+            "description": "일본 병원의 플랜명. 단위(샷 수, cc, 단위 수)가 들어 있고 한국 메뉴와 단위가 다를 수 있다. 예: ウルトラスキンハイフ 全顔 (650ショット)"
+          },
+          "planKo": {
+            "type": "string",
+            "title": "Planko"
+          },
+          "priceJpy": {
+            "type": "integer",
+            "title": "Pricejpy",
+            "description": "세금 포함 공식가(엔)"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl",
+            "description": "일본 병원 공식 가격 출처"
+          },
+          "productNoteJa": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteja",
+            "description": "이 일본 병원 가격이 한국 시술과 다른 제품일 때의 안내. 예: SBC 리쥬란은 힐러가 아니라 같은 성분 농도의 눈가용 리쥬란 i 가격이다. 같은 제품이면 null"
+          },
+          "productNoteKo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Productnoteko"
+          },
+          "savingsJpy": {
+            "type": "integer",
+            "title": "Savingsjpy",
+            "description": "이 일본 병원 가격 대비 절약액(엔). 음수면 한국이 더 비쌈"
+          },
+          "savingsPct": {
+            "type": "integer",
+            "title": "Savingspct"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nameJa",
+          "nameKo",
+          "planJa",
+          "planKo",
+          "priceJpy",
+          "sourceUrl",
+          "productNoteJa",
+          "productNoteKo",
+          "savingsJpy",
+          "savingsPct"
+        ],
+        "title": "JpClinicSavings"
+      },
+      "JpMatchCard": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "사용자가 말한 일본 시술명. 예: ハイフ"
+          },
+          "menuId": {
+            "type": "string",
+            "title": "Menuid",
+            "description": "대응하는 한국 시술 ID"
+          },
+          "menuNameJa": {
+            "type": "string",
+            "title": "Menunameja"
+          },
+          "menuNameKo": {
+            "type": "string",
+            "title": "Menunameko"
+          },
+          "reasonJa": {
+            "type": "string",
+            "title": "Reasonja",
+            "description": "한국과 일본에서 이름이 다른 이유 한 줄"
+          },
+          "reasonKo": {
+            "type": "string",
+            "title": "Reasonko"
+          },
+          "unitNoteJa": {
+            "type": "string",
+            "title": "Unitnoteja",
+            "description": "한국·일본의 단위 차이. 예: 300샷과 650샷"
+          },
+          "unitNoteKo": {
+            "type": "string",
+            "title": "Unitnoteko"
+          },
+          "jpClinic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JpClinicPrice"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "사용자가 말한 일본 병원의 이 시술 가격. 말하지 않았거나 데이터에 없으면 null"
+          },
+          "kind": {
+            "type": "string",
+            "const": "jp_match",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "query",
+          "menuId",
+          "menuNameJa",
+          "menuNameKo",
+          "reasonJa",
+          "reasonKo",
+          "unitNoteJa",
+          "unitNoteKo",
+          "jpClinic",
+          "kind"
+        ],
+        "title": "JpMatchCard"
+      },
+      "LocationCard": {
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "title": "Locationid",
+            "description": "위치 ID. 예: area:hongdae(지역), station:홍대입구(역)"
+          },
+          "locationType": {
+            "type": "string",
+            "enum": [
+              "area",
+              "station"
+            ],
+            "title": "Locationtype",
+            "description": "area 지역 중심 좌표, station 역 좌표"
+          },
+          "query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Query",
+            "description": "위치를 찾은 사용자 표현. 예: 홍대 숙소. resolve_location을 거치지 않은 위치 ID로 검색했으면 null"
+          },
+          "nameJa": {
+            "type": "string",
+            "title": "Nameja"
+          },
+          "nameKo": {
+            "type": "string",
+            "title": "Nameko"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lng": {
+            "type": "number",
+            "title": "Lng"
+          },
+          "kind": {
+            "type": "string",
+            "const": "location",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "locationId",
+          "locationType",
+          "query",
+          "nameJa",
+          "nameKo",
+          "lat",
+          "lng",
+          "kind"
+        ],
+        "title": "LocationCard"
+      },
+      "PriceProof": {
+        "properties": {
+          "urlJa": {
+            "type": "string",
+            "title": "Urlja",
+            "description": "공식 가격 페이지. 일본어 페이지가 있으면 그쪽"
+          },
+          "urlKo": {
+            "type": "string",
+            "title": "Urlko"
+          },
+          "domainJa": {
+            "type": "string",
+            "title": "Domainja",
+            "description": "링크에 표시할 도메인. 예: hongdaejp.vandsclinics.com"
+          },
+          "domainKo": {
+            "type": "string",
+            "title": "Domainko"
+          },
+          "capturedDate": {
+            "type": "string",
+            "title": "Captureddate",
+            "description": "가격을 확인한 날짜. 예: 2026-11-23"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "공식 페이지 스크린샷에서 이 가격을 확인했으면 true. false면 링크만 있음"
+          },
+          "matchedText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matchedtext",
+            "description": "스크린샷에서 찾은 가격 문구(한국어). verified가 false면 null"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "urlJa",
+          "urlKo",
+          "domainJa",
+          "domainKo",
+          "capturedDate",
+          "verified",
+          "matchedText"
+        ],
+        "title": "PriceProof",
+        "description": "가격표 증빙. web 병원 화면의 공식 가격 링크와 같다(설계 문서 4.7)."
+      },
       "Question": {
         "properties": {
           "question": {
@@ -223,6 +812,308 @@
           "multiSelect"
         ],
         "title": "Question"
+      },
+      "RecommendationCard": {
+        "properties": {
+          "cardId": {
+            "type": "string",
+            "title": "Cardid",
+            "description": "병원 ID와 시술 ID를 묶은 카드 ID"
+          },
+          "placeId": {
+            "type": "string",
+            "title": "Placeid"
+          },
+          "menuId": {
+            "type": "string",
+            "title": "Menuid"
+          },
+          "clinicNameJa": {
+            "type": "string",
+            "title": "Clinicnameja"
+          },
+          "clinicNameKo": {
+            "type": "string",
+            "title": "Clinicnameko"
+          },
+          "menuNameJa": {
+            "type": "string",
+            "title": "Menunameja"
+          },
+          "menuNameKo": {
+            "type": "string",
+            "title": "Menunameko"
+          },
+          "area": {
+            "type": "string",
+            "enum": [
+              "sinchon",
+              "hongdae",
+              "myeongdong",
+              "yongsan",
+              "gangnam",
+              "jamsil",
+              "seongsu",
+              "yeouido",
+              "magok",
+              "nowon",
+              "cheonho",
+              "gwanak"
+            ],
+            "title": "Area"
+          },
+          "stationJa": {
+            "type": "string",
+            "title": "Stationja"
+          },
+          "stationKo": {
+            "type": "string",
+            "title": "Stationko"
+          },
+          "japaneseSupport": {
+            "type": "boolean",
+            "title": "Japanesesupport"
+          },
+          "baseKrw": {
+            "type": "integer",
+            "title": "Basekrw",
+            "description": "병원 표시 가격(원)"
+          },
+          "vatKrw": {
+            "type": "integer",
+            "title": "Vatkrw",
+            "description": "더한 부가세(원). 표시 가격에 이미 포함돼 있으면 0"
+          },
+          "totalKrw": {
+            "type": "integer",
+            "title": "Totalkrw",
+            "description": "부가세 포함 가격(원)"
+          },
+          "totalJpy": {
+            "type": "integer",
+            "title": "Totaljpy",
+            "description": "부가세 포함 가격의 엔화 환산"
+          },
+          "krwPer100Jpy": {
+            "type": "number",
+            "title": "Krwper100Jpy",
+            "description": "환산에 쓴 환율(100엔당 원)"
+          },
+          "fxDateLabel": {
+            "type": "string",
+            "title": "Fxdatelabel",
+            "description": "환율 기준일. 예: 2026.11.25"
+          },
+          "jpAverageJpy": {
+            "type": "integer",
+            "title": "Jpaveragejpy",
+            "description": "일본 주요 병원 세금 포함 공식가 평균"
+          },
+          "jpMinJpy": {
+            "type": "integer",
+            "title": "Jpminjpy"
+          },
+          "jpMaxJpy": {
+            "type": "integer",
+            "title": "Jpmaxjpy"
+          },
+          "jpClinicCount": {
+            "type": "integer",
+            "title": "Jpcliniccount",
+            "description": "일본 평균에 쓴 병원 수"
+          },
+          "savingsJpy": {
+            "type": "integer",
+            "title": "Savingsjpy",
+            "description": "일본 평균 대비 절약액(엔). 음수면 더 비쌈"
+          },
+          "savingsPct": {
+            "type": "integer",
+            "title": "Savingspct"
+          },
+          "jpClinic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JpClinicSavings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "사용자가 다니던 일본 병원과 직접 비교한 가격과 절약액. 그 병원의 이 시술 가격이 데이터에 있을 때만 채우고, 없으면 null(일본 평균 대비만 표시)"
+          },
+          "distanceMeters": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distancemeters",
+            "description": "기준 위치에서의 직선거리. 기준 위치가 없으면 null"
+          },
+          "walkMinutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Walkminutes"
+          },
+          "priceTags": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "first_visit",
+                "event",
+                "day_limited",
+                "app_benefit",
+                "anesthesia",
+                "extra_fee"
+              ]
+            },
+            "type": "array",
+            "title": "Pricetags",
+            "description": "가격 조건 태그(설계 4.7). first_visit 첫 방문·체험가, event 이벤트가·특가, day_limited 요일 한정, app_benefit 앱·카카오 혜택가, anesthesia 마취비 별도·확인, extra_fee 시술 팁 별도. 절약액 계산에는 반영하지 않는다"
+          },
+          "priceConditionJa": {
+            "type": "string",
+            "title": "Priceconditionja",
+            "description": "가격 조건(첫 방문 한정, 이벤트가 등)"
+          },
+          "priceConditionKo": {
+            "type": "string",
+            "title": "Priceconditionko"
+          },
+          "priceNoteJa": {
+            "type": "string",
+            "title": "Pricenoteja",
+            "description": "가격 출처 메모"
+          },
+          "priceNoteKo": {
+            "type": "string",
+            "title": "Pricenoteko"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl",
+            "description": "병원 공식 가격 출처"
+          },
+          "rating": {
+            "type": "number",
+            "title": "Rating",
+            "description": "후기 평점(5점 만점, web AI 평점과 같음). 순서에는 영향이 없다(sort=rating 제외)"
+          },
+          "ratingScope": {
+            "type": "string",
+            "enum": [
+              "branch",
+              "brand"
+            ],
+            "title": "Ratingscope",
+            "description": "평점 근거. branch 이 지점 후기, brand 같은 브랜드 다른 지점 후기를 참고"
+          },
+          "ratingTier": {
+            "type": "string",
+            "enum": [
+              "jp_kr_verified",
+              "kr_verified",
+              "limited"
+            ],
+            "title": "Ratingtier",
+            "description": "후기 확인 수준. jp_kr_verified 일본·한국 후기 확인, kr_verified 한국 후기만 확인, limited 확인된 후기가 적음. 후기 수는 데이터에 없다"
+          },
+          "bookingChannels": {
+            "items": {
+              "$ref": "#/components/schemas/BookingChannel"
+            },
+            "type": "array",
+            "title": "Bookingchannels",
+            "description": "공식 예약·상담 채널. 데이터에 없으면 빈 배열"
+          },
+          "centralChannel": {
+            "type": "boolean",
+            "title": "Centralchannel",
+            "description": "브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true"
+          },
+          "proof": {
+            "$ref": "#/components/schemas/PriceProof",
+            "description": "이 시술 가격의 가격표 증빙 링크"
+          },
+          "kind": {
+            "type": "string",
+            "const": "recommendation",
+            "title": "Kind"
+          },
+          "searchId": {
+            "type": "string",
+            "title": "Searchid",
+            "description": "어느 검색의 카드인지(이번 턴 검색 순서, 예: s1). 지점·지역을 비교하면 검색마다 값이 다르므로 화면이 묶어 보여 줄 수 있다. 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cardId",
+          "placeId",
+          "menuId",
+          "clinicNameJa",
+          "clinicNameKo",
+          "menuNameJa",
+          "menuNameKo",
+          "area",
+          "stationJa",
+          "stationKo",
+          "japaneseSupport",
+          "baseKrw",
+          "vatKrw",
+          "totalKrw",
+          "totalJpy",
+          "krwPer100Jpy",
+          "fxDateLabel",
+          "jpAverageJpy",
+          "jpMinJpy",
+          "jpMaxJpy",
+          "jpClinicCount",
+          "savingsJpy",
+          "savingsPct",
+          "jpClinic",
+          "distanceMeters",
+          "walkMinutes",
+          "priceTags",
+          "priceConditionJa",
+          "priceConditionKo",
+          "priceNoteJa",
+          "priceNoteKo",
+          "sourceUrl",
+          "rating",
+          "ratingScope",
+          "ratingTier",
+          "bookingChannels",
+          "centralChannel",
+          "proof",
+          "kind",
+          "searchId",
+          "reason"
+        ],
+        "title": "RecommendationCard"
       },
       "ValidationError": {
         "properties": {

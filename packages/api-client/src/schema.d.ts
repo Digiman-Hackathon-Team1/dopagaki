@@ -42,6 +42,108 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** BookingCard */
+        BookingCard: {
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Menuids
+             * @description 문의 문장에 넣은 시술 ID. 이 병원에 가격이 없는 시술은 빠진다
+             */
+            menuIds: string[];
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /**
+             * Channels
+             * @description 공식 예약·상담 채널. web 예약 시트와 같은 순서다. 없으면 빈 배열(공식 사이트로 안내)
+             */
+            channels: components["schemas"]["BookingChannel"][];
+            /**
+             * Centralchannel
+             * @description 브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true
+             */
+            centralChannel: boolean;
+            /**
+             * Officialsiteurl
+             * @description 병원 공식 사이트
+             */
+            officialSiteUrl: string;
+            /**
+             * Inquiryko
+             * @description 방문 전에 채널로 보낼 한국어 예약 문의(web buildInquiryMessages와 같은 틀). 희망 날짜·시간대·인원이 들어가고 가격은 없다. 이름 칸은 비워 둔다
+             */
+            inquiryKo: string;
+            /**
+             * Inquiryja
+             * @description 같은 문의 문장의 일본어판
+             */
+            inquiryJa: string;
+            /**
+             * Ordersheetko
+             * @description 방문한 날 접수대에서 보여 줄 한국어 메모(web 예약 시트의 접수 메모와 같은 틀). 시술별 공식가, 부가세 포함 예상 합계, 부탁(추가 시술 권유 사양 등)이 들어간다
+             */
+            orderSheetKo: string;
+            /**
+             * Ordersheetja
+             * @description 같은 접수 메모의 일본어판
+             */
+            orderSheetJa: string;
+            /**
+             * Ordertotalkrw
+             * @description 접수 메모의 부가세 포함 예상 합계(원). 시술이 없으면 0
+             */
+            orderTotalKrw: number;
+            /**
+             * Ordertotaljpy
+             * @description 같은 합계의 엔화 환산. 시술 하나면 병원 추천 카드의 totalJpy와 같다
+             */
+            orderTotalJpy: number;
+            /**
+             * Krwper100Jpy
+             * @description 접수 메모 환산에 쓴 환율(100엔당 원)
+             */
+            krwPer100Jpy: number;
+            /**
+             * Fxdatelabel
+             * @description 환율 기준일
+             */
+            fxDateLabel: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "booking";
+        };
+        /**
+         * BookingChannel
+         * @description 병원 공식 예약·상담 채널 하나. web clinic-channels.ts의 링크 그대로다(FR-05).
+         */
+        BookingChannel: {
+            /**
+             * Kind
+             * @description kakao 카카오톡, line LINE, instagram 인스타그램, naver_booking 네이버 예약, direct_reserve 공식 웹 예약
+             * @enum {string}
+             */
+            kind: "kakao" | "line" | "instagram" | "naver_booking" | "direct_reserve";
+            /**
+             * Labelja
+             * @description 버튼 문구. 예: LINE公式相談・予約
+             */
+            labelJa: string;
+            /** Labelko */
+            labelKo: string;
+            /**
+             * Urlja
+             * @description 일본어 화면에서 쓸 링크(일본어 계정·페이지가 있으면 그쪽)
+             */
+            urlJa: string;
+            /** Urlko */
+            urlKo: string;
+        };
         /** ChatRequest */
         ChatRequest: {
             /**
@@ -74,10 +176,25 @@ export interface components {
              * Format: uuid
              */
             threadId: string;
+            /**
+             * Fallback
+             * @description 에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 보여 준다. 정상 답변이면 null
+             */
+            fallback: ("error" | "daily_limit") | null;
             /** Conditionsummary */
             conditionSummary: string;
             /** Answer */
             answer: string;
+            /**
+             * Cards
+             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다
+             */
+            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"] | components["schemas"]["BookingCard"])[];
+            /**
+             * Exclusions
+             * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
+             */
+            exclusions: components["schemas"]["Exclusion"][];
             /** Questions */
             questions: components["schemas"]["Question"][];
             /** Suggestions */
@@ -86,6 +203,27 @@ export interface components {
             cautions: string[];
             /** Disclaimer */
             disclaimer: string;
+        };
+        /** Exclusion */
+        Exclusion: {
+            /** Menuid */
+            menuId: string;
+            /**
+             * Reason
+             * @description needle 바늘 시술 기피, downtime 회복 기간 초과(이 둘은 시술 전체가 빠짐), area 다른 지역, japanese 일본어 미지원, budget 예산 초과
+             * @enum {string}
+             */
+            reason: "needle" | "downtime" | "area" | "japanese" | "budget";
+            /**
+             * Cliniccount
+             * @description 이 사유로 빠진 병원 수
+             */
+            clinicCount: number;
+            /**
+             * Searchid
+             * @description 어느 검색의 제외 사유인지. 같은 턴의 카드 searchId와 같다
+             */
+            searchId: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -100,6 +238,183 @@ export interface components {
              */
             status: "ok";
         };
+        /**
+         * JpClinicPrice
+         * @description 사용자가 다니던 일본 병원의 가격. 데이터의 일본 벤치마크 병원 한 곳이다(설계 문서 4.7).
+         */
+        JpClinicPrice: {
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /**
+             * Planja
+             * @description 일본 병원의 플랜명. 단위(샷 수, cc, 단위 수)가 들어 있고 한국 메뉴와 단위가 다를 수 있다. 예: ウルトラスキンハイフ 全顔 (650ショット)
+             */
+            planJa: string;
+            /** Planko */
+            planKo: string;
+            /**
+             * Pricejpy
+             * @description 세금 포함 공식가(엔)
+             */
+            priceJpy: number;
+            /**
+             * Sourceurl
+             * @description 일본 병원 공식 가격 출처
+             */
+            sourceUrl: string;
+            /**
+             * Productnoteja
+             * @description 이 일본 병원 가격이 한국 시술과 다른 제품일 때의 안내. 예: SBC 리쥬란은 힐러가 아니라 같은 성분 농도의 눈가용 리쥬란 i 가격이다. 같은 제품이면 null
+             */
+            productNoteJa: string | null;
+            /** Productnoteko */
+            productNoteKo: string | null;
+        };
+        /** JpClinicSavings */
+        JpClinicSavings: {
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /**
+             * Planja
+             * @description 일본 병원의 플랜명. 단위(샷 수, cc, 단위 수)가 들어 있고 한국 메뉴와 단위가 다를 수 있다. 예: ウルトラスキンハイフ 全顔 (650ショット)
+             */
+            planJa: string;
+            /** Planko */
+            planKo: string;
+            /**
+             * Pricejpy
+             * @description 세금 포함 공식가(엔)
+             */
+            priceJpy: number;
+            /**
+             * Sourceurl
+             * @description 일본 병원 공식 가격 출처
+             */
+            sourceUrl: string;
+            /**
+             * Productnoteja
+             * @description 이 일본 병원 가격이 한국 시술과 다른 제품일 때의 안내. 예: SBC 리쥬란은 힐러가 아니라 같은 성분 농도의 눈가용 리쥬란 i 가격이다. 같은 제품이면 null
+             */
+            productNoteJa: string | null;
+            /** Productnoteko */
+            productNoteKo: string | null;
+            /**
+             * Savingsjpy
+             * @description 이 일본 병원 가격 대비 절약액(엔). 음수면 한국이 더 비쌈
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+        };
+        /** JpMatchCard */
+        JpMatchCard: {
+            /**
+             * Query
+             * @description 사용자가 말한 일본 시술명. 예: ハイフ
+             */
+            query: string;
+            /**
+             * Menuid
+             * @description 대응하는 한국 시술 ID
+             */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Reasonja
+             * @description 한국과 일본에서 이름이 다른 이유 한 줄
+             */
+            reasonJa: string;
+            /** Reasonko */
+            reasonKo: string;
+            /**
+             * Unitnoteja
+             * @description 한국·일본의 단위 차이. 예: 300샷과 650샷
+             */
+            unitNoteJa: string;
+            /** Unitnoteko */
+            unitNoteKo: string;
+            /** @description 사용자가 말한 일본 병원의 이 시술 가격. 말하지 않았거나 데이터에 없으면 null */
+            jpClinic: components["schemas"]["JpClinicPrice"] | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "jp_match";
+        };
+        /** LocationCard */
+        LocationCard: {
+            /**
+             * Locationid
+             * @description 위치 ID. 예: area:hongdae(지역), station:홍대입구(역)
+             */
+            locationId: string;
+            /**
+             * Locationtype
+             * @description area 지역 중심 좌표, station 역 좌표
+             * @enum {string}
+             */
+            locationType: "area" | "station";
+            /**
+             * Query
+             * @description 위치를 찾은 사용자 표현. 예: 홍대 숙소. resolve_location을 거치지 않은 위치 ID로 검색했으면 null
+             */
+            query: string | null;
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "location";
+        };
+        /**
+         * PriceProof
+         * @description 가격표 증빙. web 병원 화면의 공식 가격 링크와 같다(설계 문서 4.7).
+         */
+        PriceProof: {
+            /**
+             * Urlja
+             * @description 공식 가격 페이지. 일본어 페이지가 있으면 그쪽
+             */
+            urlJa: string;
+            /** Urlko */
+            urlKo: string;
+            /**
+             * Domainja
+             * @description 링크에 표시할 도메인. 예: hongdaejp.vandsclinics.com
+             */
+            domainJa: string;
+            /** Domainko */
+            domainKo: string;
+            /**
+             * Captureddate
+             * @description 가격을 확인한 날짜. 예: 2026-11-23
+             */
+            capturedDate: string;
+            /**
+             * Verified
+             * @description 공식 페이지 스크린샷에서 이 가격을 확인했으면 true. false면 링크만 있음
+             */
+            verified: boolean;
+            /**
+             * Matchedtext
+             * @description 스크린샷에서 찾은 가격 문구(한국어). verified가 false면 null
+             */
+            matchedText: string | null;
+        };
         /** Question */
         Question: {
             /** Question */
@@ -108,6 +423,165 @@ export interface components {
             options: string[];
             /** Multiselect */
             multiSelect: boolean;
+        };
+        /** RecommendationCard */
+        RecommendationCard: {
+            /**
+             * Cardid
+             * @description 병원 ID와 시술 ID를 묶은 카드 ID
+             */
+            cardId: string;
+            /** Placeid */
+            placeId: string;
+            /** Menuid */
+            menuId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /**
+             * Basekrw
+             * @description 병원 표시 가격(원)
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 더한 부가세(원). 표시 가격에 이미 포함돼 있으면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /**
+             * Krwper100Jpy
+             * @description 환산에 쓴 환율(100엔당 원)
+             */
+            krwPer100Jpy: number;
+            /**
+             * Fxdatelabel
+             * @description 환율 기준일. 예: 2026.11.25
+             */
+            fxDateLabel: string;
+            /**
+             * Jpaveragejpy
+             * @description 일본 주요 병원 세금 포함 공식가 평균
+             */
+            jpAverageJpy: number;
+            /** Jpminjpy */
+            jpMinJpy: number;
+            /** Jpmaxjpy */
+            jpMaxJpy: number;
+            /**
+             * Jpcliniccount
+             * @description 일본 평균에 쓴 병원 수
+             */
+            jpClinicCount: number;
+            /**
+             * Savingsjpy
+             * @description 일본 평균 대비 절약액(엔). 음수면 더 비쌈
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            /** @description 사용자가 다니던 일본 병원과 직접 비교한 가격과 절약액. 그 병원의 이 시술 가격이 데이터에 있을 때만 채우고, 없으면 null(일본 평균 대비만 표시) */
+            jpClinic: components["schemas"]["JpClinicSavings"] | null;
+            /**
+             * Distancemeters
+             * @description 기준 위치에서의 직선거리. 기준 위치가 없으면 null
+             */
+            distanceMeters: number | null;
+            /** Walkminutes */
+            walkMinutes: number | null;
+            /**
+             * Pricetags
+             * @description 가격 조건 태그(설계 4.7). first_visit 첫 방문·체험가, event 이벤트가·특가, day_limited 요일 한정, app_benefit 앱·카카오 혜택가, anesthesia 마취비 별도·확인, extra_fee 시술 팁 별도. 절약액 계산에는 반영하지 않는다
+             */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
+            /**
+             * Priceconditionja
+             * @description 가격 조건(첫 방문 한정, 이벤트가 등)
+             */
+            priceConditionJa: string;
+            /** Priceconditionko */
+            priceConditionKo: string;
+            /**
+             * Pricenoteja
+             * @description 가격 출처 메모
+             */
+            priceNoteJa: string;
+            /** Pricenoteko */
+            priceNoteKo: string;
+            /**
+             * Sourceurl
+             * @description 병원 공식 가격 출처
+             */
+            sourceUrl: string;
+            /**
+             * Rating
+             * @description 후기 평점(5점 만점, web AI 평점과 같음). 순서에는 영향이 없다(sort=rating 제외)
+             */
+            rating: number;
+            /**
+             * Ratingscope
+             * @description 평점 근거. branch 이 지점 후기, brand 같은 브랜드 다른 지점 후기를 참고
+             * @enum {string}
+             */
+            ratingScope: "branch" | "brand";
+            /**
+             * Ratingtier
+             * @description 후기 확인 수준. jp_kr_verified 일본·한국 후기 확인, kr_verified 한국 후기만 확인, limited 확인된 후기가 적음. 후기 수는 데이터에 없다
+             * @enum {string}
+             */
+            ratingTier: "jp_kr_verified" | "kr_verified" | "limited";
+            /**
+             * Bookingchannels
+             * @description 공식 예약·상담 채널. 데이터에 없으면 빈 배열
+             */
+            bookingChannels: components["schemas"]["BookingChannel"][];
+            /**
+             * Centralchannel
+             * @description 브랜드 공통 예약 창구라 예약할 때 지점을 직접 골라야 하면 true
+             */
+            centralChannel: boolean;
+            /** @description 이 시술 가격의 가격표 증빙 링크 */
+            proof: components["schemas"]["PriceProof"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "recommendation";
+            /**
+             * Searchid
+             * @description 어느 검색의 카드인지(이번 턴 검색 순서, 예: s1). 지점·지역을 비교하면 검색마다 값이 다르므로 화면이 묶어 보여 줄 수 있다. 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다
+             */
+            searchId: string;
+            /**
+             * Reason
+             * @description LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null
+             */
+            reason: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -161,13 +635,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
-            };
-            /** @description API 키가 없어 에이전트를 사용할 수 없음 */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
