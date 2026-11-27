@@ -2,14 +2,14 @@
   "sources": {
     "apps/web/src/data/prices.json": "f842f71073595b8913d93328c7b905fc9a3a8c6ca6cf84e47144d80287c2370c",
     "apps/web/src/lib/calc.ts": "3bd5c2b0242d6807b14d6384d03b193566400e9fc1f2a55ea1c42c71129c3d09",
-    "apps/web/src/lib/concierge.ts": "185f63d3d46fb60a99cc8b6fb4ea11583fe4fadbad1760b249fcb257bffe01dd",
+    "apps/web/src/lib/treatment-rules.ts": "7169d9b5c041f5393c94a58a900ed3fde201f7152fccb445c63471405fdd4548",
     "apps/web/src/lib/ai-rating.ts": "7beff55d6e9ddf42a704035c0f19661203507e12caba45aec8b880eee65478b8",
     "apps/web/src/data/brand-reviews.ts": "8a631e620af9be852f5491c95bf1d8601426a3919c32a62316abb70c28e37fe9",
     "apps/web/src/data/branch-reviews.ts": "4a73a60154b10bcf58b00b80ffcbca1af2b9f8998007fcac9929e7814f935a9d",
     "apps/web/src/data/clinic-channels.ts": "301a6533f56e5eca240a1ab3a49061f6c81ff5359e0cad8826fa2ec6730bb3b0",
     "apps/web/src/data/official-proofs.ts": "dfaf707e37b4e49755e24dd66a41a16645b47cdd2bd3aca8248e2ad637e346d9",
     "apps/web/src/lib/clinic-helpers.ts": "19be50f4de79ca654069cfe32004c7a18b7c1787cbb6269de77e26aac06211ef",
-    "apps/api/scripts/export-web-snapshot.mts": "5e6019b995bfd3252d0938396340a76fd567d5df90a4899c47e9aa877aae2f89",
+    "apps/api/scripts/export-web-snapshot.mts": "b690ab961ee050a791905594cf8ebdeb155533bc4cd67ed7bf5bad55b3cdb99d",
     "apps/web/src/data/proof-hidden.ts": "749e8e26e15f1d9a99b68739987ff212c251665dc03a5d981ec6c43b7ed460a2"
   },
   "meta": {

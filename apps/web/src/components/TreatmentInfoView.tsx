@@ -9,7 +9,7 @@ import {
 } from '@/lib/score-rings.ts';
 import { SvgIcon } from '@/components/SvgIcon.tsx';
 import { ConciergeEmoji, MenuEmoji } from '@/components/emoji.tsx';
-import { formatMinutes, treatmentMinutes } from '@/lib/concierge.ts';
+import { formatMinutes, treatmentMinutes } from '@/lib/treatment-rules.ts';
 import {
   Disclosure,
   DisclosureContent,
