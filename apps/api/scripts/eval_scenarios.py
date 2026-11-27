@@ -65,7 +65,7 @@ SCENARIOS: tuple[Scenario, ...] = (
                 args={
                     "search_clinics": {
                         "menu_id": "rejuran-2cc",
-                        "japanese_only": (True, None),
+                        "japanese_only": False,
                     }
                 },
                 shape="answer",
@@ -127,7 +127,7 @@ SCENARIOS: tuple[Scenario, ...] = (
                 args={
                     "search_clinics": {
                         "menu_id": "shrink-300",
-                        "japanese_only": (True, None),
+                        "japanese_only": False,
                     }
                 },
                 shape="answer",
@@ -236,7 +236,7 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
             failures.append(f"{name}를 부름")
     for name, expected in turn.args.items():
         for call in (c for c in calls if c["name"] == name):
-            # 입력을 빠뜨리면 도구 기본값이 쓰인다(예: japanese_only 기본 null = 일본어 가능 병원만).
+            # 입력을 빠뜨리면 도구 기본값이 쓰인다(예: japanese_only 기본 false = 일본어 상담 여부로 거르지 않음).
             for key, value in expected.items():
                 got = call["args"].get(key, _tool_default(name, key))
                 if got not in (value if isinstance(value, tuple) else (value,)):

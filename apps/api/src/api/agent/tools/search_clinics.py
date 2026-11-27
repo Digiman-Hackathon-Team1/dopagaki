@@ -90,7 +90,11 @@ class SearchClinicsInput(BaseModel):
     )
     japanese_only: bool = Field(
         default=False,
-        description="일본어 상담 가능 병원만. 여행자는 일본어가 필요하다고 보고 true",
+        description=(
+            "일본어 상담 가능 병원만 찾는다. 사용자가 일본어 상담이 되는 곳만 원한다고 말했을 때만 true. "
+            "기본 false: 일본어 상담 여부와 상관없이 절약액 순으로 찾고, 카드와 결과 문장에 일본어 상담 "
+            "가능 여부가 표시된다"
+        ),
     )
     area: AreaId | None = Field(
         default=None, description="이 지역 병원만. 사용자가 지역을 정했을 때만"
@@ -203,7 +207,9 @@ def _menu_lines() -> str:
 DESCRIPTION = f"""\
 서울 병원 가격 데이터에서 시술 하나를 받는 병원을 찾아 상위 몇 곳을 돌려준다.
 가격·엔화 환산·일본 대비 절약액은 web 순위표와 같은 계산이다. 답변의 금액은 이 결과만 쓴다.
-필수 입력: menu_id. 기본값: 절약액 순, 상위 3곳, 예산·회복 기간·지역 제한 없음.
+필수 입력: menu_id. 기본값: 절약액 순, 상위 3곳, 예산·회복 기간·지역·일본어 상담 제한 없음.
+일본어 상담 가능 여부는 병원마다 결과에 표시되므로 거르지 않고 보여 준다. 사용자가 일본어 상담이 되는 곳만
+원한다고 했을 때만 japanese_only=true.
 사용자가 숙소·사는 곳·역을 말했으면 먼저 resolve_location을 부르고, 결과의 location_id를 origin_id에 넣는다.
 결과의 병원은 모두 카드로 화면에 나간다. card_reasons에 card_id마다 추천 이유 한 줄을 쓴다.
 같은 턴에 같은 시술을 범위만 좁히거나 넓혀 다시 부르면 마지막 결과의 카드만 나간다. 지역·기준 위치·
