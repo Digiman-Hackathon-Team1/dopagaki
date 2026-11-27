@@ -11,8 +11,8 @@ from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from api.agent.graph import build_graph, read_cards
-from api.agent.router import get_agent
 from api.agent.schemas import JpMatchCard, LocationCard, RecommendationCard
+from api.agent.service import get_agent
 from api.agent.tools import TOOLS
 from api.domain.calc import rank_rows
 from api.domain.catalog import get_catalog

@@ -22,9 +22,9 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 from api.agent.amounts import drop_unknown_amounts, known_amounts
 from api.agent.config import get_settings
-from api.agent.router import get_agent
 from api.agent.safety import mentions_health
 from api.agent.schemas import AgentReply
+from api.agent.service import get_agent
 from api.agent.tools import TOOLS
 from api.main import app
 

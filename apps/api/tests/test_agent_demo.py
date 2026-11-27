@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, messages_to_dict
 from langgraph.checkpoint.memory import InMemorySaver
 
-from api.agent import router as agent_router
+from api.agent import service as agent_service
 from api.agent.config import AgentSettings, get_settings
 from api.agent.demo import (
     DemoFile,
@@ -22,7 +22,7 @@ from api.agent.demo import (
     normalize,
 )
 from api.agent.graph import build_graph
-from api.agent.router import DailyUsage, get_agent
+from api.agent.service import DailyUsage, get_agent
 from api.agent.tools import TOOLS
 from api.main import app
 
@@ -31,8 +31,8 @@ SCRIPT = ("ハイフを受けたいです", "1番目のクリニックの予約�
 
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    monkeypatch.setattr(agent_router, "daily_usage", DailyUsage())
-    monkeypatch.setattr(agent_router, "demo_sessions", DemoSessions())
+    monkeypatch.setattr(agent_service, "daily_usage", DailyUsage())
+    monkeypatch.setattr(agent_service, "demo_sessions", DemoSessions())
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -120,7 +120,7 @@ def record(
     path = tmp_path / "demo-replies.json"
     dump_demo(demo, path)
     loaded = load_demo(path)
-    monkeypatch.setattr(agent_router, "load_demo", lambda: loaded)
+    monkeypatch.setattr(agent_service, "load_demo", lambda: loaded)
     return loaded
 
 
@@ -128,7 +128,7 @@ def test_script_turns_are_answered_from_recording_without_llm(
     client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     demo = record(client, monkeypatch, tmp_path)
-    recorded_usage = agent_router.daily_usage._total
+    recorded_usage = agent_service.daily_usage._total
     model = fake_model()  # 부르면 응답이 없어 실패한다
     use(build_graph(model, tools=TOOLS, checkpointer=InMemorySaver()), demo=True)
     user_id = str(uuid4())
@@ -144,7 +144,7 @@ def test_script_turns_are_answered_from_recording_without_llm(
     recorded = demo.scripts[0].turns[0].response
     assert {k: v for k, v in first.items() if k != "threadId"} == recorded
     # 녹화 응답은 하루 한도에 세지 않는다.
-    assert agent_router.daily_usage._total == recorded_usage
+    assert agent_service.daily_usage._total == recorded_usage
 
 
 def test_leaving_the_script_continues_with_claude_and_recorded_context(
@@ -239,7 +239,7 @@ def test_broken_demo_file_does_not_break_chat(
 ) -> None:
     path = tmp_path / "demo-replies.json"
     path.write_text('{"scripts": [{"id": "x"}]}')
-    monkeypatch.setattr(agent_router, "load_demo", lambda: load_demo(path))
+    monkeypatch.setattr(agent_service, "load_demo", lambda: load_demo(path))
     model = fake_model(reply_message("実際の答え"))
     use(build_graph(model, tools=TOOLS, checkpointer=InMemorySaver()), demo=True)
 
