@@ -158,3 +158,24 @@ def test_health_information_is_filtered_from_screen_slots() -> None:
     assert reply.suggestions == ["가까운 곳 순으로", "후기 좋은 순으로"]
     # 답변은 거르지 않는다(추천을 멈춘 이유를 답변에 쓰기 때문).
     assert reply.answer.startswith("임신 계획이")
+
+
+def test_safety_stop_keeps_location_card_and_health_suggestions() -> None:
+    """정지해도 기준 위치 카드는 남고, 정지 턴의 다음 질문 제안은 건강 단어가 있어도 거르지 않는다."""
+    model = fake_model(
+        tool_call("resolve_location", {"query": "홍대 숙소"}, "c1"),
+        reply_message(
+            "지금은 권하지 않아요.",
+            safety_stop=True,
+            suggestions=["임신 중에도 받을 수 있는 관리는?", "가까운 곳 순으로"],
+        ),
+    )
+    graph = build_graph(model, tools=TOOLS, checkpointer=InMemorySaver())
+
+    result = run(graph, "임신 중인데 홍대 숙소 근처 리쥬란")
+
+    assert [c.kind for c in read_cards(result)] == ["location"]
+    assert read_reply(result).suggestions == [
+        "임신 중에도 받을 수 있는 관리는?",
+        "가까운 곳 순으로",
+    ]
