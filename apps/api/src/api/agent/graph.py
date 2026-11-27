@@ -3,7 +3,9 @@
 - safety_check: 건강 정보 키워드가 나오면 그 턴 사용자 메시지에 안내를 붙이고, 멈출지는 Claude가 정한다.
 - finalize: 안전 정지면 카드를 빼고, 화면용 칸에서 건강 정보와 도구 결과에 없는 금액을 거른다.
 - LLM 오류·시간 초과·빈 응답·단계 한도·형식 오류는 예외 대신 `failure`에 남기고 finalize로 끝낸다.
-  router가 이를 시세표 안내로 바꾼다(FR-08). 실패한 호출의 응답은 대화 기록에 넣지 않는다.
+  router가 이를 시세표 안내로 바꾼다(FR-08). 오류 난 호출과 빈 응답은 대화 기록에 넣지 않는다(빈
+  assistant 메시지는 다음 요청을 400으로 만든다). 형식이 틀린 응답은 글이 있으므로 기록에 남아도 다음 턴
+  요청은 유효하다.
 
 Sonnet 5.5·Haiku 5.5는 이전 턴의 thinking 블록을 그 블록이 만들어질 때와 요청 앞부분이 같은
 대화에서만 받아들인다. 그래서 대화 기록은 덧붙이기만 하고, 시스템 프롬프트는 턴마다 바뀌는
@@ -127,6 +129,8 @@ class AgentState(MessagesState):
     exclusions: list[dict]
     # 이번 턴이 실패했으면 그 이유. load_context가 턴마다 지운다.
     failure: Failure | None
+    # 이번 턴에 빈 응답을 이미 한 번 다시 요청했는지. load_context가 턴마다 지운다.
+    empty_retried: bool
 
 
 def read_reply(state: AgentState) -> AgentReply:
@@ -350,8 +354,9 @@ def screen_reply(
             "답변에서 도구 결과에 없는 금액을 지웠다: %s",
             [f"{m.currency} {m.value}" for m in dropped],
         )
-        cautions.append(AMOUNT_CAUTION[lang])
-        if not answer:
+        if answer:
+            cautions.append(AMOUNT_CAUTION[lang])
+        else:
             answer = AMOUNT_CAUTION[lang]
     return reply.model_copy(
         update={
@@ -378,7 +383,7 @@ def _is_empty(message: BaseMessage) -> bool:
         reply = AgentReply.model_validate_json(message.text)
     except ValueError:
         return False
-    return not reply.answer.strip() and not reply.questions
+    return not reply.answer.strip() and not reply.questions and not reply.card_reasons
 
 
 def build_graph(
@@ -400,10 +405,14 @@ def build_graph(
         # 사용자 기억(프로필) 읽기는 P1에서 추가한다.
         last = state["messages"][-1]
         if not isinstance(last, HumanMessage):
-            return {"failure": None}
+            return {"failure": None, "empty_retried": False}
         note = LANG_NOTE.format(language=LANG_NAME[state["lang"]])
         blocks = [{"type": "text", "text": last.text}, {"type": "text", "text": note}]
-        return {"messages": [HumanMessage(content=blocks, id=last.id)], "failure": None}
+        return {
+            "messages": [HumanMessage(content=blocks, id=last.id)],
+            "failure": None,
+            "empty_retried": False,
+        }
 
     def safety_check(state: AgentState) -> dict:
         # 키워드는 표시만 하고, 멈출지는 Claude가 문맥으로 정한다(설계 문서 12장).
@@ -413,12 +422,15 @@ def build_graph(
         if not topics or not isinstance(last, HumanMessage):
             return {}
         note = SAFETY_NOTE.format(topics=", ".join(topics))
-        blocks = [*last.content, {"type": "text", "text": note}]
+        # 시스템 프롬프트가 "마지막 블록의 언어 안내"를 읽으므로 안전 안내는 언어 안내 앞에 넣는다.
+        blocks = [*last.content[:-1], {"type": "text", "text": note}, last.content[-1]]
         return {"messages": [HumanMessage(content=blocks, id=last.id)]}
 
     def agent(state: AgentState) -> dict:
         messages = state["messages"]
-        steps = sum(
+        retried = bool(state.get("empty_retried"))
+        # 빈 응답 재요청도 한 단계로 센다(설계 문서 12장: 실행 단계 제한 안에서 처리).
+        steps = retried + sum(
             isinstance(m, AIMessage) for m in messages[_turn_start(messages) + 1 :]
         )
         if steps >= max_steps:
@@ -427,17 +439,18 @@ def build_graph(
         request = [SystemMessage(SYSTEM_PROMPT), *messages]
         try:
             response = bound.invoke(request)
-            if _is_empty(response):
-                # 빈 응답은 기록에 넣지 않고 한 번만 다시 요청한다(설계 문서 12장).
+            if _is_empty(response) and not retried and steps + 1 < max_steps:
+                # 빈 응답은 기록에 넣지 않고 턴마다 한 번만 다시 요청한다(설계 문서 12장).
                 logger.warning("빈 응답을 받아 한 번 다시 요청한다")
+                retried = True
                 response = bound.invoke(request)
         except Exception:
             # 키 오류(401), 한도(429), 과부하(529), 시간 초과 등. 답 없는 응답을 기록에 남기지 않는다.
             logger.exception("LLM 호출 실패")
-            return {"failure": "llm_error"}
+            return {"failure": "llm_error", "empty_retried": retried}
         if _is_empty(response):
-            return {"failure": "empty_reply"}
-        return {"messages": [response]}
+            return {"failure": "empty_reply", "empty_retried": retried}
+        return {"messages": [response], "empty_retried": retried}
 
     def route_after_agent(state: AgentState) -> Literal["tools", "finalize"]:
         last = state["messages"][-1]

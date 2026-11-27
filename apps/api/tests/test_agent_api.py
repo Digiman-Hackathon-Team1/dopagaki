@@ -273,6 +273,37 @@ def test_reply_with_empty_slots_is_retried_once(client: TestClient) -> None:
     assert len(model.calls) == 2
 
 
+def test_reply_with_only_card_reasons_is_not_empty(client: TestClient) -> None:
+    top = rank_rows(get_catalog(), "rejuran-2cc")[0]
+    card_id = f"{top.place.id}:rejuran-2cc"
+    model = fake_model(
+        tool_call("search_clinics", {"menu_id": "rejuran-2cc", "limit": 1}),
+        reply_message("", {card_id: "가장 싸요"}),
+    )
+    use_graph(build_graph(model, tools=TOOLS, checkpointer=InMemorySaver()))
+
+    body = chat(client, "리쥬란")
+
+    assert body["fallback"] is None
+    assert body["cards"][0]["reason"] == "가장 싸요"
+    assert len(model.calls) == 2
+
+
+def test_empty_reply_retry_counts_as_a_step(client: TestClient) -> None:
+    """빈 응답 재요청도 단계 한도 안에서 센다. 한도 2면 도구 한 번 뒤 빈 응답은 다시 묻지 않는다."""
+    model = fake_model(
+        tool_call("search_clinics", {"menu_id": "rejuran-2cc", "limit": 1}),
+        AIMessage(content=""),
+        reply_message("세 번째"),
+    )
+    use_graph(
+        build_graph(model, tools=TOOLS, checkpointer=InMemorySaver(), max_steps=2)
+    )
+
+    assert_price_table_fallback(chat(client, "리쥬란"), "error")
+    assert len(model.calls) == 2
+
+
 def test_empty_reply_twice_returns_fallback_without_saving_it(
     client: TestClient,
 ) -> None:

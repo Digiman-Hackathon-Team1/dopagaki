@@ -34,6 +34,12 @@ _MONEY = re.compile(
 )
 # 통화 표시 없이 금액 앞에 붙은 범위의 시작 값. 예: 26,000~66,000円의 26,000
 _RANGE_START = re.compile(rf"(?<![\d.,])(?P<num>{_AMOUNT}){_RANGE}$")
+# 통화 기호 금액 뒤에 통화 표시 없이 붙은 범위의 끝 값. 예: ¥26,000〜66,000의 66,000
+_RANGE_END = re.compile(
+    rf"{_RANGE}(?P<num>{_AMOUNT})(?!\s?(?:{_JPY_SUFFIX}|{_KRW_SUFFIX}))", re.IGNORECASE
+)
+# 전각 숫자·쉼표(２６，４００円)를 반각으로. 글자 수가 같아 위치가 바뀌지 않는다.
+_FULLWIDTH = str.maketrans("０１２３４５６７８９，．", "0123456789,.")
 # 사용자 메시지의 "3万", "5만"처럼 통화 없이 만·万 단위로 쓴 예산
 _BARE_MAN = re.compile(rf"(?<![\d.,])({_NUMBER}\s?[万만](?:\s?{_NUMBER})?)")
 
@@ -63,8 +69,15 @@ def parse_number(text: str) -> int | None:
     return round(total)
 
 
+def _range_start(low: int, high_text: str, high: int) -> int:
+    """5~10만 원처럼 시작 값에 단위가 없으면 끝 값의 단위를 붙인다. 9,000~1万円처럼 이미 큰 값은 그대로 둔다."""
+    unit = next((_UNITS[c] for c in high_text if c in _UNITS), 1)
+    return low * unit if unit > 1 and low * unit <= high else low
+
+
 def find_money(text: str) -> list[Money]:
-    """통화 표시가 붙은 금액. 범위(26,000~66,000円)는 두 값 모두 낸다."""
+    """통화 표시가 붙은 금액. 범위(26,000~66,000円, ¥26,000〜66,000, 5~10만 원)는 두 값 모두 낸다."""
+    text = text.translate(_FULLWIDTH)
     found: list[Money] = []
     for m in _MONEY.finditer(text):
         is_jpy = bool(m.group("jpy_pre") or m.group("jpy_suf"))
@@ -78,8 +91,15 @@ def find_money(text: str) -> list[Money]:
             if start and not found_overlaps(found, start.start()):
                 low = parse_number(start.group("num"))
                 if low is not None:
+                    low = _range_start(low, number, value)
                     found.append(Money(currency, low, start.start(), start.end()))
         found.append(Money(currency, value, m.start(), m.end()))
+        if m.group("pre_num"):
+            end = _RANGE_END.match(text, m.end())
+            high = parse_number(end.group("num")) if end else None
+            # 범위는 커지는 쪽으로 쓴다. "¥21,111 - 3일 회복"의 3을 금액으로 읽지 않게 한다.
+            if end and high is not None and high >= value:
+                found.append(Money(currency, high, end.start("num"), end.end()))
     return found
 
 
@@ -174,8 +194,9 @@ def drop_unknown_amounts(
             lines.append(line)
             continue
         stripped = line.lstrip()
-        if stripped.startswith(("|", "-", "*", "・", "•")) or re.match(
-            r"\d+[.)]\s", stripped
+        # 목록 기호 뒤에는 공백이 온다. "**A병원** ¥21,000"처럼 굵은 글씨로 시작하는 문장은 목록이 아니다.
+        if stripped.startswith(("|", "・", "•")) or re.match(
+            r"(?:[-*]|\d+[.)])\s", stripped
         ):
             continue  # 표의 행, 목록 한 항목
         kept = "".join(

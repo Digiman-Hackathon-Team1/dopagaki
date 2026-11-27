@@ -36,12 +36,44 @@ def notes(message: HumanMessage) -> list[str]:
         ("持病があって薬を飲んでいます", ["disease", "medication"]),
         ("아스피린 먹고 있어요", ["medication"]),
         ("수유역 근처 숙소예요", []),
+        ("미앤미의원 수유점 리쥬란 가격", []),  # 실제 병원 지점 이름
+        ("지금 수유 중이에요", ["breastfeeding"]),
+        ("産後3ヶ月です", ["breastfeeding"]),
+        ("ピルを飲んでいます", ["medication"]),
+        ("예약 먹통이에요", []),
+        ("피부가 간질간질해요", []),
         ("리쥬란 예약하고 싶어요", []),
         ("병원 추천해 줘", []),
     ],
 )
 def test_find_topics(text: str, topics: list[str]) -> None:
     assert find_topics(text) == topics
+
+
+def test_data_names_are_not_health_keywords() -> None:
+    """병원·역·지역·시술 이름이 건강 정보로 걸리면 그 병원 카드의 이유와 위치 조건이 늘 지워진다."""
+    import json
+    from pathlib import Path
+
+    data = Path(__file__).parents[1] / "src/api/domain/data"
+    texts: list[str] = []
+
+    def walk(value: object) -> None:
+        if isinstance(value, dict):
+            for v in value.values():
+                walk(v)
+        elif isinstance(value, list):
+            for v in value:
+                walk(v)
+        elif isinstance(value, str):
+            texts.append(value)
+
+    snapshot = json.loads((data / "web-snapshot.json").read_text())
+    for key in ("places", "menus", "areas"):
+        walk(snapshot[key])
+    walk(json.loads((data / "stations.json").read_text()))
+
+    assert [t for t in texts if find_topics(t)] == []
 
 
 def test_strip_health_conditions_keeps_other_conditions() -> None:
@@ -60,7 +92,9 @@ def test_note_is_added_only_when_keywords_found() -> None:
     plain = model.calls[0][-1]
     pregnant = model.calls[1][-1]
     assert len(notes(plain)) == 1  # 응답 언어 안내만 있다
-    assert "pregnancy" in notes(pregnant)[-1]
+    # 안전 안내는 언어 안내 앞이다. 시스템 프롬프트가 마지막 블록을 언어 안내로 읽는다.
+    assert "pregnancy" in notes(pregnant)[0]
+    assert "Korean" in notes(pregnant)[-1]
 
 
 def test_note_stays_on_later_turns() -> None:
@@ -71,7 +105,7 @@ def test_note_stays_on_later_turns() -> None:
     run(graph, "지금 임신 중이에요")
     run(graph, "그럼 리쥬란 싼 곳은?")
 
-    assert "pregnancy" in notes(model.calls[1][-1])[-1]
+    assert "pregnancy" in notes(model.calls[1][-1])[0]
     # 앞 턴 메시지는 바뀌지 않는다(덧붙이기만 함).
     assert model.calls[1][1].content == model.calls[0][1].content
 
