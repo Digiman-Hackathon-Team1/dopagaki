@@ -25,6 +25,8 @@
 .agent-welcome p { margin: 8px 0 20px; }
 .agent-turn + .agent-turn { margin-top: 32px; }
 .agent-user { width: fit-content; max-width: 85%; margin: 0 0 18px auto; padding: 10px 16px; border-radius: 18px 18px 4px 18px; background: var(--color-select); color: white; white-space: pre-wrap; }
+.agent-examples { display: flex; flex-direction: column; align-items: stretch; gap: 8px; max-width: 400px; margin: 20px auto; }
+
 .agent-dev summary { cursor: pointer; color: var(--color-ink-2); }
 .agent-dev details p, .agent-card details { margin-top: 8px; }
 .agent-composer { padding-bottom: max(14px, env(safe-area-inset-bottom)); }

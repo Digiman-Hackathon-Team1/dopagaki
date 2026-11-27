@@ -3,6 +3,7 @@ import { api, type Schemas } from '@repo/api-client';
 import mark from '@/assets/dopagaki-mark.png';
 import { SvgIcon } from '@/components/SvgIcon';
 import { Reply } from '@/components/agent/Reply';
+import { PriceTableLink } from '@/components/agent/PriceTableLink';
 import type { QuestionAnswer } from '@/components/agent/Questions';
 import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
 import { copy } from '@/components/agent/copy';
@@ -13,7 +14,7 @@ type Turn = {
   id: number;
   message: string;
   answers?: QuestionAnswer[];
-  status: 'waiting' | 'writing' | 'unavailable' | 'invalid' | 'offline' | 'serverError' | null;
+  status: 'waiting' | 'writing' | 'invalid' | 'offline' | 'serverError' | null;
   httpStatus?: number;
   reply?: Schemas['ChatResponse'];
 };
@@ -70,7 +71,7 @@ export default function AgentDev() {
           body: { userId: userId.current, threadId: thread.current, message, lang }
         });
         if (!data) {
-          update({ status: response.status === 503 ? 'unavailable' : response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status });
+          update({ status: response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status });
           return;
         }
         thread.current = data.threadId;
@@ -103,7 +104,14 @@ export default function AgentDev() {
     }}>
       {!turns.length && <section className="agent-welcome"><img src={mark} alt="" /><h2>{t.welcome}</h2>
         <p>{t.intro}</p>
-        <button onClick={() => send(t.prompt)}>{t.example} <SvgIcon name="chevronRight" /></button>
+        <small>{t.progress}</small>
+        <div className="agent-examples">
+          <button onClick={() => send(t.prompt)}>{t.example} <SvgIcon name="chevronRight" /></button>
+          <button onClick={() => send(t.locationPrompt)}>{t.locationExample} <SvgIcon name="chevronRight" /></button>
+          <button onClick={() => send(t.jpPrompt)}>{t.jpExample} <SvgIcon name="chevronRight" /></button>
+          <button onClick={() => send(t.safetyPrompt)}>{t.safetyExample} <SvgIcon name="chevronRight" /></button>
+          <button onClick={() => send(t.negationPrompt)}>{t.negationExample} <SvgIcon name="chevronRight" /></button>
+        </div>
       </section>}
       {turns.map(turn => <section data-turn={turn.id} key={turn.id} className="agent-turn">
         {turn.answers?.length ? <dl className="agent-user agent-user-answers">
@@ -112,7 +120,10 @@ export default function AgentDev() {
             <dd>{item.answer}</dd>
           </div>)}
         </dl> : <p className="agent-user">{turn.message}</p>}
-        {turn.reply ? <Reply lang={lang} reply={turn.reply} send={send} /> : <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>}
+        {turn.reply ? <Reply lang={lang} reply={turn.reply} send={send} /> : <div>
+          <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>
+          {(turn.status === 'offline' || turn.status === 'serverError') && <PriceTableLink lang={lang} />}
+        </div>}
       </section>)}
     </div>
     <form className="agent-composer" onSubmit={e => { e.preventDefault(); if (!tooLong && draft.trim()) { send(draft); setDraft(''); } }}>
