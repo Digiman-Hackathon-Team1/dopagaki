@@ -54,10 +54,16 @@ class AgentReply(BaseModel):
         )
     )
     questions: list[ReplyQuestion] = Field(
-        description="답하기 전에 먼저 물어야 할 질문 묶음(2~3개). 없으면 빈 배열"
+        description=(
+            "답하기 전에 먼저 물어야 할 때만 쓰는 질문 묶음(2~3개). 답을 했으면 빈 배열이고, "
+            "덧붙일 질문 하나는 answer 끝에 쓴다"
+        )
     )
     suggestions: list[str] = Field(
-        description="사용자가 이어서 보낼 만한 다음 질문 3개"
+        description=(
+            "사용자가 이어서 보낼 만한 문장 3개. 사용자 말투로 쓴다. 예: 가까운 곳 순으로 보여 줘. "
+            "사용자에게 묻는 질문이 아니다"
+        )
     )
     cautions: list[str] = Field(
         description="모르는 조건, 약한 근거 같은 주의사항. 없으면 빈 배열"

@@ -113,7 +113,9 @@ DESCRIPTION = f"""\
 어느 분류에도 맞지 않는 고민(예: 탈모, 점·문신 제거, 체형)은 지어내 분류하지 말고 'unsupported'로 넣는다.
 결과를 받은 뒤: 후보를 고른 이유와 제외된 시술의 이유를 먼저 짧게 설명하고, 첫 번째 후보(사용자가 고르면 그것)로
 search_clinics를 같은 max_downtime_days·avoid_needle로 부른다.
-쓰면 안 되는 경우: 사용자가 시술명을 이미 말했을 때(바로 search_clinics), 고민을 아직 모를 때(먼저 묻는다)."""
+쓰면 안 되는 경우: 사용자가 시술명을 이미 말했을 때(바로 search_clinics), 고민을 아직 모를 때, 회복 기간을
+며칠까지 둘 수 있는지(여행자는 귀국까지 남은 날)를 모를 때. 모르면 부르지 말고 질문 묶음으로 먼저 묻는다.
+사용자가 회복 기간은 상관없다고 했으면 max_downtime_days를 null로 두고 부른다."""
 
 
 @tool(TOOL_NAME, description=DESCRIPTION, args_schema=RecommendTreatmentsInput)

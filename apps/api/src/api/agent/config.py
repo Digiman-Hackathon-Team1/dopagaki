@@ -17,7 +17,7 @@ class AgentSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
     anthropic_api_key: SecretStr | None = None
-    agent_model: str = "claude-sonnet-5-5"
+    agent_model: str = "claude-haiku-5-5"
     agent_effort: Effort = "medium"
     agent_max_tokens: int = 16000
     # 배포된 web의 환율 파일(예: https://<web 주소>/naver-fx.json). 없으면 스냅샷 환율을 쓴다(ADR 0010).
@@ -35,6 +35,8 @@ class AgentSettings(BaseSettings):
     agent_max_retries: int = 2
     # 하루(UTC) 대화 요청 수. 요청 하나가 LLM을 여러 번 부르므로, 하루 모델 호출 500회인 기존 Worker보다
     # LLM 호출은 많다. 사용자별 50은 설계 문서 8장의 한 대화 최대 턴 수와 같다(대화 턴 상한은 T9).
+    # 데모 응답 캐싱(설계 문서 13장). 켜면 녹화한 대본과 같은 메시지에 Claude 대신 녹화한 응답을 돌려준다.
+    agent_demo_cache: bool = False
     agent_daily_limit: int = 500
     agent_user_daily_limit: int = 50
 

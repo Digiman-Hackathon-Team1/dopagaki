@@ -39,6 +39,17 @@ def test_menu_ids_match_catalog() -> None:
     assert set(MenuId.__args__) == {m.id for m in get_catalog().menus}
 
 
+def test_default_shows_clinics_with_and_without_japanese_support() -> None:
+    """일본어 상담 여부로 거르지 않고 절약액 순으로 보여 주며, 카드로 구분한다(설계 문서 4.3·4.7, v1.6)."""
+    result = cards(call(menu_id="rejuran-2cc", limit=10))
+    japanese = cards(call(menu_id="rejuran-2cc", limit=10, japanese_only=True))
+
+    expected = rank_rows(get_catalog(), "rejuran-2cc")[:10]
+    assert [c.place_id for c in result] == [r.place.id for r in expected]
+    assert {c.japanese_support for c in result} == {True, False}
+    assert all(c.japanese_support for c in japanese)
+
+
 def test_default_returns_top3_by_savings_with_web_prices() -> None:
     result = cards(call(menu_id="rejuran-2cc"))
 
