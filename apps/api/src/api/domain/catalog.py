@@ -1,8 +1,9 @@
 """병원·가격 데이터 조회 계층(ADR 0001).
 
-지금은 web 데이터를 내보낸 JSON 스냅샷(`data/web-snapshot.json`)을 읽는다. 스냅샷은
-`pnpm --filter @repo/api export:web-data`로 다시 만든다. 백엔드 DB가 준비되면 `get_catalog`의
-구현만 바꾸고, 도구와 가격 계산은 `Catalog`를 그대로 쓴다.
+web 데이터를 내보낸 JSON 스냅샷(`data/web-snapshot.json`)이 원본이다. 스냅샷은
+`pnpm --filter @repo/api export:web-data`로 다시 만든다. `CATALOG_SOURCE=db`면 스냅샷을 넣어 둔
+백엔드 DB(`api.db`, `python -m api.db.seed`)에서 읽는다. 어느 쪽이든 도구와 가격 계산은 `Catalog`를
+그대로 쓴다.
 """
 
 from functools import lru_cache
@@ -202,4 +203,15 @@ def load_snapshot(path: Path = SNAPSHOT_PATH) -> Catalog:
 
 @lru_cache
 def get_catalog() -> Catalog:
+    """병원·가격 데이터. `CATALOG_SOURCE=db`면 DB(`api.db`), 아니면 스냅샷에서 읽는다.
+
+    처음 한 번 읽고 프로세스가 끝날 때까지 같은 값을 쓴다. DB 데이터를 다시 넣었으면 서버를 다시 띄운다.
+    """
+    # api.db가 이 모듈의 모델을 쓰므로 함수 안에서 가져온다(순환 import 방지).
+    from api.db.engine import DbSettings
+
+    if DbSettings().catalog_source == "db":
+        from api.db.catalog_store import load_catalog_from_db
+
+        return load_catalog_from_db()
     return load_snapshot()
