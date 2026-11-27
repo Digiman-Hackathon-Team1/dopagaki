@@ -22,6 +22,21 @@ class AgentSettings(BaseSettings):
     agent_max_tokens: int = 16000
     # 배포된 web의 환율 파일(예: https://<web 주소>/naver-fx.json). 없으면 스냅샷 환율을 쓴다(ADR 0010).
     web_fx_url: str | None = None
+    # 실행 한도(설계 문서 2장, 6장, 12장). 넘으면 오류 대신 시세표 안내를 돌려준다(FR-08).
+    # 한 턴의 LLM 호출 단계 수. 도구를 부를 때마다 한 번씩 늘어난다(병렬 호출은 한 번). 빈 응답 재요청
+    # 한 번도 여기에 들어간다. SDK 재시도는 따로다. 실제 Sonnet이
+    # 돌아가다 끝낸 턴이 7번까지 있었고 8번에서 잘린 턴이 있어 10으로 둔다. 끝없는 반복을 막는 값이다.
+    agent_max_steps: int = 10
+    # 한 턴 전체 시간 상한(초). 넘으면 다음 LLM 호출을 하지 않고 시세표 안내로 끝낸다. 이미 시작한 호출은
+    # 끝까지 기다리므로 최악은 이 값 + 호출 하나(시간 제한 × 시도 횟수)다. 180초는 사용자가 정한 출발점이다.
+    agent_turn_timeout_seconds: float = 180
+    # LLM 호출 하나의 시간 제한(초)과 SDK 재시도 횟수(429·529·연결 오류).
+    agent_timeout_seconds: float = 60
+    agent_max_retries: int = 2
+    # 하루(UTC) 대화 요청 수. 요청 하나가 LLM을 여러 번 부르므로, 하루 모델 호출 500회인 기존 Worker보다
+    # LLM 호출은 많다. 사용자별 50은 설계 문서 8장의 한 대화 최대 턴 수와 같다(대화 턴 상한은 T9).
+    agent_daily_limit: int = 500
+    agent_user_daily_limit: int = 50
 
 
 @lru_cache

@@ -1,7 +1,7 @@
 """가짜 LLM으로 그래프 흐름을 검사한다. API 키 없이 동작한다."""
 
 import pytest
-from agent_fakes import FailingOnceChatModel, fake_model, reply_message, user_texts
+from agent_fakes import FailingChatModel, fake_model, reply_message, user_texts
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import (
     AIMessage,
@@ -13,7 +13,7 @@ from langchain_core.messages import (
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
 
-from api.agent.graph import AgentOutputError, build_graph, read_reply
+from api.agent.graph import build_graph, read_failure, read_reply
 
 
 @tool
@@ -118,12 +118,14 @@ def test_history_is_append_only_even_when_lang_changes() -> None:
 
 def test_failed_turn_does_not_break_next_turn() -> None:
     """LLM 호출이 실패해 답 없는 사용자 메시지가 남아도, 다음 턴 요청을 만들 수 있다."""
-    model = FailingOnceChatModel(messages=iter([reply_message("복구")]))
+    model = FailingChatModel(messages=iter([reply_message("복구")]))
     graph = build_graph(model, checkpointer=InMemorySaver())
 
-    with pytest.raises(RuntimeError):
-        run(graph, "첫 시도")
+    failed = run(graph, "첫 시도")
     result = run(graph, "다시 시도")
+
+    assert read_failure(failed) == "llm_error"
+    assert read_failure(result) is None
 
     assert read_reply(result).answer == "복구"
     payload = anthropic_payload(model.calls[-1])
@@ -141,9 +143,11 @@ def test_other_thread_starts_fresh() -> None:
     assert user_texts(model.calls[1]) == ["다른 대화"]
 
 
-def test_invalid_reply_raises() -> None:
+def test_invalid_reply_is_a_failure() -> None:
     model = fake_model(AIMessage(content="형식 없는 답"))
     graph = build_graph(model, checkpointer=InMemorySaver())
 
-    with pytest.raises(AgentOutputError):
-        run(graph, "x")
+    result = run(graph, "x")
+
+    assert read_failure(result) == "invalid_reply"
+    assert result["reply"] is None

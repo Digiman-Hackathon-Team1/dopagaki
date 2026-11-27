@@ -62,6 +62,12 @@ class AgentReply(BaseModel):
     cautions: list[str] = Field(
         description="모르는 조건, 약한 근거 같은 주의사항. 없으면 빈 배열"
     )
+    safety_stop: bool = Field(
+        description=(
+            "사용자가 지금 임신·수유 중이거나, 질환이 있거나, 약을 먹고 있어 병원 추천을 멈추면 true. "
+            '"임신 계획은 없어요"처럼 부정하거나 과거·가정의 이야기면 false. 화면에는 보내지 않는다'
+        )
+    )
 
 
 class CamelModel(BaseModel):
@@ -364,8 +370,18 @@ Card = Annotated[
 ]
 
 
+FallbackReason = Literal["error", "daily_limit"]
+
+
 class ChatResponse(ResponseModel):
     thread_id: UUID
+    fallback: FallbackReason | None = Field(
+        description=(
+            "에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·"
+            "시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 "
+            "보여 준다. 정상 답변이면 null"
+        )
+    )
     condition_summary: str
     answer: str
     cards: list[Card] = Field(

@@ -27,19 +27,26 @@ def fake_model(*responses: AIMessage) -> FakeChatModel:
 
 
 def reply_message(
-    answer: str = "답변", card_reasons: dict[str, str] | None = None
+    answer: str = "답변",
+    card_reasons: dict[str, str] | None = None,
+    *,
+    safety_stop: bool = False,
+    condition_summary: str = "",
+    cautions: Sequence[str] = (),
+    suggestions: Sequence[str] = ("a", "b", "c"),
 ) -> AIMessage:
     """응답 칸 JSON을 내는 AI 메시지. card_reasons는 {card_id: 추천 이유}."""
     reply = {
-        "condition_summary": "",
+        "condition_summary": condition_summary,
         "answer": answer,
         "card_reasons": [
             {"card_id": card_id, "reason": reason}
             for card_id, reason in (card_reasons or {}).items()
         ],
         "questions": [],
-        "suggestions": ["a", "b", "c"],
-        "cautions": [],
+        "suggestions": list(suggestions),
+        "cautions": list(cautions),
+        "safety_stop": safety_stop,
     }
     return AIMessage(content=json.dumps(reply, ensure_ascii=False))
 
@@ -60,14 +67,15 @@ def user_texts(messages: list[BaseMessage]) -> list[str]:
     return texts
 
 
-class FailingOnceChatModel(FakeChatModel):
-    """첫 호출에서만 예외를 내는 가짜 LLM. API 장애(529, 시간 초과 등)를 흉내 낸다."""
+class FailingChatModel(FakeChatModel):
+    """정해진 횟수만큼 예외를 낸 뒤 정해진 응답을 내는 가짜 LLM. API 장애(401, 529, 시간 초과 등)를 흉내 낸다."""
 
-    failed: bool = False
+    failures: int = 1
+    error: type[Exception] = RuntimeError
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-        if not self.failed:
-            self.failed = True
+        if self.failures > 0:
+            self.failures -= 1
             self.calls.append(list(messages))
-            raise RuntimeError("simulated API failure")
+            raise self.error("simulated API failure")
         return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
