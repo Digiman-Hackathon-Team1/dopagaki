@@ -44,6 +44,7 @@ import { ClinicPageView } from '@/components/ClinicPageView.tsx';
 import { BrandGroupList } from '@/components/BrandGroupList.tsx';
 import { TreatmentInfoView } from '@/components/TreatmentInfoView.tsx';
 import { AgentConsultView } from '@/components/AgentConsultView.tsx';
+import { useAgentChat } from '@/components/agent/useAgentChat';
 import { SavedClinicsView } from '@/components/SavedClinicsView.tsx';
 import { MenuEmoji } from '@/components/emoji.tsx';
 import QRCode from 'qrcode';
@@ -244,6 +245,13 @@ function ClinicApp() {
   const [guideOpen, setGuideOpen] = useState<boolean>(false);
   const [shareOpen, setShareOpen] = useState<boolean>(false);
   const [shareLang, setShareLang] = useState<Lang>(lang);
+  // AI 상담 대화. 다른 탭(시세표 안내 포함)에 다녀와도 남도록 App이 가진다.
+  const agentChat = useAgentChat(lang, (turn) => {
+    track('concierge_agent', {
+      cards: turn.reply?.cards.length ?? 0,
+      fallback: turn.reply ? (turn.reply.fallback ?? 'none') : turn.status
+    });
+  });
   const [activeTab, setActiveTab] = useState<'list' | 'info' | 'recommend' | 'saved'>('list');
   const [infoMenuId, setInfoMenuId] = useState<string>(initialQuery.menuId);
   const lastMainTabRef = useRef<'list' | 'info' | 'recommend' | 'saved'>('list');
@@ -1086,6 +1094,7 @@ function ClinicApp() {
         ) : activeTab === 'recommend' ? (
           <AgentConsultView
             lang={lang}
+            chat={agentChat}
             onOpenPriceTable={() => {
               triggerHaptic(10);
               lastMainTabRef.current = 'list';

@@ -20,7 +20,7 @@ export const failed = (status: Turn['status']) =>
 
 /**
  * POST /api/agent/chat 대화 한 건. 앞 메시지의 답을 기다리는 중에 보낸 메시지는 순서대로 보낸다(설계 문서 8장).
- * onSettled는 답을 받았거나 실패했을 때 한 번 불린다.
+ * onSettled는 답을 받았거나 실패했을 때 한 번 불린다. 탭을 바꿔도 대화가 남도록 App에서 부른다.
  */
 export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (turn: Turn) => void) {
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -57,34 +57,33 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
     function update(changes: Partial<Turn>) {
       setTurns(previous => previous.map(turn => turn.id === id ? { ...turn, ...changes } : turn));
     }
-    function settle(turn: Turn) {
-      update(turn);
-      settled.current?.(turn);
-    }
     const signal = lifetime.current?.signal;
     chain.current = chain.current.then(async () => {
       if (signal?.aborted) return;
       update({ status: 'writing' });
+      let result: Turn;
       try {
         userId.current ??= anonymousId();
         const { data, response } = await api.POST('/api/agent/chat', {
           signal,
           body: { userId: userId.current, threadId: thread.current, message, lang }
         });
-        if (signal?.aborted) return;
-        if (!data) {
-          settle({ id, message, answers, status: response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status });
-          return;
-        }
-        thread.current = data.threadId;
-        settle({ id, message, answers, reply: data, status: null });
+        result = data
+          ? { id, message, answers, reply: data, status: null }
+          : { id, message, answers, status: response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status };
       } catch {
-        if (signal?.aborted) return;
-        settle({ id, message, answers, status: 'offline' });
+        result = { id, message, answers, status: 'offline' };
       }
+      if (signal?.aborted) return;
+      if (result.reply) thread.current = result.reply.threadId;
+      // 화면 쪽 콜백이 실패해도 받은 결과와 뒤에 기다리는 메시지는 그대로 처리한다.
+      update(result);
+      try { settled.current?.(result); } catch { /* 분석·스크롤 실패는 대화에 영향을 주지 않는다. */ }
     });
     return id;
   }
 
   return { turns, send, reset };
 }
+
+export type AgentChat = ReturnType<typeof useAgentChat>;

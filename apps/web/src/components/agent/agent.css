@@ -65,3 +65,9 @@
 .agent-user-answers dd { margin: 4px 0 0; font-size: var(--text-md); font-weight: 600; }
 .agent-status { display: grid; justify-items: start; gap: 4px; }
 .agent-status small { color: var(--color-muted); font-size: var(--text-xs); }
+.agent-reply h3 { font-weight: 700; }
+.agent-reply > small { color: var(--color-muted); font-size: var(--text-xs); }
+.agent-reply > section { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; }
+.agent-reply > section h3 { flex-basis: 100%; margin-bottom: 4px; }
+.agent-reply > section button, .agent-question-open { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-line); border-radius: 14px; padding: 8px 12px; font: inherit; color: var(--color-select); background: var(--color-paper); cursor: pointer; }
+.agent-question-open { justify-self: start; font-weight: 700; }

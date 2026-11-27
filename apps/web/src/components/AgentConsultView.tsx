@@ -2,19 +2,22 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { RotateCcw, Send as SendIcon, ShieldCheck, Sparkles } from 'lucide-react';
 import dopagakiMarkUrl from '@/assets/dopagaki-mark.png';
 import type { Lang } from '@/types.ts';
-import { track } from '@/lib/analytics.ts';
 import { copy } from '@/components/agent/copy';
 import type { Send } from '@/components/agent/Questions';
 import { Turns } from '@/components/agent/Turns';
-import { useAgentChat } from '@/components/agent/useAgentChat';
+import { failed, type AgentChat, type Turn } from '@/components/agent/useAgentChat';
 import '@/components/agent/agent.css';
+
+const settledTurn = (turn: Turn) => Boolean(turn.reply) || failed(turn.status);
 
 /**
  * AI 상담 탭. 에이전트 대화(POST /api/agent/chat) 하나로 상담한다(설계 문서 1장, ADR 0002).
  * 에이전트가 답하지 못하면 시세표로 안내한다(FR-08).
  */
-export function AgentConsultView({ lang, onOpenPriceTable, onHaptic }: {
+export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
   lang: Lang;
+  /** App이 가진 대화. 다른 탭에 다녀와도 대화가 남는다. */
+  chat: AgentChat;
   onOpenPriceTable: () => void;
   onHaptic: () => void;
 }) {
@@ -22,29 +25,27 @@ export function AgentConsultView({ lang, onOpenPriceTable, onHaptic }: {
   const [draft, setDraft] = useState('');
   const tooLong = [...draft.trim()].length > 2000;
   const log = useRef<HTMLDivElement>(null);
-  const scrollTarget = useRef<{ id: number; reply: boolean }>(undefined);
-  const chat = useAgentChat(lang, turn => {
-    scrollTarget.current = { id: turn.id, reply: true };
-    track('concierge_agent', {
-      cards: turn.reply?.cards.length ?? 0,
-      fallback: turn.reply ? turn.reply.fallback ?? 'none' : turn.status
-    });
-  });
+  // 턴마다 마지막으로 본 상태(끝났는지). 처음 그릴 때는 이미 있는 대화로 스크롤하지 않는다.
+  const seen = useRef<Map<number, boolean>>(null);
+  seen.current ??= new Map(chat.turns.map(turn => [turn.id, settledTurn(turn)]));
 
+  // 새로 보낸 말은 그 턴으로, 새로 온 답이나 실패 안내는 그 위치로 스크롤한다.
   useEffect(() => {
-    const target = scrollTarget.current;
-    scrollTarget.current = undefined;
-    if (!target) return;
-    const turn = log.current?.querySelector('[data-turn="' + target.id + '"]');
-    const el = (target.reply && turn?.querySelector('.agent-reply, .agent-status')) || turn;
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const known = seen.current!;
+    let target: Element | null | undefined;
+    for (const turn of chat.turns) {
+      const settled = settledTurn(turn);
+      const before = known.get(turn.id);
+      known.set(turn.id, settled);
+      if (before === settled) continue;
+      const el = log.current?.querySelector('[data-turn="' + turn.id + '"]');
+      target = settled ? el?.querySelector('.agent-reply, .agent-status') ?? el : el;
+    }
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [chat.turns]);
 
   const send: Send = (value, answers) => {
-    const id = chat.send(value, answers);
-    if (id === undefined) return;
-    onHaptic();
-    scrollTarget.current = { id, reply: false };
+    if (chat.send(value, answers) !== undefined) onHaptic();
   };
 
   const submit = (event: FormEvent) => {

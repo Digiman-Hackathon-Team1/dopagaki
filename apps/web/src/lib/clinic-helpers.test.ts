@@ -813,6 +813,7 @@ test('100% of remaining 137 clinics and 735 offered prices across 9 treatments h
     '../components/FeeTransparencyBox.tsx',
     '../components/TreatmentInfoView.tsx',
     '../components/AgentConsultView.tsx',
+    '../components/agent/copy.ts',
     'i18n.ts'
   ]) {
     const content = fs.readFileSync(path.resolve(__dirname, rel), 'utf8');
