@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { api, type Schemas } from '@repo/api-client';
 import mark from '@/assets/dopagaki-mark.png';
 import { SvgIcon } from '@/components/SvgIcon';
-import { Reply } from './Reply';
-import type { QuestionAnswer } from './Questions';
+import { Reply } from '@/components/agent/Reply';
+import type { QuestionAnswer } from '@/components/agent/Questions';
 import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
-import { copy } from './copy';
+import { copy } from '@/components/agent/copy';
+import { anonymousId } from '@/components/agent/user-id';
 import './agent.css';
 
 type Turn = {
@@ -16,21 +17,6 @@ type Turn = {
   httpStatus?: number;
   reply?: Schemas['ChatResponse'];
 };
-
-function anonymousId() {
-  const key = 'dopagaki.agent-dev.userId';
-  let saved: string | null = null;
-  try { saved = localStorage.getItem(key); } catch { /* Storage may be disabled. */ }
-  if (saved && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(saved)) return saved;
-  // getRandomValues also works on a phone using the development server over LAN HTTP.
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-  const id = [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
-  try { localStorage.setItem(key, id); } catch { /* Keep the ID in memory. */ }
-  return id;
-}
 
 export default function AgentDev() {
   const [turns, setTurns] = useState<Turn[]>([]);

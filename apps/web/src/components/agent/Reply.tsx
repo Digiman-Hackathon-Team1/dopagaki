@@ -1,4 +1,5 @@
 import { Questions, type Send } from './Questions';
+import './agent.css';
 import { areas, menus } from '@/data/prices.json';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
