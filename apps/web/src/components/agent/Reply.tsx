@@ -132,7 +132,7 @@ function TripPlanCard({ card, lang, send }: { lang: Lang; card: Schemas['TripPla
   const later = card.deferred.filter(d => !resident || d.reasons.every(r => laterReasons.includes(r)));
   const excluded = resident ? card.deferred.filter(d => !later.includes(d)) : [];
   const title = resident
-    ? card.daysUntilEvent !== null ? (ja ? `次の予定まで${card.daysUntilEvent}日` : `다음 약속까지 ${card.daysUntilEvent}일`) : (ja ? '予定なし' : '약속 없음')
+    ? card.daysUntilEvent === null ? (ja ? '予定なし' : '약속 없음') : card.daysUntilEvent === 0 ? (ja ? '今日予定あり' : '오늘 약속') : (ja ? `次の予定まで${card.daysUntilEvent}日` : `다음 약속까지 ${card.daysUntilEvent}일`)
     : ja ? `${card.tripDays}日間（${card.tripDays}日目が帰国日）` : `${card.tripDays}일 일정 (${card.tripDays}일째 귀국)`;
   const when = (visit: Schemas['PlanVisit']) => {
     if (visit.day !== null) {
@@ -148,7 +148,7 @@ function TripPlanCard({ card, lang, send }: { lang: Lang; card: Schemas['TripPla
   </li>;
   const alt = card.alternative;
   return <article className="agent-card agent-plan">
-    <small>{ja ? '日程プラン' : '일정 플랜'}{card.oneClinic && (ja ? ' · 1院でまとめて' : ' · 한 병원에서 같이')}{card.radiusMeters !== null && (ja ? ` · 基準地点から${card.radiusMeters / 1000}km以内` : ` · 기준 위치 ${card.radiusMeters / 1000}km 안`)}</small>
+    <small>{ja ? '日程プラン' : '일정 플랜'}{card.oneClinic && card.visits.some(v => v.items.length > 1) && (ja ? ' · 1院でまとめて' : ' · 한 병원에서 같이')}{card.radiusMeters !== null && (ja ? ` · 基準地点から${card.radiusMeters / 1000}km以内` : ` · 기준 위치 ${card.radiusMeters / 1000}km 안`)}</small>
     <h3>{title}</h3>
     {card.visits.length > 0 && <>
       <h4>{resident ? (ja ? '今回受ける施術' : '지금 받을 것') : (ja ? '日ごとのプラン' : '날짜별 일정')}</h4>
@@ -164,6 +164,7 @@ function TripPlanCard({ card, lang, send }: { lang: Lang; card: Schemas['TripPla
             <ExternalLink url={ja ? item.proof.urlJa : item.proof.urlKo}>{ja ? '公式料金表' : '공식 가격표'}</ExternalLink>
           </li>)}</ul>
           {visit.items.length > 1 && <p>{ja ? 'この院の合計' : '이 병원 합계'} {n(visit.totalKrw)}{won} · {n(visit.totalJpy)}{yen}</p>}
+          {(ja ? visit.priceConditionJa : visit.priceConditionKo) && <small>{ja ? '料金条件' : '가격 조건'}: {ja ? visit.priceConditionJa : visit.priceConditionKo}</small>}
           <Channels channels={visit.bookingChannels} central={visit.centralChannel} lang={lang} />
           <button onClick={() => send(ja ? `${visit.clinicNameJa}で${names.join('と')}を受ける予約方法を教えてください。` : `${visit.clinicNameKo}에서 ${names.join(' + ')} 받는 예약 방법을 알려 주세요.`)}>{ja ? '予約方法と問い合わせ文' : '예약 방법과 문의 문장'}</button>
         </li>;
