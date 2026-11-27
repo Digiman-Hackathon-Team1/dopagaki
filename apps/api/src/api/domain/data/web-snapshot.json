@@ -1,6 +1,6 @@
 {
   "sources": {
-    "apps/web/src/data/prices.json": "0ac01f456765caab10482da77785dcec7c7a18770aaa561c6766df325a604928",
+    "apps/web/src/data/prices.json": "f842f71073595b8913d93328c7b905fc9a3a8c6ca6cf84e47144d80287c2370c",
     "apps/web/src/lib/calc.ts": "3bd5c2b0242d6807b14d6384d03b193566400e9fc1f2a55ea1c42c71129c3d09",
     "apps/web/src/lib/concierge.ts": "185f63d3d46fb60a99cc8b6fb4ea11583fe4fadbad1760b249fcb257bffe01dd",
     "apps/web/src/lib/ai-rating.ts": "7beff55d6e9ddf42a704035c0f19661203507e12caba45aec8b880eee65478b8",
@@ -20,8 +20,8 @@
     }
   },
   "fx": {
-    "krwPer100Jpy": 843.68,
-    "dateLabel": "2026.11.25",
+    "krwPer100Jpy": 843.78,
+    "dateLabel": "2026.11.27",
     "bankKo": "하나은행",
     "bankJa": "ハナ銀行",
     "sourceUrl": "https://stock.naver.com/marketindex/exchange/FX_JPYKRW"
@@ -4303,7 +4303,7 @@
           "noteKo": "유앤아이의원 강남점 공식 이벤트 (턱보톡스 국산 19,000원)"
         },
         "aquapeel": {
-          "krw": 20000,
+          "krw": 30000,
           "noteKo": "공식 가격표 · 아쿠아필 1회",
           "noteJa": "公式料金表・アクアピール 1回"
         },

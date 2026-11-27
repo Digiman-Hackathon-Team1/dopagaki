@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, HelpCircle } from 'lucide-react';
 import type { Lang, PriceDataset } from '@/types.ts';
 import { TREATMENT_EFFECTS } from '@/lib/clinic-helpers.ts';
 import {
@@ -9,7 +10,11 @@ import {
 import { SvgIcon } from '@/components/SvgIcon.tsx';
 import { ConciergeEmoji, MenuEmoji } from '@/components/emoji.tsx';
 import { formatMinutes, treatmentMinutes } from '@/lib/concierge.ts';
-import { AnimatedBackground } from '@/components/motion-primitives/animated-background.tsx';
+import {
+  Disclosure,
+  DisclosureContent,
+  DisclosureTrigger
+} from '@/components/motion-primitives/disclosure.tsx';
 import { BlurFade } from '@/components/ui/blur-fade.tsx';
 
 interface TreatmentInfoViewProps {
@@ -29,12 +34,14 @@ export function TreatmentInfoView({
 }: TreatmentInfoViewProps) {
   const isJa = lang === 'ja';
   const detailCardRef = useRef<HTMLElement>(null);
+  const [openQnaIdx, setOpenQnaIdx] = useState<number | null>(null);
 
   const activeMenu =
     dataset.menus.find((m) => m.id === selectedMenuId) ?? dataset.menus[0];
   const activeEffect = TREATMENT_EFFECTS[activeMenu.id];
 
   useEffect(() => {
+    setOpenQnaIdx(null);
     const id = window.requestAnimationFrame(() => {
       if (detailCardRef.current) {
         animateScoreRings(detailCardRef.current);
@@ -46,38 +53,32 @@ export function TreatmentInfoView({
   return (
     <div className="ti-view" id="treatment-info-view">
       <section className="ti-picker-card" aria-label={isJa ? '施術を選ぶ' : '시술 선택'}>
-        <div className="treat-grid treat-row has-mp-bg ti-treat-grid" role="group">
-          <AnimatedBackground
-            value={activeMenu.id}
-            onValueChange={(nextMenu) => {
-              if (nextMenu && nextMenu !== activeMenu.id) {
-                onHaptic();
-                onSelectMenu(nextMenu);
-              }
-            }}
-            className="mp-accent-pill"
-            transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
-          >
-            {dataset.menus.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                data-id={m.id}
-                className="treat-cell"
-                aria-pressed={m.id === activeMenu.id}
-              >
-                <MenuEmoji menuId={m.id} size={16} className="treat-emoji" />
-                {m.id === 're2o-5cc' ? (
-                  <span className="treat-label">
-                    {isJa ? 'ブナジュ' : '리투오'}
-                    <span className="treat-alias">{isJa ? '韓: リトゥオ' : '일: 부나주'}</span>
-                  </span>
-                ) : (
-                  <span className="treat-label">{isJa ? m.shortJa : m.shortKo}</span>
-                )}
-              </button>
-            ))}
-          </AnimatedBackground>
+        <div className="treat-grid treat-row ti-treat-grid" role="group">
+          {dataset.menus.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              data-id={m.id}
+              className="treat-cell"
+              aria-pressed={m.id === activeMenu.id}
+              onClick={() => {
+                if (m.id !== activeMenu.id) {
+                  onHaptic();
+                  onSelectMenu(m.id);
+                }
+              }}
+            >
+              <MenuEmoji menuId={m.id} size={16} className="treat-emoji" />
+              {m.id === 're2o-5cc' ? (
+                <span className="treat-label">
+                  {isJa ? 'ブナジュ' : '리투오'}
+                  <span className="treat-alias">{isJa ? '韓: リトゥオ' : '일: 부나주'}</span>
+                </span>
+              ) : (
+                <span className="treat-label">{isJa ? m.shortJa : m.shortKo}</span>
+              )}
+            </button>
+          ))}
         </div>
       </section>
 
@@ -143,16 +144,26 @@ export function TreatmentInfoView({
               />
             </div>
 
-            <div className="treat-guide-facts ti-facts">
-              <div className="treat-guide-fact-card">
-                <span className="treat-guide-fact-k">
-                  <SvgIcon name="spark" />
-                  <span>{isJa ? 'おすすめの方' : '추천 대상'}</span>
-                </span>
-                <span className="treat-guide-fact-v">
-                  {isJa ? activeEffect.bestForJa : activeEffect.bestForKo}
-                </span>
+            <div className="ti-rec-card" aria-label={isJa ? 'こんな方におすすめ' : '이런 고민이면 추천'}>
+              <div className="ti-rec-head">
+                <SvgIcon name="spark" />
+                <span>{isJa ? 'こんな方におすすめ' : '이런 고민이면 추천'}</span>
               </div>
+              <ul className="ti-rec-list">
+                {(isJa ? activeEffect.recommendedForJa : activeEffect.recommendedForKo).map(
+                  (line) => (
+                    <li key={line}>
+                      <span className="ti-rec-check" aria-hidden="true">
+                        <Check size={12} strokeWidth={2.7} />
+                      </span>
+                      <span>{line}</span>
+                    </li>
+                  )
+                )}
+              </ul>
+            </div>
+
+            <div className="treat-guide-facts ti-facts">
               <div className="treat-guide-fact-card">
                 <span className="treat-guide-fact-k">
                   <SvgIcon name="clock" />
@@ -170,6 +181,55 @@ export function TreatmentInfoView({
                 <span className="treat-guide-fact-v">
                   {isJa ? activeEffect.noteJa : activeEffect.noteKo}
                 </span>
+              </div>
+            </div>
+
+            <div className="ti-qna-section" id="ti-qna-section">
+              <div className="ti-qna-head">
+                <HelpCircle size={14} strokeWidth={2.3} />
+                <span>
+                  {isJa
+                    ? 'よくある質問・施術のコツ（タップで開く）'
+                    : '받기 전 자주 묻는 실전 Q&A (눌러서 확인)'}
+                </span>
+              </div>
+              <div className="ti-qna-list">
+                {activeEffect.qna.map((item, idx) => {
+                  const isOpen = openQnaIdx === idx;
+                  const qText = isJa ? item.qJa : item.qKo;
+                  const aText = isJa ? item.aJa : item.aKo;
+                  return (
+                    <div className={`ti-qna-item${isOpen ? ' is-open' : ''}`} key={qText}>
+                      <Disclosure
+                        open={isOpen}
+                        onOpenChange={(next) => {
+                          onHaptic();
+                          setOpenQnaIdx(next ? idx : null);
+                        }}
+                        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                      >
+                        <DisclosureTrigger>
+                          <button
+                            type="button"
+                            className="ti-qna-trigger"
+                            aria-expanded={isOpen}
+                          >
+                            <span className="ti-qna-badge">Q{idx + 1}</span>
+                            <span className="ti-qna-q">{qText}</span>
+                            <ChevronDown
+                              size={15}
+                              strokeWidth={2.3}
+                              className={`ti-qna-chev${isOpen ? ' is-rotated' : ''}`}
+                            />
+                          </button>
+                        </DisclosureTrigger>
+                        <DisclosureContent>
+                          <p className="ti-qna-answer">{aText}</p>
+                        </DisclosureContent>
+                      </Disclosure>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>

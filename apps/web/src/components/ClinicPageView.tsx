@@ -61,7 +61,7 @@ import { getOfficialMenuProof } from '@/data/official-proofs.ts';
 import { MenuEmoji } from '@/components/emoji.tsx';
 import { TraitChip, formatCompactKrw } from '@/components/Modals.tsx';
 import { AnimatedBackground } from '@/components/motion-primitives/animated-background.tsx';
-import { YenFlow } from '@/components/ui/number-flow.tsx';
+import { PctFlow, YenFlow } from '@/components/ui/number-flow.tsx';
 import {
   Disclosure,
   DisclosureContent,
@@ -79,6 +79,7 @@ import {
   NearbyClinicsCarousel
 } from '@/components/ClinicCarousels.tsx';
 import { ClinicBookingSheet } from '@/components/ClinicBookingSheet.tsx';
+import { FeeTransparencyBox } from '@/components/FeeTransparencyBox.tsx';
 import { FluidStepper } from '@/components/ui/fluid-stepper.tsx';
 
 export interface ClinicPageViewProps {
@@ -206,15 +207,19 @@ export function ClinicPageView({
     : 0;
   const distLabel = inKoreaLoc ? formatDistance(distanceMeters, lang, true) : '';
 
-  const bundle = computeClinicBundle(
-    place,
-    dataset.menus,
-    selectedMenus,
-    visits,
-    includeVat,
-    krwPer100Jpy,
-    dataset.meta.vatRate,
-    dataset.places
+  const bundle = useMemo(
+    () =>
+      computeClinicBundle(
+        place,
+        dataset.menus,
+        selectedMenus,
+        visits,
+        includeVat,
+        krwPer100Jpy,
+        dataset.meta.vatRate,
+        dataset.places
+      ),
+    [place, dataset.menus, selectedMenus, visits, includeVat, krwPer100Jpy, dataset.meta.vatRate, dataset.places]
   );
 
   const isSaved = savedIds.includes(place.id);
@@ -237,12 +242,18 @@ export function ClinicPageView({
   const activeProof = getOfficialMenuProof(place, proofMenu.id, lang);
   const activeListedKrw = place.prices[proofMenu.id]?.krw ?? null;
   const proofMenuLabel = isJa ? proofMenu.shortJa : proofMenu.shortKo;
-  const nearby = findNearbyClinics(dataset, place, primaryMenu.id, 4);
+  const nearby = useMemo(
+    () => findNearbyClinics(dataset, place, primaryMenu.id, 4),
+    [dataset, place, primaryMenu.id]
+  );
   const primaryReviewUrl = buildPrimaryReviewUrl(place, lang);
   const appBasePath = detectAppBasePath(window.location.pathname);
 
-  const brandRev = getBrandReview(place);
-  const aiRating = getClinicAiRating(place, dataset.places);
+  const brandRev = useMemo(() => getBrandReview(place), [place]);
+  const aiRating = useMemo(
+    () => getClinicAiRating(place, dataset.places),
+    [place, dataset.places]
+  );
   const externalPosts = useMemo(() => getExternalReviewPosts(place, lang), [place, lang]);
   const communityLinks = useMemo(() => buildCommunityReviewLinks(place, lang), [place, lang]);
   const bookingChannels = useMemo(() => getClinicChannels(place.id, lang), [place.id, lang]);
@@ -303,12 +314,6 @@ export function ClinicPageView({
     }
     prevProofRef.current = { clinicId: place.id, menuId: proofMenu.id, idx };
   }, [place.id, proofMenu.id]);
-
-  const extraTransitPresets: Array<{ id: TransitOriginPreset; ko: string; ja: string }> = [
-    { id: 'incheon', ko: '인천공항에서', ja: '仁川空港から' },
-    { id: 'gimpo', ko: '김포공항에서', ja: '金浦空港から' },
-    { id: 'seoul-station', ko: '서울역에서', ja: 'ソウル駅から' }
-  ];
 
   const handleTransitClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -377,8 +382,8 @@ export function ClinicPageView({
     });
   };
 
-  const safetyAudit = getClinicSafetyAudit(place);
-  const fullSafetyHtml = renderFullSafetyAuditBoxHtml(place, lang);
+  const safetyAudit = useMemo(() => getClinicSafetyAudit(place), [place]);
+  const fullSafetyHtml = useMemo(() => renderFullSafetyAuditBoxHtml(place, lang), [place, lang]);
   const topTrait = brandRev.traits[0];
 
   const shareUrl = buildClinicUrl(window.location.origin, appBasePath, place.id, {
@@ -532,15 +537,17 @@ export function ClinicPageView({
                 <YenFlow value={bundle.krTotalJpy} />
               </strong>
               {bundle.savingsJpy > 0 && (
-                <span className="cp2-price-off num">-{bundle.savingsPct}%</span>
+                <span className="cp2-price-off num">
+                  <PctFlow pct={bundle.savingsPct} />
+                </span>
               )}
             </div>
 
             <div className="cp2-price-sub num">
-              <span>
+              <span className="cp2-local-krw-pill">
                 {isJa
-                  ? `${formatKrw(bundle.totalKrw)}${includeVat ? ' · 税込' : ''}`
-                  : `${formatCompactKrw(bundle.totalKrw, lang)} (${formatKrw(bundle.totalKrw)})${includeVat ? ' · 부가세 포함' : ''}`}
+                  ? `現地決済額 ${formatKrw(bundle.totalKrw)}${includeVat ? '（税込10%）' : '（税別）'}`
+                  : `실결제 예상 ${formatKrw(bundle.totalKrw)} (${formatCompactKrw(bundle.totalKrw, lang)}${includeVat ? ' · 부가세 포함' : ' · 별도'})`}
               </span>
               {bundle.savingsJpy > 0 && (
                 <strong className="cp2-save-accent">
@@ -861,6 +868,9 @@ export function ClinicPageView({
                         <span className="cp-menu-nm">{label}</span>
                       </span>
                       <strong className="cp-menu-pr num">{formatJpy(unitJpy)}</strong>
+                      <span className="cp-menu-krw num">
+                        {isJa ? formatKrw(unitTotalKrw) : formatCompactKrw(unitTotalKrw, lang)}
+                      </span>
                     </button>
                   );
                 })}
@@ -912,6 +922,9 @@ export function ClinicPageView({
                   ? '※ 初回体験価格の場合あり（ご注意ください）'
                   : '※ 1회 체험가일 수 있으니 주의하세요'}
               </p>
+
+              {/* 3-Line Cost Transparency Check (VAT / Anesthesia / Aftercare) */}
+              <FeeTransparencyBox includeVat={includeVat} lang={lang} />
 
               {/* Official Price Screenshot Proof (with PhotoSwipe Zoom) */}
               <div className="cp-proof-section" id="clinic-official-proof">
@@ -1288,21 +1301,6 @@ export function ClinicPageView({
                 <Navigation size={15} strokeWidth={2.2} />
                 <span>{isJa ? '現在地からNAVERマップ経路' : '현재 위치에서 네이버지도 길찾기'}</span>
               </a>
-
-              <div className="cp-transit-chips" aria-label={isJa ? '空港・駅からの経路' : '공항·역 길찾기'}>
-                {extraTransitPresets.map((tp) => (
-                  <a
-                    key={tp.id}
-                    className="cp-transit-chip"
-                    href={buildTransitUrl(tp.id, place, userLocation, lang)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => handleTransitClick(e, tp.id)}
-                  >
-                    <span>{isJa ? tp.ja : tp.ko}</span>
-                  </a>
-                ))}
-              </div>
 
               {/* Official Booking Channels */}
               {bookingChannels.items.length > 0 && (
