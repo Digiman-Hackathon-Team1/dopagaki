@@ -1,6 +1,6 @@
 """실제 Claude로 시나리오를 돌려 도구 선택·금액 일치·응답 형식을 채점한다(설계 문서 13장, 이슈 #10).
 
-실행: `cd apps/api && uv run python scripts/eval_scenarios.py --out <결과.json> [--only s1,s3]`
+실행: `cd apps/api && uv run python scripts/eval_scenarios.py --out <결과.json> [--only s1,s3] [--runs 3] [--judge]`
 
 - 사용자 말은 시나리오마다 미리 정한 대본이다. 같은 대본으로 프롬프트를 고치기 전과 후를 비교한다.
 - 코드가 채점하는 것: 불러야 할 도구와 부르면 안 되는 도구, 도구 입력(시술 ID, 일본어 가능 병원만 등),
@@ -8,6 +8,11 @@
   나왔는지, 안전 정지 여부. "답이 먼저", 말투 같은 원칙 준수는 출력된 대화 기록을 사람이 읽고 판정한다.
 - 비용 규칙: 모델이 Haiku가 아니면 실행하지 않는다(`--allow-model`로만 바꿀 수 있다). 한 번 실행에 대본
   턴 수만큼 에이전트 턴이 돌고, 턴마다 Claude를 2~4번 부른다. 실행 전에 턴 수를 출력한다.
+- `--runs N`: 같은 대본을 N번 돌린다. 시나리오는 N번 모두 통과해야(pass^k) 통과로 센다(이슈 #63).
+- `--judge`: 코드가 못 보는 문장 오류(카드 이유의 비교 표현, 답이 먼저)를 LLM judge가 판정한다(`eval_judges.py`).
+  judge 결과는 시나리오 통과 여부와 따로 센다.
+- `--rejudge <이전 결과.json> --out <새 결과.json>`: 에이전트를 다시 돌리지 않고 저장된 응답에 judge만 다시 돌린다.
+  rubric을 고친 뒤 같은 응답으로 판정을 비교할 때 쓴다(judge 호출 비용만 든다).
 """
 
 import argparse
@@ -17,6 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import uuid4
 
+from eval_judges import Judge, anthropic_judge, judge_turn
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, HumanMessage
 
@@ -27,6 +33,9 @@ from api.agent.schemas import AgentReply
 from api.agent.service import get_agent
 from api.agent.tools import TOOLS
 from api.main import app
+
+# judge는 평가 대상(Haiku)보다 강한 모델로 부른다.
+DEFAULT_JUDGE_MODEL = "claude-sonnet-5-5"
 
 
 @dataclass(frozen=True)
@@ -327,7 +336,9 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
     }
 
 
-def run_scenario(client: TestClient, agent, scenario: Scenario) -> dict:
+def run_scenario(
+    client: TestClient, agent, scenario: Scenario, judge: Judge | None = None
+) -> dict:
     user_id = str(uuid4())
     thread_id: str | None = None
     turns = []
@@ -347,7 +358,10 @@ def run_scenario(client: TestClient, agent, scenario: Scenario) -> dict:
         state = agent.get_state(
             {"configurable": {"thread_id": f"{user_id}:{thread_id}"}}
         )
-        turns.append(grade_turn(turn, body, state.values["messages"]))
+        graded = grade_turn(turn, body, state.values["messages"])
+        if judge is not None:
+            graded["judges"] = judge_turn(judge, turn.message, turn.shape, body)
+        turns.append(graded)
     return {
         "id": scenario.id,
         "kind": scenario.kind,
@@ -358,9 +372,58 @@ def run_scenario(client: TestClient, agent, scenario: Scenario) -> dict:
     }
 
 
-def print_transcript(result: dict) -> None:
+def scenario_result(scenario: Scenario, runs: list[dict]) -> dict:
+    """같은 시나리오를 여러 번 돌린 결과를 묶는다. 모든 회차가 통과해야 통과(pass^k)다."""
+    passed_runs = sum(r["passed"] for r in runs)
+    return {
+        "id": scenario.id,
+        "kind": scenario.kind,
+        "lang": scenario.lang,
+        "goal": scenario.goal,
+        "passed": passed_runs == len(runs),
+        "passed_runs": passed_runs,
+        "runs": runs,
+    }
+
+
+def rejudge(judge: Judge, results: list[dict]) -> None:
+    """저장된 결과의 모든 턴에 judge를 다시 돌려 judges를 바꿔 쓴다. 코드 채점 결과는 그대로 둔다."""
+    turns_by_id = {s.id: s.turns for s in SCENARIOS}
+    for r in results:
+        for run in r["runs"]:
+            for turn, saved in zip(turns_by_id[r["id"]], run["turns"], strict=True):
+                saved["judges"] = judge_turn(
+                    judge, turn.message, turn.shape, saved["response"]
+                )
+
+
+def summarize(model: str, runs: int, results: list[dict]) -> dict:
+    turns = [t for r in results for run in r["runs"] for t in run["turns"]]
+    judges: dict[str, dict[str, int]] = {}
+    for t in turns:
+        for j in t.get("judges", []):
+            count = judges.setdefault(j["judge"], {"passed": 0, "total": 0})
+            count["passed"] += j["passed"]
+            count["total"] += 1
+    return {
+        "model": model,
+        "runs": runs,
+        # pass^k: 모든 회차를 통과한 시나리오 수
+        "scenarios_passed": sum(r["passed"] for r in results),
+        "scenarios": len(results),
+        "runs_passed": sum(r["passed_runs"] for r in results),
+        "runs_total": runs * len(results),
+        "judges": judges,
+        "llm_calls": sum(t["llm_calls"] for t in turns),
+        "input_tokens": sum(t["input_tokens"] for t in turns),
+        "output_tokens": sum(t["output_tokens"] for t in turns),
+    }
+
+
+def print_transcript(result: dict, run: int, runs: int) -> None:
     mark = "통과" if result["passed"] else "실패"
-    print(f"\n## {result['id']} {result['kind']} ({result['lang']}) — {mark}")
+    label = f" 회차 {run}/{runs}" if runs > 1 else ""
+    print(f"\n## {result['id']} {result['kind']} ({result['lang']}){label} — {mark}")
     for i, t in enumerate(result["turns"], start=1):
         body = t["response"]
         tools = ", ".join(c["name"] for c in t["tool_calls"]) or "없음"
@@ -368,6 +431,9 @@ def print_transcript(result: dict) -> None:
         print(f"- 도구: {tools} / LLM 호출 {t['llm_calls']}번")
         for f in t["failures"]:
             print(f"- 실패: {f}")
+        for j in t.get("judges", []):
+            if not j["passed"]:
+                print(f"- judge 실패({j['judge']}): {j['explanation']}")
         print(f"- 조건 요약: {body['conditionSummary']}")
         print(f"- 답변:\n{body['answer']}")
         for q in body["questions"]:
@@ -388,9 +454,37 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--only", help="쉼표로 구분한 시나리오 ID. 예: s1,s3")
     parser.add_argument("--allow-model", help="Haiku가 아닌 모델을 쓸 때 그 모델 이름")
+    parser.add_argument("--runs", type=int, default=1, help="시나리오마다 반복할 횟수")
+    parser.add_argument("--judge", action="store_true", help="LLM judge로 문장도 판정")
+    parser.add_argument("--judge-model", default=DEFAULT_JUDGE_MODEL)
+    parser.add_argument("--rejudge", type=Path, help="judge만 다시 돌릴 이전 결과 파일")
     args = parser.parse_args()
+    if args.runs < 1:
+        parser.error("--runs는 1 이상이어야 한다")
 
     settings = get_settings()
+    if args.rejudge:
+        if settings.anthropic_api_key is None:
+            print("ANTHROPIC_API_KEY가 없다", file=sys.stderr)
+            return 2
+        judge = anthropic_judge(args.judge_model, settings.anthropic_api_key)
+        saved = json.loads(args.rejudge.read_text())
+        rejudge(judge, saved["results"])
+        summary = summarize(
+            saved["summary"]["model"], saved["summary"]["runs"], saved["results"]
+        )
+        summary["judge_model"] = args.judge_model
+        print(json.dumps(summary, ensure_ascii=False))
+        for r in saved["results"]:
+            for i, run in enumerate(r["runs"], start=1):
+                for t in run["turns"]:
+                    for j in t["judges"]:
+                        if not j["passed"]:
+                            print(
+                                f"- {r['id']} 회차 {i} {j['judge']}: {j['explanation']}"
+                            )
+        args.out.write_text(json.dumps(saved, ensure_ascii=False, indent=2))
+        return 0
     if "haiku" not in settings.agent_model and settings.agent_model != args.allow_model:
         print(
             f"AGENT_MODEL={settings.agent_model}: Haiku가 아니라 실행하지 않는다",
@@ -407,26 +501,26 @@ def main() -> int:
     scenarios = [
         s for s in SCENARIOS if (s.id in only if only else not s.id.endswith("b"))
     ]
+    judge = None
+    if args.judge:
+        assert settings.anthropic_api_key is not None  # get_agent가 위에서 확인했다
+        judge = anthropic_judge(args.judge_model, settings.anthropic_api_key)
     print(
-        f"모델 {settings.agent_model}, 시나리오 {len(scenarios)}개, "
-        f"에이전트 턴 {sum(len(s.turns) for s in scenarios)}번"
+        f"모델 {settings.agent_model}, 시나리오 {len(scenarios)}개 × {args.runs}회, "
+        f"에이전트 턴 {sum(len(s.turns) for s in scenarios) * args.runs}번"
+        + (f", judge {args.judge_model}" if judge else "")
     )
     client = TestClient(app)
     results = []
     for scenario in scenarios:
-        result = run_scenario(client, agent, scenario)
-        print_transcript(result)
-        results.append(result)
+        runs = []
+        for i in range(1, args.runs + 1):
+            run = run_scenario(client, agent, scenario, judge)
+            print_transcript(run, i, args.runs)
+            runs.append(run)
+        results.append(scenario_result(scenario, runs))
 
-    turns = [t for r in results for t in r["turns"]]
-    summary = {
-        "model": settings.agent_model,
-        "scenarios_passed": sum(r["passed"] for r in results),
-        "scenarios": len(results),
-        "llm_calls": sum(t["llm_calls"] for t in turns),
-        "input_tokens": sum(t["input_tokens"] for t in turns),
-        "output_tokens": sum(t["output_tokens"] for t in turns),
-    }
+    summary = summarize(settings.agent_model, args.runs, results)
     print(f"\n{json.dumps(summary, ensure_ascii=False)}")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
