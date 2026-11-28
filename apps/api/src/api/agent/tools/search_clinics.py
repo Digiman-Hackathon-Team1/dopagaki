@@ -528,12 +528,12 @@ def _resolve_base(query: str) -> tuple[Location | None, str]:
         return None, (
             f"{head} names several places: {listed}. Searched without distances. If the user is "
             "comparing them, call search_clinics once per place with its location_id as "
-            "origin_id. Otherwise ask which one is their base."
+            "origin_id. Otherwise ask which one is their base in the last sentence of answer."
         )
     return None, (
         f"{head} → unknown. No area or station in the data matches; searched without "
-        "distances. Do not guess a location. Ask the user once for the nearest subway station "
-        "or one of the areas listed in resolve_location."
+        "distances. Do not guess a location. Ask the user once, in the last sentence of answer, "
+        "for the nearest subway station or one of the areas listed in resolve_location."
     )
 
 

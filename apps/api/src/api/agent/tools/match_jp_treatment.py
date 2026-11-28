@@ -200,7 +200,8 @@ def match_jp_treatment(query: str, jp_clinic: str | None = None) -> tuple[str, d
                 ),
                 (
                     "Ask once, e.g. 'Do you mean <Korean treatment>?', with each candidate as a "
-                    "quick answer option."
+                    "quick answer option. If this response also shows clinics for another "
+                    "treatment, ask it in the last sentence of answer instead, naming each candidate."
                 ),
             ]
         return "\n".join(lines) + _pending_clinic(jp_clinic), MatchJpTreatmentArtifact(

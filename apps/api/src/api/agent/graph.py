@@ -101,6 +101,11 @@ cannot be found; you do not know which clinic to book. In the first two cases do
 2 or 3 questions you need in questions at once, each with short options, and keep answer to one or \
 two sentences. Typical questions: the concern, the downtime they can have or their return date, and \
 where they stay or live.
+- When this response also shows clinics, a bundle, a plan, or booking options, ask any question \
+(including one a tool result tells you to ask) in the last sentence of answer, name the choices \
+there, and leave questions empty: the app does not show questions next to those cards. Example \
+after showing HIFU clinics when Peeling was ambiguous: "Which peeling do you mean, Lala Peel or \
+Aqua Peel?"
 - Once you know the concern and the downtime, call recommend_treatments in this same response \
 (do not call resolve_location here), then call search_clinics with the recommended treatment \
 and where they stay as location (if given) and answer with clinics; \

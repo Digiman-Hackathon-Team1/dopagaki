@@ -86,14 +86,16 @@ def resolve_location(query: str) -> tuple[str, dict]:
         message = (
             f"{head} → unknown. No area or station in the data matches. Do not guess a location. "
             "Ask the user once for the nearest subway station or one of the areas in the tool "
-            "description, and search without origin_id until then."
+            "description, and search without origin_id until then. If you show results in this "
+            "response, ask it in the last sentence of answer."
         )
         return message, ResolveLocationArtifact(status="unknown").model_dump()
     if result.status == "ambiguous":
         listed = "; ".join(location_label(loc) for loc in result.locations)
         message = (
             f"{head} → ambiguous, it names several places: {listed}. If the user is comparing them, "
-            "call resolve_location once per place. Otherwise ask which one is their base."
+            "call resolve_location once per place. Otherwise ask which one is their base, in the "
+            "last sentence of answer if you show results in this response."
         )
         return message, ResolveLocationArtifact(status="ambiguous").model_dump()
 
