@@ -325,6 +325,30 @@ SCENARIOS: tuple[Scenario, ...] = (
             ),
         ),
     ),
+    Scenario(
+        "s12",
+        "다른 병원(다음 순위)",
+        "ja",
+        "리쥬란 1~3위를 본 뒤 다른 병원을 더 보여 달라고 함. 2턴째는 같은 조건의 4~6위(offset=3)여야 함(이슈 #88)",
+        (
+            Turn(
+                # 리쥬란을 일본보다 싸게 받을 수 있는 병원을 알려 주세요.
+                "リジュランを日本より安く受けられるクリニックを教えてください。",
+                must_call=("search_clinics",),
+                args={"search_clinics": {"menu_id": "rejuran-2cc", "offset": 0}},
+                shape="answer",
+                safety_stop=False,
+            ),
+            Turn(
+                # 다른 병원도 보여 주세요.
+                "他のクリニックも見せてください。",
+                must_call=("search_clinics",),
+                args={"search_clinics": {"menu_id": "rejuran-2cc", "offset": 3}},
+                shape="answer",
+                safety_stop=False,
+            ),
+        ),
+    ),
 )
 
 
