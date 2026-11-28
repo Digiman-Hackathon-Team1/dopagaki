@@ -8,7 +8,7 @@
     "apps/web/src/data/branch-reviews.ts": "6403b8be273caf3c88050aa15ca56c2a0f3cae24b15bd951d75853970e7b6ee3",
     "apps/web/src/data/clinic-channels.ts": "301a6533f56e5eca240a1ab3a49061f6c81ff5359e0cad8826fa2ec6730bb3b0",
     "apps/web/src/data/official-proofs.ts": "879df0bb3ec116fc1faadf5537603d47d23d2c10fd39f85b795b893161c2c83b",
-    "apps/web/src/lib/clinic-helpers.ts": "6ab82cf27a6071e76c59542bfcd6bfdd771cb9664b1f789a76bed646d427d32b",
+    "apps/web/src/lib/clinic-helpers.ts": "18be94961c2d6cdcc9341ad9416ea9f8752ce43546df20fc883a3925ecd2eb43",
     "apps/api/scripts/export-web-snapshot.mts": "b690ab961ee050a791905594cf8ebdeb155533bc4cd67ed7bf5bad55b3cdb99d",
     "apps/web/src/data/proof-hidden.ts": "749e8e26e15f1d9a99b68739987ff212c251665dc03a5d981ec6c43b7ed460a2"
   },
