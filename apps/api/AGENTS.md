@@ -43,6 +43,11 @@ OpenAPI 타입은 컴파일 시점 검사다. 요청 검증은 서버의 Pydanti
 - 새 endpoint에는 `tests/`에 정상·오류 응답 테스트를 추가한다.
 - 의존성은 `uv add <package>`로 추가하고 `uv.lock`을 함께 커밋한다.
 - 개발 서버의 API 문서(Swagger UI): http://localhost:8000/docs
+- 구조 규칙은 문서보다 검사가 먼저다. `pnpm check`가 다음을 막으니, 실패하면 검사를 끄지 말고 코드를 고친다. 규칙을 바꿀 때는 검사도 같은 PR에서 바꾼다.
+  - 계층 방향(router → service → graph → tools), router의 graph·tools·domain 직접 호출, domain의 FastAPI·LLM 의존: `uv run lint-imports`(`pyproject.toml`의 `tool.importlinter`)
+  - SSE 직접 구현(`StreamingResponse`, `sse_starlette`): ruff `TID251`
+  - 서비스의 HTTP import(`Depends` 외), `get_fx_provider()`를 거치지 않는 `FxProvider`, `alembic.ini`의 ASCII 아닌 문자: `tests/test_architecture.py`
+  - 스트림 금액 검증: `tests/test_agent_stream.py`
 
 ## 에이전트 작업 규칙
 
