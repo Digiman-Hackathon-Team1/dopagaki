@@ -115,15 +115,15 @@ SCENARIOS: tuple[Scenario, ...] = (
             ),
             Turn(
                 "頬のたるみです。2泊3日の旅行で、ホテルは弘大です。",
+                # 이슈 #72: search_clinics(location="弘大") 방식으로 위치를 넘기면
+                # resolve_location을 따로 부르지 않는다. 위치 카드와 거리 계산으로 확인한다.
                 must_call=(
-                    "resolve_location",
                     "recommend_treatments",
                     "search_clinics",
                 ),
                 args={
                     "search_clinics": {
                         "menu_id": "shrink-300",
-                        "origin_id": "area:hongdae",
                         "max_downtime_days": (1, 2),
                     },
                     "recommend_treatments": {"max_downtime_days": (1, 2)},
