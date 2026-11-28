@@ -80,12 +80,18 @@ def test_questions_are_kept_without_cards() -> None:
     assert len(read_reply(result).questions) == 2
 
 
-def test_questions_are_kept_with_only_a_location_card() -> None:
-    result = run(
-        tool_call("resolve_location", {"query": "홍대 숙소"}),
-        asking("홍대 기준으로 볼게요. 어떤 시술을 찾으세요?"),
-        message="홍대 숙소예요",
-    )
+@pytest.mark.parametrize(
+    ("kind", "name", "args", "message"),
+    [
+        ("location", "resolve_location", {"query": "홍대 숙소"}, "홍대 숙소예요"),
+        ("jp_match", "match_jp_treatment", {"query": "하이후"}, "하이후 받아 봤어요"),
+    ],
+)
+def test_questions_are_kept_with_only_a_condition_card(
+    kind: str, name: str, args: dict, message: str
+) -> None:
+    # 기준 위치·일본 시술명 대응 카드는 조건을 확인한 카드라 그것만으로는 답한 턴이 아니다.
+    result = run(tool_call(name, args), asking("확인했어요."), message=message)
 
-    assert [c.kind for c in read_cards(result)] == ["location"]
+    assert [c.kind for c in read_cards(result)] == [kind]
     assert len(read_reply(result).questions) == 2

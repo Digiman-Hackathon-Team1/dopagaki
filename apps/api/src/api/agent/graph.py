@@ -275,7 +275,8 @@ def read_failure(state: AgentState) -> Failure | None:
 
 CARDS = TypeAdapter(list[Card])
 # 이 카드가 나간 턴은 이미 답한 턴이라 질문 묶음을 내보내지 않는다(설계 문서 4.2·4.8, #80).
-# 기준 위치·일본 시술명 대응 카드만 나간 턴은 장소를 못 찾았거나 이름이 모호해 되물을 수 있어 뺀다.
+# 기준 위치·일본 시술명 대응 카드는 조건을 확인한 카드라 그것만으로는 답이 아니어서 넣지 않는다
+# (예: 숙소만 말하고 시술은 아직 말하지 않은 턴).
 ANSWER_CARD_KINDS = frozenset({"recommendation", "bundle", "trip_plan", "booking"})
 
 
