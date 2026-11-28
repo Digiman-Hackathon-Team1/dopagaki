@@ -214,3 +214,69 @@ def test_roundtrip_scenarios_are_not_in_the_default_eval() -> None:
 
     ids = {s.id for s in SCENARIOS}
     assert set(ROUNDTRIP) <= ids
+
+
+TABLE_ANSWER = """리쥬란은 회복이 조금 더 길어요.
+
+| | 리쥬란 | 쥬베룩 |
+|---|---|---|
+| 회복 기간 | 최대 3일 | 최대 2일 |
+| 바늘 | 사용 | 사용 |
+
+자세한 건 병원 상담에서 확인하세요."""
+
+
+def test_table_lines_returns_only_the_markdown_table() -> None:
+    from eval_scenarios import table_lines
+
+    lines = table_lines(TABLE_ANSWER)
+
+    assert lines[0] == "| | 리쥬란 | 쥬베룩 |"
+    assert lines[-1] == "| 바늘 | 사용 | 사용 |"
+    assert len(lines) == 4
+    assert table_lines("리쥬란 | 쥬베룩 둘 다 바늘을 써요") == []
+
+
+def test_has_table_and_table_excludes_check_only_table_rows() -> None:
+    from eval_scenarios import NOT_IN_DATA, Turn
+
+    turn = Turn("리쥬란 쥬베룩 차이", has_table=True, table_excludes=NOT_IN_DATA)
+
+    # 표 밖에서 통증을 병원에 물어보라고 하는 문장은 괜찮다.
+    assert _graded(turn, TABLE_ANSWER + "\n통증은 병원에서 설명해 줘요.", [])["passed"]
+    assert _graded(turn, "리쥬란은 회복 최대 3일이에요.", [])["failures"] == [
+        "답변에 표 없음"
+    ]
+    pain = TABLE_ANSWER.replace("| 바늘 | 사용 | 사용 |", "| 통증 | 중간 | 약함 |")
+    assert _graded(turn, pain, [])["failures"] == ["표에 데이터에 없는 행: 통증"]
+
+
+def test_mentions_none_fails_on_jargon() -> None:
+    from eval_scenarios import JARGON, Turn
+
+    turn = Turn("리쥬란", mentions_none=JARGON)
+
+    assert _graded(turn, "회복 기간은 최대 3일이에요.", [])["passed"]
+    assert _graded(turn, "다운타임은 최대 3일이에요.", [])["failures"] == [
+        "답변에 쓰면 안 되는 말: 다운타임"
+    ]
+
+
+def test_searched_menus_needs_every_treatment() -> None:
+    from agent_fakes import reply_message
+    from eval_scenarios import Turn, grade_turn
+    from langchain_core.messages import AIMessage, HumanMessage
+
+    turn = Turn("차이", searched_menus=("rejuran-2cc", "juvelook-2cc"))
+    body = {"fallback": None, "cards": [], "questions": [], "conditionSummary": "조건"}
+    call = AIMessage(
+        content="",
+        tool_calls=[
+            {"name": "search_clinics", "args": {"menu_id": "rejuran-2cc"}, "id": "t1"}
+        ],
+    )
+    messages = [HumanMessage("질문"), call, reply_message("답")]
+
+    graded = grade_turn(turn, body, messages)
+
+    assert graded["failures"] == ["search_clinics로 juvelook-2cc를 찾지 않음"]
