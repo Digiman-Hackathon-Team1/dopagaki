@@ -30,7 +30,7 @@ export function AgentConsultView({
   /** App이 가진 대화. 다른 탭에 다녀와도 대화가 남는다. */
   chat: AgentChat;
   savedIds?: string[];
-  onToggleSaveClinic?: (placeId: string) => void;
+  onToggleSaveClinic?: (placeId: string, menuIds?: string[]) => void;
   onOpenClinic?: (placeId: string, menuIds: string[]) => void;
   onOpenPriceTable: () => void;
   onHaptic: () => void;

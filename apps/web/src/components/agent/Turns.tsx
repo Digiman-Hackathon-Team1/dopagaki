@@ -24,7 +24,7 @@ export function Turns({
   lang: Schemas['ChatRequest']['lang'];
   send: Send;
   savedIds?: string[];
-  onToggleSaveClinic?: (placeId: string) => void;
+  onToggleSaveClinic?: (placeId: string, menuIds?: string[]) => void;
   onOpenClinic?: (placeId: string, menuIds: string[]) => void;
   onPriceTable?: () => void;
 }) {

@@ -689,7 +689,7 @@ function TripPlanCard({
   card: Schemas['TripPlanCard'];
   send: Send;
   savedSet: Set<string>;
-  onToggleSaveClinic?: (placeId: string) => void;
+  onToggleSaveClinic?: (placeId: string, menuIds?: string[]) => void;
   onOpenClinic?: (placeId: string, menuIds: string[]) => void;
 }) {
   const ja = lang === 'ja';
@@ -779,7 +779,7 @@ function TripPlanCard({
                           saved={savedSet.has(visit.placeId)}
                           clinicName={ja ? visit.clinicNameJa : visit.clinicNameKo}
                           lang={lang}
-                          onToggle={() => onToggleSaveClinic(visit.placeId)}
+                          onToggle={() => onToggleSaveClinic(visit.placeId, menuIds)}
                         />
                       )}
                     </div>
@@ -984,7 +984,7 @@ export function Reply({
   reply: Schemas['ChatResponse'];
   send: Send;
   savedIds?: string[];
-  onToggleSaveClinic?: (placeId: string) => void;
+  onToggleSaveClinic?: (placeId: string, menuIds?: string[]) => void;
   onOpenClinic?: (placeId: string, menuIds: string[]) => void;
   onPriceTable?: () => void;
 }) {
@@ -1069,7 +1069,13 @@ export function Reply({
                     send={send}
                     saved={savedSet.has(card.placeId)}
                     onToggleSave={
-                      onToggleSaveClinic ? () => onToggleSaveClinic(card.placeId) : undefined
+                      onToggleSaveClinic
+                        ? () =>
+                            onToggleSaveClinic(
+                              card.placeId,
+                              card.items.map(it => it.menuId)
+                            )
+                        : undefined
                     }
                     onOpenClinic={onOpenClinic}
                     lightning={isHeroFirst && bundleRank === 1}
@@ -1097,7 +1103,9 @@ export function Reply({
                   send={send}
                   saved={savedSet.has(card.placeId)}
                   onToggleSave={
-                    onToggleSaveClinic ? () => onToggleSaveClinic(card.placeId) : undefined
+                    onToggleSaveClinic
+                      ? () => onToggleSaveClinic(card.placeId, [card.menuId])
+                      : undefined
                   }
                   onOpenClinic={onOpenClinic}
                   lightning={isHeroFirst && displayRank === 1}
