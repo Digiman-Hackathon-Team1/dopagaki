@@ -55,6 +55,7 @@ from api.agent.schemas import (
     ProfileLocation,
     UserProfileResponse,
 )
+from api.agent.threads import thread_key
 from api.agent.tools import TOOLS
 from api.domain.locations import get_locations
 from api.domain.profile import ProfileStore
@@ -424,7 +425,7 @@ class ChatService:
         """대화 ID, 대화 기억 키, 그래프 설정을 정한다."""
         thread_id = body.thread_id or uuid4()
         # 다른 사용자의 대화 ID로 대화를 이어 읽지 못하도록 사용자 ID와 묶어 저장한다.
-        key = f"{body.user_id}:{thread_id}"
+        key = thread_key(body.user_id, thread_id)
         config = {
             # 사용자 ID는 사용자 기억을 읽고 쓸 때 그래프가 쓴다. LLM에는 넘기지 않는다(ADR 0019).
             "configurable": {"thread_id": key, "user_id": str(body.user_id)},
