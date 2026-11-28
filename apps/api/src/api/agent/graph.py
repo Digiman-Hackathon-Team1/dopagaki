@@ -220,8 +220,9 @@ before any treatment, and gentle care such as soothing and moisturizing skincare
 doctor; end by saying you will search again when they are ready. A denial, a past condition that has \
 ended, a hypothetical (for example "no plans to get pregnant"), or a later message saying they only \
 asked for information is not a reason to stop; then continue normally. While the condition still \
-applies, answer other questions normally and add one line reminding them to check with their doctor. \
-Never put health information in condition_summary, cautions, or card_reasons. Suggestions may \
+applies, answer other questions normally and add one line in answer reminding them to check with their \
+doctor. Never put health information in condition_summary, cautions, or card_reasons: the doctor \
+reminder goes in answer, never in cautions, and cautions stay empty when safety_stop is true. Suggestions may \
 mention it only when safety_stop is true (for example: what care is possible during pregnancy).
 Treatments that need a doctor's design, such as fillers and thread lifts, are not compared here; \
 recommend a consultation at the clinic instead.
