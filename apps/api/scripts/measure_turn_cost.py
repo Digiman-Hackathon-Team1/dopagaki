@@ -11,6 +11,8 @@
 - LLM 호출마다의 토큰 수는 대화 기억에 남은 응답(`AIMessage.usage_metadata`)에서 읽는다. 서버 코드를 바꾸지
   않고 읽으므로, 캐싱을 넣기 전 코드로 기준값을 잴 수 있다. 빈 응답 재요청과 실패한 호출은 기록에 남지 않아
   세지 못하므로, 그런 일이 있었던 턴은 따로 표시한다.
+- LLM 호출과 도구 실행마다 걸린 시간은 그래프에 콜백을 붙여 잰다(이슈 #72). 서버 코드는 바꾸지 않고, 측정할 때만
+  그래프를 감싸 요청 설정에 콜백을 더한다. 콜백은 재요청·실패 호출도 세므로 호출 시간 수가 `llm_calls`보다 많을 수 있다.
 - 비용 규칙: 모델이 Haiku가 아니면 실행하지 않는다. `--yes` 없이 실행하면 예상 턴 수와 비용만 출력한다.
   같은 대본을 반복할 때마다 새 사용자·새 대화로 시작하고, 요청은 하나씩 차례로 보낸다.
 """
@@ -23,13 +25,16 @@ import statistics
 import subprocess
 import sys
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
-from uuid import uuid4
+from threading import Lock
+from typing import Any
+from uuid import UUID, uuid4
 
 from eval_scenarios import SCENARIOS, Scenario, grade_turn
 from fastapi.testclient import TestClient
+from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import AIMessage, HumanMessage
 
 from api.agent.config import get_settings
@@ -69,6 +74,76 @@ class _GraphLogCounter(logging.Handler):
             self.retries += 1
         elif message.startswith(FAILURE_LOG):
             self.failures += 1
+
+
+class _CallTimer(BaseCallbackHandler):
+    """LLM 호출과 도구 실행이 걸린 시간을 끝난 순서대로 모은다. 병렬 도구는 다른 스레드에서 끝날 수 있어 잠근다."""
+
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self._started: dict[UUID, tuple[float, str | None]] = {}
+        self.llm: list[float] = []
+        self.tools: list[dict] = []
+
+    def reset(self) -> None:
+        with self._lock:
+            self._started.clear()
+            self.llm, self.tools = [], []
+
+    def _start(self, run_id: UUID, name: str | None = None) -> None:
+        with self._lock:
+            self._started[run_id] = (time.perf_counter(), name)
+
+    def _end(self, run_id: UUID, tool: bool) -> None:
+        with self._lock:
+            started = self._started.pop(run_id, None)
+            if started is None:
+                return
+            seconds = time.perf_counter() - started[0]
+            if tool:
+                self.tools.append({"name": started[1], "s": seconds})
+            else:
+                self.llm.append(seconds)
+
+    def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs) -> None:
+        self._start(run_id)
+
+    def on_llm_end(self, response, *, run_id, **kwargs) -> None:
+        self._end(run_id, tool=False)
+
+    def on_llm_error(self, error, *, run_id, **kwargs) -> None:
+        self._end(run_id, tool=False)
+
+    def on_tool_start(self, serialized, input_str, *, run_id, **kwargs) -> None:
+        self._start(run_id, kwargs.get("name") or (serialized or {}).get("name"))
+
+    def on_tool_end(self, output, *, run_id, **kwargs) -> None:
+        self._end(run_id, tool=True)
+
+    def on_tool_error(self, error, *, run_id, **kwargs) -> None:
+        self._end(run_id, tool=True)
+
+
+class _TimedAgent:
+    """그래프를 감싸 invoke·stream 설정에 콜백을 더한다. 나머지(get_state 등)는 그래프에 그대로 넘긴다."""
+
+    def __init__(self, agent: Any, timer: _CallTimer) -> None:
+        self._agent = agent
+        self._timer = timer
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._agent, name)
+
+    def _config(self, config: dict | None) -> dict:
+        config = dict(config or {})
+        config["callbacks"] = [*(config.get("callbacks") or []), self._timer]
+        return config
+
+    def invoke(self, input: Any, config: dict | None = None, **kwargs: Any) -> Any:
+        return self._agent.invoke(input, self._config(config), **kwargs)
+
+    def stream(self, input: Any, config: dict | None = None, **kwargs: Any) -> Any:
+        return self._agent.stream(input, self._config(config), **kwargs)
 
 
 def split_usage(usage: dict) -> dict[str, int]:
@@ -136,12 +211,15 @@ def _run_scenario(
     label: str,
     rep: int,
     log: _GraphLogCounter,
+    timer: _CallTimer | None = None,
 ) -> list[dict]:
     rows: list[dict] = []
     user_id = str(uuid4())
     thread_id: str | None = None
     for turn_no, turn in enumerate(scenario.turns, start=1):
         log.retries = log.failures = 0
+        if timer is not None:
+            timer.reset()
         sent = time.perf_counter()
         with client.stream(
             "POST",
@@ -167,13 +245,18 @@ def _run_scenario(
         ai = _this_turn_ai(messages)
         grade = grade_turn(turn, body, messages)
         key = {"label": label, "rep": rep, "scenario": scenario.id, "turn": turn_no}
+        llm_s = list(timer.llm) if timer is not None else None
+        # 재요청·실패가 없으면 콜백이 잰 호출과 기록에 남은 응답이 같은 순서로 하나씩 맞는다.
+        matched = llm_s is not None and len(llm_s) == len(ai)
         for call_idx, message in enumerate(ai):
             rows.append(
                 {
                     "kind": "call",
                     **key,
                     "call_idx": call_idx,
+                    "last": call_idx == len(ai) - 1,
                     "tools": [c["name"] for c in message.tool_calls],
+                    "llm_s": llm_s[call_idx] if matched else None,
                     **split_usage(message.usage_metadata or {}),
                 }
             )
@@ -186,6 +269,8 @@ def _run_scenario(
                 "total_s": done_at - sent,
                 "has_delta": first_delta is not None,
                 "llm_calls": len(ai),
+                "llm_s": llm_s,
+                "tool_s": list(timer.tools) if timer is not None else None,
                 "unrecorded_retries": log.retries,
                 "unrecorded_failures": log.failures,
                 "fallback": body["fallback"],
@@ -255,6 +340,9 @@ def run(args: argparse.Namespace) -> int:
 
     log = _GraphLogCounter()
     logging.getLogger("api.agent.graph").addHandler(log)
+    timer = _CallTimer()
+    timed = _TimedAgent(agent, timer)
+    app.dependency_overrides[get_agent] = lambda: timed
     client = TestClient(app)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w") as out:
@@ -272,7 +360,9 @@ def run(args: argparse.Namespace) -> int:
         out.write(json.dumps(header, ensure_ascii=False) + "\n")
         for rep in range(1, args.reps + 1):
             for scenario in scenarios:
-                rows = _run_scenario(client, agent, scenario, args.label, rep, log)
+                rows = _run_scenario(
+                    client, agent, scenario, args.label, rep, log, timer
+                )
                 for row in rows:
                     out.write(json.dumps(row, ensure_ascii=False) + "\n")
                 out.flush()
@@ -324,6 +414,73 @@ def summarize_rows(rows: list[dict]) -> dict:
             t["unrecorded_retries"] + t["unrecorded_failures"] for t in turns
         ),
     }
+
+
+def summarize_roundtrips(rows: list[dict]) -> dict:
+    """도구 사이 모델 왕복(이슈 #72): 호출 수 분포, 중간 호출과 마지막 호출의 출력·시간, 도구 실행 시간.
+
+    중간 호출은 한 턴의 마지막 응답(답변)이 아닌 호출, 즉 도구를 부르는 호출이다. 시간 기록이 없는 앞 버전
+    기록은 시간 칸을 None으로 둔다.
+    """
+    calls = [r for r in rows if r["kind"] == "call"]
+    turns = [r for r in rows if r["kind"] == "turn"]
+
+    def turn_key(c: dict) -> tuple:
+        return (c.get("label"), c.get("rep"), c.get("scenario"), c["turn"])
+
+    # 앞 버전 기록에는 last가 없어 턴 안에서 가장 늦은 호출을 마지막으로 본다.
+    final_idx: dict[tuple, int] = {}
+    for c in calls:
+        final_idx[turn_key(c)] = max(final_idx.get(turn_key(c), -1), c["call_idx"])
+
+    def is_last(c: dict) -> bool:
+        return c.get("last", c["call_idx"] == final_idx[turn_key(c)])
+
+    middle = [c for c in calls if not is_last(c)]
+    last = [c for c in calls if is_last(c)]
+
+    def median(values: list[float]) -> float | None:
+        return statistics.median(values) if values else None
+
+    tool_s: dict[str, list[float]] = defaultdict(list)
+    for t in turns:
+        for tool in t.get("tool_s") or []:
+            tool_s[tool["name"]].append(tool["s"])
+    return {
+        "turns": len(turns),
+        "calls_hist": dict(sorted(Counter(t["llm_calls"] for t in turns).items())),
+        "middle_output_per_turn": sum(c["output"] for c in middle) / len(turns),
+        "last_output_per_turn": sum(c["output"] for c in last) / len(turns),
+        "middle_llm_median": median([c["llm_s"] for c in middle if c.get("llm_s")]),
+        "last_llm_median": median([c["llm_s"] for c in last if c.get("llm_s")]),
+        "tool_median": {
+            name: statistics.median(v) for name, v in sorted(tool_s.items())
+        },
+    }
+
+
+def _sec(value: float | None) -> str:
+    return "-" if value is None else f"{value:.1f}초"
+
+
+def _roundtrip_table(groups: dict[str, list[dict]]) -> list[str]:
+    lines = [
+        (
+            "| | 턴 | 호출 수 분포(호출 수:턴) | 중간 호출 출력 토큰/턴 | 마지막 호출 출력 토큰/턴 "
+            "| 중간 호출 시간 중앙값 | 마지막 호출 시간 중앙값 | 도구 시간 중앙값 |"
+        ),
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for name, rows in groups.items():
+        s = summarize_roundtrips(rows)
+        hist = ", ".join(f"{k}:{v}" for k, v in s["calls_hist"].items())
+        tools = ", ".join(f"{k} {v:.2f}초" for k, v in s["tool_median"].items()) or "-"
+        lines.append(
+            f"| {name} | {s['turns']} | {hist} | {s['middle_output_per_turn']:,.0f} "
+            f"| {s['last_output_per_turn']:,.0f} | {_sec(s['middle_llm_median'])} "
+            f"| {_sec(s['last_llm_median'])} | {tools} |"
+        )
+    return lines
 
 
 def _pct(value: float | None) -> str:
@@ -383,6 +540,11 @@ def summary(args: argparse.Namespace) -> int:
         for row in rows:
             per_scenario[f"{row['scenario']} {label}"].append(row)
     print("\n".join(_table(dict(sorted(per_scenario.items())))))
+
+    print("\n도구 사이 왕복(이슈 #72)\n")
+    print("\n".join(_roundtrip_table(by_label)))
+    print()
+    print("\n".join(_roundtrip_table(dict(sorted(per_scenario.items())))))
 
     for label, rows in by_label.items():
         s = summarize_rows(rows)

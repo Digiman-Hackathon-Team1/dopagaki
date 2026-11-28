@@ -140,3 +140,49 @@ def test_answer_first_prompt_tells_judge_cards_are_shown() -> None:
 
     assert prompt is not None and "병원 카드 3장" in prompt
     assert answer_first_prompt("리쥬란 싼 곳", {"answer": "", "cards": []}) is None
+
+
+def _graded(turn, answer: str, cards: list[dict]) -> dict:
+    from agent_fakes import reply_message
+    from eval_scenarios import grade_turn
+    from langchain_core.messages import HumanMessage
+
+    body = {
+        "fallback": None,
+        "cards": cards,
+        "questions": [],
+        "conditionSummary": "조건",
+    }
+    messages = [HumanMessage("질문"), reply_message(answer)]
+    return grade_turn(turn, body, messages)
+
+
+def test_location_card_checks_the_searched_location() -> None:
+    from eval_scenarios import Turn
+
+    turn = Turn("강남역 근처 리쥬란", location_card="station:강남")
+
+    hit = _graded(turn, "답", [{"kind": "location", "locationId": "station:강남"}])
+    miss = _graded(turn, "답", [{"kind": "location", "locationId": "area:gangnam"}])
+    none = _graded(turn, "답", [])
+
+    assert hit["passed"]
+    assert not miss["passed"] and "area:gangnam" in miss["failures"][0]
+    assert not none["passed"]
+
+
+def test_mentions_any_needs_one_of_the_words_in_answer() -> None:
+    from eval_scenarios import EXCLUDED_INMODE, Turn
+
+    turn = Turn("頬のたるみ", mentions_any=EXCLUDED_INMODE)
+
+    assert _graded(turn, "インモードは回復5日なので外しました", [])["passed"]
+    missed = _graded(turn, "シュリンクがおすすめです", [])
+    assert missed["failures"] == ["답변에 インモード 언급 없음"]
+
+
+def test_roundtrip_scenarios_are_not_in_the_default_eval() -> None:
+    from eval_scenarios import ROUNDTRIP
+
+    ids = {s.id for s in SCENARIOS}
+    assert set(ROUNDTRIP) <= ids

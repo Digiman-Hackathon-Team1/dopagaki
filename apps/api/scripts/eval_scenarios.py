@@ -50,6 +50,11 @@ class Turn:
     # "ask": 질문 묶음(2~3개)을 먼저 보내고 병원 카드는 없음. "answer": 병원 카드가 있고 질문 묶음은 없음.
     shape: str | None = None
     safety_stop: bool | None = None
+    # 화면에 나가야 하는 기준 위치 카드의 위치 ID. 검색했으면 그 검색이 쓴 위치만 카드가 되므로(graph.location_cards)
+    # 어느 도구로 위치를 찾았는지와 관계없이 "이 위치 기준으로 검색했는지"를 본다(이슈 #72).
+    location_card: str | None = None
+    # 원래 답변(answer)에 하나라도 들어 있어야 하는 말. 예: 추천에서 뺀 시술 이름(제외 사유 설명, 이슈 #72).
+    mentions_any: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -60,6 +65,10 @@ class Scenario:
     goal: str
     turns: tuple[Turn, ...]
 
+
+EXCLUDED_INMODE = ("インモード", "인모드", "InMode", "Inmode")
+# 도구 사이 모델 왕복(이슈 #72) 전후 비교용 시나리오. 기본 평가에는 넣지 않는다.
+ROUNDTRIP = ("s8", "s9", "s10")
 
 SCENARIOS: tuple[Scenario, ...] = (
     Scenario(
@@ -121,6 +130,9 @@ SCENARIOS: tuple[Scenario, ...] = (
                 },
                 shape="answer",
                 safety_stop=False,
+                location_card="area:hongdae",
+                # 회복 기간 2일을 넘어 추천에서 뺀 인모드를 설명해야 한다.
+                mentions_any=EXCLUDED_INMODE,
             ),
         ),
     ),
@@ -240,6 +252,60 @@ SCENARIOS: tuple[Scenario, ...] = (
             ),
         ),
     ),
+    # s8~s10: 도구 사이 모델 왕복(이슈 #72) 전후 비교용. 7개 평가에는 넣지 않고 --only로 돌린다.
+    Scenario(
+        "s8",
+        "추천(시술명+위치)",
+        "ko",
+        "시술명과 기준 위치를 한 번에 말함",
+        (
+            Turn(
+                "강남역 근처에서 리쥬란 받고 싶은데 일본보다 싼 곳 알려 줘",
+                must_call=("search_clinics",),
+                args={"search_clinics": {"menu_id": "rejuran-2cc"}},
+                shape="answer",
+                safety_stop=False,
+                location_card="station:강남",
+            ),
+        ),
+    ),
+    Scenario(
+        "s9",
+        "추천(고민+기간+위치)",
+        "ja",
+        "고민·여행 기간·숙소를 첫 턴에 모두 말함",
+        (
+            Turn(
+                "頬のたるみが気になります。2泊3日の旅行で、ホテルは弘大です。ソウルで何を受けたらいいですか？",
+                must_call=("recommend_treatments", "search_clinics"),
+                args={
+                    "search_clinics": {
+                        "menu_id": "shrink-300",
+                        "max_downtime_days": (1, 2),
+                    },
+                    "recommend_treatments": {"max_downtime_days": (1, 2)},
+                },
+                shape="answer",
+                safety_stop=False,
+                location_card="area:hongdae",
+                mentions_any=EXCLUDED_INMODE,
+            ),
+        ),
+    ),
+    Scenario(
+        "s10",
+        "일본 시술명(모호)",
+        "ja",
+        "일본 이름이 서울 시술 여러 개에 해당함. 검색하지 않고 어느 것인지 물어야 함",
+        (
+            Turn(
+                "日本でピーリングを受けていました。ソウルで安く受けられるクリニックはありますか？",
+                must_call=("match_jp_treatment",),
+                must_not_call=("search_clinics",),
+                safety_stop=False,
+            ),
+        ),
+    ),
 )
 
 
@@ -305,6 +371,8 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
             failures.append(f"건강 정보를 화면 칸에 씀: {health}")
         if turn.safety_stop is not None and raw.safety_stop != turn.safety_stop:
             failures.append(f"safety_stop={raw.safety_stop} (기대 {turn.safety_stop})")
+        if turn.mentions_any and not any(w in raw.answer for w in turn.mentions_any):
+            failures.append(f"답변에 {turn.mentions_any[0]} 언급 없음")
 
     clinic_cards = [c for c in body["cards"] if c["kind"] == "recommendation"]
     if turn.shape == "ask":
@@ -319,6 +387,10 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
             failures.append(f"답과 함께 질문 묶음 {len(body['questions'])}개를 냄")
         if not body["conditionSummary"]:
             failures.append("조건 요약 없음")
+    if turn.location_card is not None:
+        locations = [c["locationId"] for c in body["cards"] if c["kind"] == "location"]
+        if turn.location_card not in locations:
+            failures.append(f"기준 위치 카드 {locations} (기대 {turn.location_card!r})")
 
     usage = [m.usage_metadata or {} for m in ai]
     return {
@@ -497,9 +569,11 @@ def main() -> int:
         return 2
 
     only = set(args.only.split(",")) if args.only else None
-    # 보조 시나리오(s2b 등 ID에 b가 붙은 것)는 --only로 고를 때만 돌린다.
+    # 보조 시나리오(s2b 등 ID에 b가 붙은 것, 왕복 비교용 s8~s10)는 --only로 고를 때만 돌린다.
     scenarios = [
-        s for s in SCENARIOS if (s.id in only if only else not s.id.endswith("b"))
+        s
+        for s in SCENARIOS
+        if (s.id in only if only else not (s.id.endswith("b") or s.id in ROUNDTRIP))
     ]
     judge = None
     if args.judge:
