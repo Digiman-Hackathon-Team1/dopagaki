@@ -78,8 +78,12 @@ def reply_message(
     condition_summary: str = "",
     cautions: Sequence[str] = (),
     suggestions: Sequence[str] = ("a", "b", "c"),
+    remember: dict | None = None,
 ) -> AIMessage:
-    """응답 칸 JSON을 내는 AI 메시지. card_reasons는 {card_id: 추천 이유}."""
+    """응답 칸 JSON을 내는 AI 메시지. card_reasons는 {card_id: 추천 이유}.
+
+    remember는 기억할 조건 칸에 넣을 값이다. 준 칸만 채우고 나머지는 비운다(null·빈 배열).
+    """
     reply = {
         "condition_summary": condition_summary,
         "answer": answer,
@@ -91,8 +95,23 @@ def reply_message(
         "suggestions": list(suggestions),
         "cautions": list(cautions),
         "safety_stop": safety_stop,
+        "remember": None if remember is None else {**EMPTY_REMEMBER, **remember},
     }
     return AIMessage(content=json.dumps(reply, ensure_ascii=False))
+
+
+EMPTY_REMEMBER = {
+    "visitor": None,
+    "budget": None,
+    "arrival_in_days": None,
+    "arrival_date": None,
+    "return_in_days": None,
+    "return_date": None,
+    "location_id": None,
+    "concerns": [],
+    "avoid_needle": None,
+    "jp_treatments": [],
+}
 
 
 def tool_call(name: str, args: dict, call_id: str = "c1") -> AIMessage:

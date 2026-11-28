@@ -1,4 +1,4 @@
-"""`POST /api/agent/chat`, `POST /api/agent/chat/stream` (설계 문서 10장).
+"""`POST /api/agent/chat`, `POST /api/agent/chat/stream`, 사용자 기억 보기·지우기 (설계 문서 10장).
 
 요청을 받아 `ChatService`에 넘기고 응답을 돌려준다. 한 턴의 처리 순서와 실패 시 시세표 안내(FR-08)는
 `api.agent.service`에 있다.
@@ -6,12 +6,23 @@
 
 from collections.abc import Iterator
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from fastapi.sse import EventSourceResponse
 
-from api.agent.schemas import ChatRequest, ChatResponse, ChatStreamEvent
-from api.agent.service import ChatService, get_chat_service
+from api.agent.schemas import (
+    ChatRequest,
+    ChatResponse,
+    ChatStreamEvent,
+    UserProfileResponse,
+)
+from api.agent.service import (
+    ChatService,
+    ProfileService,
+    get_chat_service,
+    get_profile_service,
+)
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -35,3 +46,28 @@ def stream_agent_chat(
 ) -> Iterator[ChatStreamEvent]:
     """`/chat`과 같은 처리를 SSE로 보낸다. start → delta(답변 글, 0개 이상) → done(응답 전체)."""
     yield from service.stream(body)
+
+
+UserIdPath = Annotated[
+    UUID, Path(alias="userId", description="브라우저가 만든 익명 사용자 ID")
+]
+
+
+@router.get("/users/{userId}/profile", operation_id="getAgentUserProfile")
+def get_agent_user_profile(
+    user_id: UserIdPath,
+    service: Annotated[ProfileService, Depends(get_profile_service)],
+) -> UserProfileResponse:
+    """저장된 사용자 기억. 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다."""
+    return service.get(user_id)
+
+
+@router.delete(
+    "/users/{userId}/profile", operation_id="deleteAgentUserProfile", status_code=204
+)
+def delete_agent_user_profile(
+    user_id: UserIdPath,
+    service: Annotated[ProfileService, Depends(get_profile_service)],
+) -> None:
+    """사용자 기억을 모두 지운다. 저장된 게 없어도 204다."""
+    service.delete(user_id)
