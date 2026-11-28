@@ -6,9 +6,9 @@
     "apps/web/src/lib/ai-rating.ts": "7c6e1f2ae5f210cf69c1fd1bbbf9c5d498ef48ddd38117041f347d20746ad76c",
     "apps/web/src/data/brand-reviews.ts": "980128657f2e23c325526892be114deded75a87c7dba18bc876a6bfdc27672c5",
     "apps/web/src/data/branch-reviews.ts": "6403b8be273caf3c88050aa15ca56c2a0f3cae24b15bd951d75853970e7b6ee3",
-    "apps/web/src/data/clinic-channels.ts": "301a6533f56e5eca240a1ab3a49061f6c81ff5359e0cad8826fa2ec6730bb3b0",
+    "apps/web/src/data/clinic-channels.ts": "f6ceab88e075b3617cdb996ecb8b3bc7fc1941a6a5cc7d3b7f999229c3352113",
     "apps/web/src/data/official-proofs.ts": "879df0bb3ec116fc1faadf5537603d47d23d2c10fd39f85b795b893161c2c83b",
-    "apps/web/src/lib/clinic-helpers.ts": "18be94961c2d6cdcc9341ad9416ea9f8752ce43546df20fc883a3925ecd2eb43",
+    "apps/web/src/lib/clinic-helpers.ts": "2cbde3e04ba5e8ebce0c60b5b3dd204087a1dd5ec5c4568b70ccdc11cbbe05e7",
     "apps/api/scripts/export-web-snapshot.mts": "b690ab961ee050a791905594cf8ebdeb155533bc4cd67ed7bf5bad55b3cdb99d",
     "apps/web/src/data/proof-hidden.ts": "749e8e26e15f1d9a99b68739987ff212c251665dc03a5d981ec6c43b7ed460a2"
   },
@@ -810,7 +810,7 @@
           "urlKo": "https://www.instagram.com/yourclinic_hongdae/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://hongdaejp.vandsclinics.com/web/product",
@@ -1073,16 +1073,9 @@
           "labelKo": "네이버 바로 예약",
           "urlJa": "https://m.booking.naver.com/booking/13/bizes/492924",
           "urlKo": "https://m.booking.naver.com/booking/13/bizes/492924"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/lienjang.japan/",
-          "urlKo": "https://www.instagram.com/lienjang.japan/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jplienjang.com/",
@@ -1467,7 +1460,7 @@
           "urlKo": "https://www.instagram.com/vands_myeongdong_global/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://myeongdongjp.vandsclinics.com/web/product",
@@ -1596,16 +1589,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@932imqot",
           "urlKo": "https://line.me/R/ti/p/@932imqot"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/toxnfill_japan_official/",
-          "urlKo": "https://www.instagram.com/toxnfill_official/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill35.com/",
@@ -1938,7 +1924,7 @@
           "urlKo": "https://www.instagram.com/vandsgangnamcentral/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://gangnamjp.vandsclinics.com/web/product",
@@ -2093,7 +2079,7 @@
           "urlKo": "https://lin.ee/ZWhCu2M"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://sinsajp.vandsclinics.com/web/product",
@@ -2470,7 +2456,7 @@
           "urlKo": "https://www.instagram.com/lienjang.japan/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "potenza": {
           "urlJa": "https://jplienjang.com/",
@@ -2555,7 +2541,7 @@
           "urlKo": "https://page.line.me/ppeum_jp"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://global.ppeum.com/?lan=global_jp",
@@ -2766,7 +2752,7 @@
           "urlKo": "https://line.me/R/ti/p/@637oyatn"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jamsiljp.vandsclinics.com/web/product",
@@ -2917,7 +2903,7 @@
           "urlKo": "https://lin.ee/eHdSsCJ"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://dongdaemunjp.vandsclinics.com/web/product",
@@ -3083,7 +3069,7 @@
           "urlKo": "https://www.instagram.com/vandsclinic_yongsan/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://yongsanjp.vandsclinics.com/web/product",
@@ -3227,16 +3213,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@637oyatn",
           "urlKo": "https://line.me/R/ti/p/@637oyatn"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/yourclinicjp_vands/",
-          "urlKo": "https://www.instagram.com/yourclinicjp_vands/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://magokjp.vandsclinics.com/web/product",
@@ -3515,7 +3494,7 @@
           "urlKo": "https://line.me/R/ti/p/@637oyatn"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://seongsujp.vandsclinics.com/web/product",
@@ -3647,7 +3626,7 @@
           "urlKo": "https://line.me/R/ti/p/@823gtuet"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://yeongdeungpojp.vandsclinics.com/web/product",
@@ -3906,16 +3885,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@637oyatn",
           "urlKo": "https://line.me/R/ti/p/@637oyatn"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/vands_gangnam/",
-          "urlKo": "https://www.instagram.com/vands_gangnam/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://cheongdamjp.vandsclinics.com/web/product",
@@ -4053,7 +4025,7 @@
           "urlKo": "https://www.instagram.com/toxnfill29/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -4183,7 +4155,7 @@
           "urlKo": "https://www.instagram.com/toxnfill_kku/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill6.com/",
@@ -4316,7 +4288,7 @@
           "urlKo": "https://www.instagram.com/toxnfillnowon/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -4422,7 +4394,7 @@
           "urlKo": "https://www.instagram.com/toxnfill_cheonho/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -4538,7 +4510,7 @@
           "urlKo": "https://www.instagram.com/toksfill/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -4657,7 +4629,7 @@
           "urlKo": "https://www.instagram.com/toxnfill_mokdong3/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -4754,7 +4726,7 @@
           "urlKo": "https://www.instagram.com/toxnfill__gangseo/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -4860,7 +4832,7 @@
           "urlKo": "https://www.instagram.com/apgujeong_toxnfill/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -4966,7 +4938,7 @@
           "urlKo": "https://www.instagram.com/toxnfillmia/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill.com/",
@@ -5731,7 +5703,7 @@
           "urlKo": "https://page.line.me/ppeum_jp"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "jaw-botox": {
           "urlJa": "https://jamsil.ppeum.com/selectSurgery",
@@ -5784,16 +5756,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://page.line.me/ppeum_jp",
           "urlKo": "https://page.line.me/ppeum_jp"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/ppeum_global_official/",
-          "urlKo": "https://www.instagram.com/ppeum_global_official/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://konkukuniv.ppeum.com/selectSurgery",
@@ -5852,7 +5817,7 @@
           "urlKo": "https://page.line.me/ppeum_jp"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "jaw-botox": {
           "urlJa": "https://event.ppeum.com/v1/event/reserve?branch=ppeum22&type=homepage&idx=",
@@ -5902,7 +5867,7 @@
           "urlKo": "https://page.line.me/ppeum_jp"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "jaw-botox": {
           "urlJa": "https://balsan.ppeum.com/selectSurgery",
@@ -5970,13 +5935,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_xcxbRLV/chat",
           "urlKo": "https://pf.kakao.com/_xcxbRLV/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/abijouclinic/",
-          "urlKo": "https://www.instagram.com/abijouclinic/"
         }
       ],
       "centralChannel": false,
@@ -6080,16 +6038,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/2eKYEAO",
           "urlKo": "https://lin.ee/2eKYEAO"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/abijouclinic/",
-          "urlKo": "https://www.instagram.com/abijouclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouclinicnw.com/price2/price_view.php?idx=34056",
@@ -6172,16 +6123,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/2eKYEAO",
           "urlKo": "https://lin.ee/2eKYEAO"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/abijouclinic/",
-          "urlKo": "https://www.instagram.com/abijouclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouclinicyeo.com/price2/price_view.php?idx=34056",
@@ -6535,7 +6479,7 @@
           "urlKo": "https://www.instagram.com/drevers_seouldae/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-SD/",
@@ -6676,7 +6620,7 @@
           "urlKo": "https://www.instagram.com/drevers_jamsil/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-JS/",
@@ -6803,7 +6747,7 @@
           "urlKo": "https://line.me/R/ti/p/@637oyatn"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://sinchonjp.vandsclinics.com/web/product",
@@ -6935,7 +6879,7 @@
           "urlKo": "https://lin.ee/eHdSsCJ"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://yeouidojp.vandsclinics.com/web/product",
@@ -7358,7 +7302,7 @@
           "urlKo": "https://www.instagram.com/samseong_vands/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://samseongjp.vandsclinics.com/web/product",
@@ -7628,7 +7572,7 @@
           "urlKo": "https://line.me/R/ti/p/@637oyatn"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://gurojp.vandsclinics.com/web/product",
@@ -7767,7 +7711,7 @@
           "urlKo": "https://www.instagram.com/vandschw/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://hwagokjp.vandsclinics.com/web/product",
@@ -7915,7 +7859,7 @@
           "urlKo": "https://www.instagram.com/toxnfill_samseong/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill51.com/",
@@ -8053,7 +7997,7 @@
           "urlKo": "https://www.instagram.com/toxnfill_sinnh/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.toxnfill9.com/",
@@ -8367,16 +8311,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/2eKYEAO",
           "urlKo": "https://lin.ee/2eKYEAO"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/abijouclinic/",
-          "urlKo": "https://www.instagram.com/abijouclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouclinicgr.com/price2/price_view.php?idx=34056",
@@ -8444,7 +8381,7 @@
           "urlKo": "https://page.line.me/ppeum_jp"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "jaw-botox": {
           "urlJa": "https://event.ppeum.com/v1/event/reserve?branch=ppeum25&type=homepage&idx=",
@@ -8606,7 +8543,7 @@
           "urlKo": "https://www.instagram.com/dr.evers_hongdae/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-HD-month-collagen_renewal/",
@@ -8738,7 +8675,7 @@
           "urlKo": "https://www.instagram.com/drevers_magok/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-MG/",
@@ -8869,7 +8806,7 @@
           "urlKo": "https://www.instagram.com/drevers_gongdeok/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-GD/",
@@ -8992,7 +8929,7 @@
           "urlKo": "https://www.instagram.com/drevers_nowon/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-NW/",
@@ -9128,7 +9065,7 @@
           "urlKo": "https://www.instagram.com/drevers_myeongdong/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-MD/",
@@ -9265,7 +9202,7 @@
           "urlKo": "https://www.instagram.com/drevers_cheonho/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-CH/",
@@ -9420,7 +9357,7 @@
           "urlKo": "https://www.instagram.com/drevers_cheongdam/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.drevers.com/event-CD/",
@@ -9554,16 +9491,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://jp.uni114.com/",
@@ -9693,16 +9623,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.sluni114.co.kr/event/",
@@ -9846,13 +9769,6 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/S2VfeAv",
           "urlKo": "https://lin.ee/S2VfeAv"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
       "centralChannel": false,
@@ -10003,13 +9919,6 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/IriAzpT",
           "urlKo": "https://lin.ee/IriAzpT"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
       "centralChannel": false,
@@ -10156,13 +10065,6 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/4zfRz4l",
           "urlKo": "https://lin.ee/4zfRz4l"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
       "centralChannel": false,
@@ -10323,13 +10225,6 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/XSBn1ydI",
           "urlKo": "https://lin.ee/XSBn1ydI"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
       "centralChannel": false,
@@ -10494,13 +10389,6 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/8s68w8v6",
           "urlKo": "https://lin.ee/8s68w8v6"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
       "centralChannel": false,
@@ -10661,16 +10549,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.mguni114.co.kr/event/",
@@ -10830,13 +10711,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_vbExnb/chat",
           "urlKo": "https://pf.kakao.com/_vbExnb/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
       "centralChannel": false,
@@ -10989,13 +10863,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_xgDhBxj/chat",
           "urlKo": "https://pf.kakao.com/_xgDhBxj/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
       "centralChannel": false,
@@ -11147,16 +11014,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.yuduni114.co.kr/event/",
@@ -11323,16 +11183,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.chuni114.co.kr/event/",
@@ -11489,16 +11342,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.mokuni114.co.kr/event/",
@@ -11647,16 +11493,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.cduni114.co.kr/event/",
@@ -11818,16 +11657,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/oDG20yY",
           "urlKo": "https://lin.ee/oDG20yY"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/skinuni114/",
-          "urlKo": "https://www.instagram.com/skinuni114/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.smuni114.co.kr/event/",
@@ -11970,16 +11802,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -12104,16 +11929,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "shrink-300": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -12238,16 +12056,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -12372,16 +12183,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -12506,16 +12310,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -12645,16 +12442,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -12783,16 +12573,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -12903,16 +12686,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -13033,16 +12809,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -13181,16 +12950,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://line.me/R/ti/p/@215mxxog",
           "urlKo": "https://line.me/R/ti/p/@215mxxog"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/velybclinic_jp/",
-          "urlKo": "https://www.instagram.com/velybclinic/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://www.velyb.kr/jpn/",
@@ -15134,13 +14896,6 @@
           "labelKo": "네이버 바로 예약",
           "urlJa": "https://booking.naver.com/booking/13/bizes/599108",
           "urlKo": "https://booking.naver.com/booking/13/bizes/599108"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/minmi_official/",
-          "urlKo": "https://www.instagram.com/minmi_official/"
         }
       ],
       "centralChannel": false,
@@ -15225,13 +14980,6 @@
           "labelKo": "네이버 바로 예약",
           "urlJa": "https://booking.naver.com/booking/13/bizes/1683241",
           "urlKo": "https://booking.naver.com/booking/13/bizes/1683241"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/minmi_official/",
-          "urlKo": "https://www.instagram.com/minmi_official/"
         }
       ],
       "centralChannel": false,
@@ -15330,13 +15078,6 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/x8srJAx",
           "urlKo": "https://lin.ee/x8srJAx"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/4ever_official_kr/",
-          "urlKo": "https://www.instagram.com/4ever_official_kr/"
         }
       ],
       "centralChannel": false,
@@ -15609,13 +15350,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_xoGYFK/chat",
           "urlKo": "https://pf.kakao.com/_xoGYFK/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/4ever_official_kr/",
-          "urlKo": "https://www.instagram.com/4ever_official_kr/"
         }
       ],
       "centralChannel": false,
@@ -15703,13 +15437,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_qlhIj/chat",
           "urlKo": "https://pf.kakao.com/_qlhIj/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/4ever_official_kr/",
-          "urlKo": "https://www.instagram.com/4ever_official_kr/"
         }
       ],
       "centralChannel": false,
@@ -15788,13 +15515,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_MmZmK/chat",
           "urlKo": "https://pf.kakao.com/_MmZmK/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/4ever_official_kr/",
-          "urlKo": "https://www.instagram.com/4ever_official_kr/"
         }
       ],
       "centralChannel": false,
@@ -15890,16 +15610,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/rTKVhoR",
           "urlKo": "https://lin.ee/rTKVhoR"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/reverseclinic_jp/",
-          "urlKo": "https://www.instagram.com/reverse1544_0890/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://gn-jp.reverseclinic.com/",
@@ -16005,16 +15718,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/rTKVhoR",
           "urlKo": "https://lin.ee/rTKVhoR"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/reverseclinic_jp/",
-          "urlKo": "https://www.instagram.com/reverse1544_0890/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "shrink-300": {
           "urlJa": "https://md-jp.reverseclinic.com/",
@@ -16106,16 +15812,9 @@
           "labelKo": "LINE 공식 상담",
           "urlJa": "https://lin.ee/rTKVhoR",
           "urlKo": "https://lin.ee/rTKVhoR"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/reverseclinic_jp/",
-          "urlKo": "https://www.instagram.com/reverse1544_0890/"
         }
       ],
-      "centralChannel": false,
+      "centralChannel": true,
       "proofs": {
         "shrink-300": {
           "urlJa": "https://hd-jp.reverseclinic.com/",
@@ -16206,13 +15905,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_XBShxj/chat",
           "urlKo": "https://pf.kakao.com/_XBShxj/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/reverse1544_0890/",
-          "urlKo": "https://www.instagram.com/reverse1544_0890/"
         }
       ],
       "centralChannel": false,
@@ -16398,13 +16090,6 @@
           "labelKo": "카카오톡 상담·예약",
           "urlJa": "https://pf.kakao.com/_xhZxljl/chat",
           "urlKo": "https://pf.kakao.com/_xhZxljl/chat"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/dryp.clinic/",
-          "urlKo": "https://www.instagram.com/dryp.clinic/"
         }
       ],
       "centralChannel": false,
@@ -16688,7 +16373,7 @@
           "labelJa": "公式Instagram",
           "labelKo": "공식 인스타그램",
           "urlJa": "https://www.instagram.com/cellinclinic_hd_jp/",
-          "urlKo": "https://www.instagram.com/cellinclinic.global/"
+          "urlKo": "https://www.instagram.com/cellinclinic_hd_jp/"
         }
       ],
       "centralChannel": false,
@@ -17330,13 +17015,6 @@
           "labelKo": "네이버 바로 예약",
           "urlJa": "https://m.booking.naver.com/booking/13/bizes/415737/items/3602711",
           "urlKo": "https://m.booking.naver.com/booking/13/bizes/415737/items/3602711"
-        },
-        {
-          "kind": "instagram",
-          "labelJa": "公式Instagram",
-          "labelKo": "공식 인스타그램",
-          "urlJa": "https://www.instagram.com/ktox_official/",
-          "urlKo": "https://www.instagram.com/ktox_official/"
         }
       ],
       "centralChannel": false,
