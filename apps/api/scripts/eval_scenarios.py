@@ -383,8 +383,10 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
     if turn.shape == "answer":
         if not clinic_cards:
             failures.append("병원 카드 없음")
-        if body["questions"]:
-            failures.append(f"답과 함께 질문 묶음 {len(body['questions'])}개를 냄")
+        # 앱은 답한 턴의 질문 묶음을 지우므로(#80) Claude가 프롬프트를 지켰는지는 원래 응답에서 본다.
+        asked = raw.questions if raw is not None else []
+        if asked:
+            failures.append(f"답과 함께 질문 묶음 {len(asked)}개를 냄")
         if not body["conditionSummary"]:
             failures.append("조건 요약 없음")
     if turn.location_card is not None:
