@@ -22,6 +22,8 @@ from api.agent.safety import mentions_health
 from api.agent.schemas import Remember
 from api.agent.tools.resolve_location import TOOL_NAME as RESOLVE_LOCATION
 from api.agent.tools.resolve_location import ResolveLocationArtifact
+from api.agent.tools.search_clinics import TOOL_NAME as SEARCH_CLINICS
+from api.agent.tools.search_clinics import SearchClinicsArtifact
 from api.domain.locations import get_locations
 from api.domain.profile import (
     MAX_CONCERNS,
@@ -100,16 +102,18 @@ def _normalize(text: str) -> str:
 
 
 def _found_location_ids(messages: Sequence[BaseMessage]) -> set[str]:
+    """사용자가 말한 장소에서 찾은 위치 ID: resolve_location 결과와 search_clinics의 location 입력(이슈 #72)."""
     found = set()
     for message in messages:
-        if (
-            isinstance(message, ToolMessage)
-            and message.name == RESOLVE_LOCATION
-            and message.status != "error"
-        ):
+        if not isinstance(message, ToolMessage) or message.status == "error":
+            continue
+        location = None
+        if message.name == RESOLVE_LOCATION:
             location = ResolveLocationArtifact.model_validate(message.artifact).location
-            if location:
-                found.add(location.location_id)
+        elif message.name == SEARCH_CLINICS:
+            location = SearchClinicsArtifact.model_validate(message.artifact).location
+        if location:
+            found.add(location.location_id)
     return found
 
 

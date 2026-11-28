@@ -180,14 +180,65 @@ def test_unknown_origin_id_is_an_error_for_the_model() -> None:
 
     assert message.status == "error"
     assert "Unknown origin_id" in message.content
-    assert "resolve_location" in message.content
+    assert "location" in message.content
 
 
 def test_distance_sort_without_origin_is_an_error_for_the_model() -> None:
     message = call_in_graph(menu_id="shrink-300", sort="distance")
 
     assert message.status == "error"
-    assert "Call resolve_location" in message.content
+    assert "location" in message.content
+
+
+def test_location_input_resolves_place_and_returns_distances() -> None:
+    message = call(menu_id="shrink-300", location="홍대 숙소")
+    result = cards(message)
+
+    hongdae = get_locations().get("area:hongdae")
+    expected = rank_rows(get_catalog(), "shrink-300", origin=hongdae.point)[:3]
+    assert [c.place_id for c in result] == [r.place.id for r in expected]
+    assert [c.distance_meters for c in result] == [r.distance_meters for r in expected]
+    assert "found" in message.content
+    assert "area:hongdae" in message.content
+
+
+def test_location_input_found_is_in_artifact() -> None:
+    message = call(menu_id="shrink-300", location="홍대")
+
+    loc = message.artifact.get("location")
+    assert loc is not None
+    assert loc["location_id"] == "area:hongdae"
+    assert loc["query"] == "홍대"
+
+
+def test_location_input_unknown_searches_without_distances() -> None:
+    message = call(menu_id="shrink-300", location="이태원역")
+
+    result = cards(message)
+    assert all(c.distance_meters is None for c in result)
+    assert "unknown" in message.content
+    assert message.artifact.get("location") is None
+
+
+def test_location_input_ambiguous_searches_without_distances() -> None:
+    # 여러 역·지역에 걸리는 표현
+    message = call(menu_id="shrink-300", location="강남 명동")
+
+    result = cards(message)
+    assert result  # 거리 없이 결과는 나온다
+    assert all(c.distance_meters is None for c in result)
+    assert "names several places" in message.content
+
+
+def test_location_input_ignored_when_origin_id_given() -> None:
+    # origin_id가 있으면 location을 무시하고 origin_id를 쓴다
+    message = call(menu_id="shrink-300", origin_id="area:gangnam", location="홍대")
+
+    gangnam = get_locations().get("area:gangnam")
+    expected = rank_rows(get_catalog(), "shrink-300", origin=gangnam.point)[:3]
+    assert [c.distance_meters for c in cards(message)] == [
+        r.distance_meters for r in expected
+    ]
 
 
 def test_rating_sort_follows_web_rating() -> None:

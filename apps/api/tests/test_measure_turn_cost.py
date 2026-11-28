@@ -12,11 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from eval_scenarios import Scenario, Turn
 from measure_turn_cost import (
+    _CallTimer,
     _GraphLogCounter,
     _run_scenario,
+    _TimedAgent,
     input_cost,
     p90,
     split_usage,
+    summarize_roundtrips,
     summarize_rows,
 )
 
@@ -153,7 +156,9 @@ def test_run_scenario_records_calls_and_stream_timing(client: TestClient) -> Non
         tools=TOOLS,
         checkpointer=InMemorySaver(),
     )
-    app.dependency_overrides[get_agent] = lambda: graph
+    timer = _CallTimer()
+    timed = _TimedAgent(graph, timer)
+    app.dependency_overrides[get_agent] = lambda: timed
     scenario = Scenario(
         "t1",
         "테스트",
@@ -162,7 +167,7 @@ def test_run_scenario_records_calls_and_stream_timing(client: TestClient) -> Non
         (Turn("리쥬란 싼 곳"), Turn("귀국은 모레예요")),
     )
 
-    rows = _run_scenario(client, graph, scenario, "x", 1, _GraphLogCounter())
+    rows = _run_scenario(client, graph, scenario, "x", 1, _GraphLogCounter(), timer)
 
     calls = [r for r in rows if r["kind"] == "call"]
     turns = [r for r in rows if r["kind"] == "turn"]
@@ -177,3 +182,51 @@ def test_run_scenario_records_calls_and_stream_timing(client: TestClient) -> Non
         assert t["fallback"] is None
         assert t["failures"] == []
         assert 0 <= t["start_s"] <= t["ttft_s"] <= t["total_s"]
+
+    # 콜백이 잰 호출 시간이 기록에 남은 응답과 하나씩 맞고, 도구 시간은 도구 이름과 함께 남는다.
+    assert [len(t["llm_s"]) for t in turns] == [2, 1]
+    assert all(c["llm_s"] is not None and c["llm_s"] >= 0 for c in calls)
+    assert [c["last"] for c in calls] == [False, True, True]
+    assert [x["name"] for x in turns[0]["tool_s"]] == ["search_clinics"]
+    assert turns[1]["tool_s"] == []
+
+
+def test_roundtrip_summary_splits_middle_and_last_calls() -> None:
+    def call(turn: int, idx: int, last: bool, output: int, llm_s: float | None) -> dict:
+        return {
+            **_call(turn, idx, read=0),
+            "last": last,
+            "output": output,
+            "llm_s": llm_s,
+        }
+
+    rows = [
+        call(1, 0, False, 100, 1.0),
+        call(1, 1, False, 50, 3.0),
+        call(1, 2, True, 400, 4.0),
+        {
+            **_turn(3.0, 5.0),
+            "llm_calls": 3,
+            "tool_s": [{"name": "search_clinics", "s": 0.2}],
+        },
+        call(2, 0, True, 200, 2.0),
+        {**_turn(1.0, 2.0), "llm_calls": 1, "tool_s": []},
+    ]
+
+    s = summarize_roundtrips(rows)
+
+    assert s["calls_hist"] == {1: 1, 3: 1}
+    assert s["middle_output_per_turn"] == 75
+    assert s["last_output_per_turn"] == 300
+    assert s["middle_llm_median"] == 2.0
+    assert s["last_llm_median"] == 3.0
+    assert s["tool_median"] == {"search_clinics": 0.2}
+
+
+def test_roundtrip_summary_reads_old_records_without_timing() -> None:
+    rows = [_call(1, 0, read=0), {**_turn(1.0, 2.0), "llm_calls": 1}]
+
+    s = summarize_roundtrips(rows)
+
+    assert s["middle_llm_median"] is None and s["last_llm_median"] is None
+    assert s["tool_median"] == {}

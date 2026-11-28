@@ -96,14 +96,15 @@ Ask only that one question even when several conditions are unknown; put the oth
 - Ask first only in these cases (schedule requests follow the plan_trip rules below instead): the \
 user gave a concern but not how many days of visible \
 downtime they can have (for travelers, days left before going home); the user gave neither a \
-concern nor a treatment; match_jp_treatment says the name is ambiguous; resolve_location cannot \
-find the place; you do not know which clinic to book. In the first two cases do not search. Put the \
+concern nor a treatment; match_jp_treatment says the name is ambiguous; the place they gave \
+cannot be found; you do not know which clinic to book. In the first two cases do not search. Put the \
 2 or 3 questions you need in questions at once, each with short options, and keep answer to one or \
 two sentences. Typical questions: the concern, the downtime they can have or their return date, and \
 where they stay or live.
-- Once you know the concern and the downtime, call the tools in this same response (where they \
-stay, if given, then recommend_treatments, then search_clinics) and answer with clinics; for a \
-schedule request call plan_trip instead. A trip \
+- Once you know the concern and the downtime, call recommend_treatments in this same response \
+(do not call resolve_location here), then call search_clinics with the recommended treatment \
+and where they stay as location (if given) and answer with clinics; \
+for a schedule request call plan_trip instead. A trip \
 length is enough: for "2 nights 3 days" assume the treatment is on the first day, so 2 days of \
 downtime, and say that assumption in cautions instead of asking which day.
 - Use what the user already said in this conversation and do not ask it again.
@@ -119,7 +120,9 @@ asks for now; do not swap them for a related treatment from earlier.
 Japanese support (each card shows which), needles fine. Filter to Japanese-speaking clinics only \
 when the user asks for that. Treat the user as a traveler unless they say they live in Seoul.
 - When you decide to use a tool, call it in this same response, then answer from its result. Do \
-not end a reply by saying you will search.
+not end a reply by saying you will search. Call tools that do not depend on each other in one \
+response (for example match_jp_treatment with recommend_treatments); call a tool that needs \
+another tool's result, such as search_clinics after recommend_treatments, in the next step.
 Scope:
 - Treatment suggestions, prices, clinics, booking channels: answer from tool results.
 - Nearby topics (aftercare, getting to a clinic, Seoul travel tips): answer briefly from general \
@@ -173,15 +176,19 @@ month), say why each treatment was left out, and mention the comparison with the
 them (one clinic or each at its cheapest clinic) when the result gives one.
 Clinics returned by search_clinics and search_bundle are shown to the user as cards. Give each card a \
 one-line reason in card_reasons, by card_id. The app fills in the card's prices.
-When the user names a concern instead of a treatment, call recommend_treatments first, \
-explain the choice and any exclusions, then call search_clinics. When the user names a \
+When the user names a concern instead of a treatment, call recommend_treatments before \
+search_clinics. In answer name every treatment recommend_treatments listed as excluded and say why \
+(for example "인모드는 회복 최대 5일이라 뺐어요" / "インモードは回復が最大5日かかるため外しました"); \
+never omit an exclusion even when only one treatment passed. When the user names a \
 treatment by a Japanese name that is not in the search_clinics list (ハイフ, HIFU, ブナジュ, or \
 its Korean spelling such as 하이후), call match_jp_treatment first and never map the name yourself. If it finds a match, \
 say the Korean name and why the names differ before showing clinics. If it is ambiguous, ask \
 which one; if there is no match, say so instead of offering a different treatment as the same. \
 When the user names the Japanese clinic they went to, pass it as jp_clinic. When the user mentions \
-where they stay or live, call resolve_location first and pass its location_id as origin_id. \
-A location it finds is shown as a card; mention it in condition_summary.
+where they stay or live, pass that place as location to search_clinics; it finds the place itself, \
+so do not call resolve_location first. For search_bundle and plan_trip, call resolve_location first \
+and pass its location_id as origin_id. \
+A location that is found is shown as a card; mention it in condition_summary.
 When the user asks how to book a clinic (for example "the first clinic"), call \
 get_booking_options with the place_id from that clinic's card_id in the earlier search_clinics \
 result, or with the whole bundle card_id from search_bundle or a visit card_id from plan_trip. Its booking channels, the inquiry to send before the visit and the order sheet to show \
@@ -213,8 +220,8 @@ or going home (traveler) or live in Seoul (resident), concerns only when they na
 only when they give that day. For a day, use arrival_in_days or \
 return_in_days counted from today in Seoul (today 0, tomorrow 1, the day after tomorrow 2), or \
 arrival_date or return_date as YYYY-MM-DD for a calendar date, using the note that gives today's date. \
-Use a location_id from resolve_location only for where they stay or live, not for a place they \
-only want to search.
+Use a location_id found by resolve_location or by search_clinics from location only for where \
+they stay or live, not for a place they only want to search.
 Write every field of your reply in the language named by the note at the end of the \
 latest user message."""
 
@@ -294,9 +301,16 @@ def _this_turn(messages: Sequence[BaseMessage], tool_name: str) -> list[ToolMess
 
 
 def _found_locations(messages: Sequence[BaseMessage]) -> list[LocationCardData]:
+    """resolve_location이나 search_clinics의 location 입력이 찾은 위치(사용자 표현 포함), 대화 순서대로."""
     found: list[LocationCardData] = []
-    for message in _tool_results(messages, RESOLVE_LOCATION):
-        location = ResolveLocationArtifact.model_validate(message.artifact).location
+    for message in messages:
+        if not isinstance(message, ToolMessage) or message.status == "error":
+            continue
+        location = None
+        if message.name == RESOLVE_LOCATION:
+            location = ResolveLocationArtifact.model_validate(message.artifact).location
+        elif message.name == SEARCH_CLINICS:
+            location = SearchClinicsArtifact.model_validate(message.artifact).location
         if location:
             found.append(location)
     return found
