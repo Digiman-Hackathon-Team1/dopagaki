@@ -10,10 +10,12 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage, HumanMessage
 
 from api.agent.config import AgentSettings, get_settings
 from api.agent.graph import AMOUNT_CAUTION
 from api.agent.safety import mentions_health
+from api.agent.service import get_agent
 from api.domain.calc import rank_rows
 from api.domain.catalog import get_catalog
 from api.domain.locations import get_locations
@@ -434,3 +436,45 @@ def test_live_safety_stop_is_lifted_when_user_says_it_was_only_a_question() -> N
     )
 
     assert clinic_cards(second), second["answer"]
+
+
+def test_live_prompt_cache_reads_within_and_across_turns() -> None:
+    """한 턴 안 두 번째 LLM 호출과 다음 턴 첫 호출이 앞부분을 캐시에서 읽는다(이슈 #59)."""
+    settings = get_settings()
+    assert settings.agent_prompt_cache
+    agent = get_agent(settings)
+    client = TestClient(app)
+    user_id = str(uuid4())
+    thread_id = None
+    for message in (
+        "리쥬란 받고 싶은데 서울에서 일본보다 싼 곳 알려 줘",
+        "귀국은 모레예요",
+    ):
+        response = client.post(
+            "/api/agent/chat",
+            json={
+                "userId": user_id,
+                "threadId": thread_id,
+                "message": message,
+                "lang": "ko",
+            },
+        )
+        assert response.status_code == 200, response.text
+        thread_id = response.json()["threadId"]
+
+    messages = agent.get_state(
+        {"configurable": {"thread_id": f"{user_id}:{thread_id}"}}
+    ).values["messages"]
+    second_turn = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage))
+    first_turn_ai = [m for m in messages[:second_turn] if isinstance(m, AIMessage)]
+    second_turn_ai = [m for m in messages[second_turn:] if isinstance(m, AIMessage)]
+
+    def cache_read(m: AIMessage) -> int:
+        return (m.usage_metadata or {}).get("input_token_details", {}).get(
+            "cache_read"
+        ) or 0
+
+    # 1턴은 search_clinics를 부른 뒤 답하므로 LLM을 두 번 이상 부른다.
+    assert len(first_turn_ai) >= 2, [m.tool_calls for m in first_turn_ai]
+    assert all(cache_read(m) > 0 for m in first_turn_ai[1:])
+    assert cache_read(second_turn_ai[0]) > 0

@@ -252,6 +252,7 @@ def _graph_for(
     max_retries: int,
     max_steps: int,
     max_seconds: float,
+    prompt_cache: bool,
 ) -> CompiledStateGraph:
     chat_model = ChatAnthropic(
         model=model,
@@ -267,6 +268,7 @@ def _graph_for(
         checkpointer=checkpointer,
         max_steps=max_steps,
         max_seconds=max_seconds,
+        prompt_cache=prompt_cache,
     )
 
 
@@ -288,6 +290,7 @@ def get_agent(
         settings.agent_max_retries,
         settings.agent_max_steps,
         settings.agent_turn_timeout_seconds,
+        settings.agent_prompt_cache,
     )
 
 

@@ -556,13 +556,29 @@ def build_graph(
     max_steps: int = 10,
     max_seconds: float = 180,
     clock: Callable[[], float] = time.monotonic,
+    prompt_cache: bool = False,
 ) -> CompiledStateGraph:
-    """그래프를 만든다. 모델과 도구를 주입받아 테스트에서 가짜 LLM으로 바꿀 수 있다."""
+    """그래프를 만든다. 모델과 도구를 주입받아 테스트에서 가짜 LLM으로 바꿀 수 있다.
+
+    prompt_cache가 켜지면 캐시 표시를 두 곳에 붙인다(이슈 #59). 요청은 도구 → 시스템 → 메시지 순으로 읽히고,
+    캐시는 표시한 곳까지의 앞부분이 바이트 단위로 같을 때 읽힌다.
+    - 시스템 프롬프트 끝: 모든 대화가 같이 쓰는 도구 정의와 시스템 프롬프트를 캐시한다.
+    - 요청 전체(자동 캐싱): 마지막 블록에 표시가 붙어 호출마다 뒤로 옮겨 간다. 그래서 한 턴 안의 도구 호출
+      반복과 다음 턴 모두 앞 호출까지의 대화 기록을 캐시에서 읽는다. 대화 기록은 덧붙이기만 하므로(설계 문서
+      8장) 앞부분이 바뀌지 않는다.
+    유지 시간은 기본 5분이다. 캐시를 읽을 때마다 다시 5분으로 늘어나므로, 대화가 이어지는 동안은 계속 읽힌다.
+    """
+    cache = {"cache_control": {"type": "ephemeral"}} if prompt_cache else {}
     if tools:
-        bound = model.bind_tools(tools, response_format=AgentReply)
+        bound = model.bind_tools(tools, response_format=AgentReply, **cache)
     else:
         # 빈 tools 배열을 보내지 않도록 도구가 없으면 응답 형식만 붙인다.
-        bound = model.bind(response_format=AgentReply)
+        bound = model.bind(response_format=AgentReply, **cache)
+    system = SystemMessage(
+        [{"type": "text", "text": SYSTEM_PROMPT, **cache}]
+        if prompt_cache
+        else SYSTEM_PROMPT
+    )
 
     def load_context(state: AgentState) -> dict:
         # 이번 턴의 응답 언어를 사용자 메시지 끝에 텍스트 블록으로 붙인다.
@@ -605,7 +621,7 @@ def build_graph(
         if out_of_time():
             logger.warning("한 턴이 %d초를 넘어 멈췄다", max_seconds)
             return {"failure": "turn_timeout"}
-        request = [SystemMessage(SYSTEM_PROMPT), *messages]
+        request = [system, *messages]
         try:
             response = bound.invoke(request)
             if (
