@@ -76,12 +76,12 @@ def test_card_links_match_web_clinic_channels(place) -> None:
 
 
 def test_language_specific_links_are_kept() -> None:
-    """일본어 계정이 따로 있는 병원은 일본어 화면에 그 계정이 간다(예: 톡스앤필 명동 인스타그램)."""
-    _, artifact = call(place_id="toxnfill-myeongdong")
+    """일본어 계정이 따로 있는 병원은 일본어 화면에 그 계정이 간다(예: 구의원 강남점 인스타그램)."""
+    _, artifact = call(place_id="gu-gangnam")
     [instagram] = [c for c in artifact.booking.channels if c.kind == "instagram"]
 
-    assert instagram.url_ja == "https://www.instagram.com/toxnfill_japan_official/"
-    assert instagram.url_ko == "https://www.instagram.com/toxnfill_official/"
+    assert instagram.url_ja == "https://www.instagram.com/gu_clinic_jp/"
+    assert instagram.url_ko == "https://www.instagram.com/gu_clinic"
 
 
 def test_booking_card_for_first_clinic() -> None:
@@ -96,9 +96,9 @@ def test_booking_card_for_first_clinic() -> None:
     assert [c.kind for c in card.channels] == ["kakao", "line", "instagram"]
     assert card.menu_ids == ["shrink-300"]
     assert card.official_site_url == get_catalog().place("vands-hongdae").source_url
-    assert "희망 일시: 11/28 / 오후 (13:00~17:00)" in card.inquiry_ko
+    assert "희망 일시: 11/28 · 오후 (13:00~17:00)" in card.inquiry_ko
     assert "슈링크" in card.inquiry_ko
-    assert "ご希望日時：11/28 / 午後" in card.inquiry_ja
+    assert "希望日時：11/28・午後" in card.inquiry_ja
     # 이름은 받지 않으므로 빈칸 문구가 남는다.
     assert "(여권 영문명 입력)" in card.inquiry_ko
     # LLM에는 링크와 문의 문장을 보내지 않는다.
@@ -191,7 +191,7 @@ def test_unknown_place_returns_error_to_model() -> None:
 def test_date_is_normalized(date: str, saved: str) -> None:
     _, artifact = call(place_id="vands-hongdae", preferred_date=date)
 
-    assert f"희망 일시: {saved} /" in artifact.booking.inquiry_ko
+    assert f"희망 일시: {saved} ·" in artifact.booking.inquiry_ko
 
 
 @pytest.mark.parametrize(

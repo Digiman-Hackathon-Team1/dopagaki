@@ -44,7 +44,7 @@ ORDER_REQUESTS: dict[OrderRequestId, tuple[str, str]] = {
 DEFAULT_ORDER_REQUESTS: tuple[OrderRequestId, ...] = ("no-upsell", "total-first")
 
 TIME_LABELS: dict[TimeSlot, tuple[str, str]] = {
-    "any": ("시간 무관", "時間帯おまかせ"),
+    "any": ("시간 상관없어요", "時間はいつでも大丈夫です"),
     "morning": ("오전 (10:00~12:00)", "午前（10:00〜12:00）"),
     "afternoon": ("오후 (13:00~17:00)", "午後（13:00〜17:00）"),
     "evening": ("저녁 (17:00 이후)", "夕方（17:00以降）"),
@@ -68,8 +68,8 @@ def inquiry_messages(
       `computeClinicBundle`과 같음). 남는 시술이 없으면 "상담 후 결정"이다.
     - 이름·날짜를 비우면 web과 같은 자리 표시 문구가 들어간다. 인원은 1~5명으로 맞춘다.
     """
-    date_ko = date or "(희망 날짜 미입력)"
-    date_ja = date or "（希望日未入力）"
+    date_ko = date or "(희망 날짜 선택)"
+    date_ja = date or "（希望日を選択）"
     time_ko, time_ja = TIME_LABELS[time_slot]
     name = guest_name.strip()
     name_ko = name or "(여권 영문명 입력)"
@@ -80,38 +80,48 @@ def inquiry_messages(
     menus_ja = "・".join(m.name_ja for m in selected) or "相談して決定"
 
     if place.japanese_support:
-        lang_ko = "일본어 상담이 가능한 시간대로 배정 부탁드립니다."
-        lang_ja = "日本語対応が可能な時間帯でご案内いただけますと幸いです。"
+        lang_ko = "가능하시면 일본어 상담되는 시간대로 잡아주시면 감사하겠습니다 :)"
+        lang_ja = "できれば日本語で相談できる時間帯にしていただけるとうれしいです！"
     else:
-        lang_ko = "일본어 대응이 어려우시면 번역기나 간단한 영어로 상담 부탁드립니다."
-        lang_ja = "日本語対応が難しい場合は、翻訳アプリや簡単な英語でのご対応をお願いいたします。"
+        lang_ko = (
+            "제가 한국어가 서툴러서 번역 앱으로 대화하고 있어요. "
+            "짧은 한국어나 숫자로 답장해 주시면 정말 감사하겠습니다 :)"
+        )
+        lang_ja = (
+            "韓国語が不慣れで翻訳アプリを使っています。"
+            "短い韓国語や数字でお返事いただけると助かります！"
+        )
 
     ko = "\n".join(
         [
-            f"안녕하세요, {place.name_ko} 예약 문의드립니다.",
-            f"일본에서 방문하는 {'첫 방문(초진)' if first_visit else '재방문'} 고객입니다.",
+            f"안녕하세요! {place.name_ko} 예약하고 싶어서 연락드렸어요.",
+            "일본에서 여행 가는 길에 처음 방문할 예정이에요."
+            if first_visit
+            else "전에 방문했었고 이번에 다시 예약하려고 해요.",
             "",
-            f"• 성함(여권 영문): {name_ko}",
-            f"• 희망 일시: {date_ko} / {time_ko}",
-            f"• 인원: {count}명",
-            f"• 희망 시술: {menus_ko}",
+            f"이름(여권 영문): {name_ko}",
+            f"희망 일시: {date_ko} · {time_ko}",
+            f"인원: {count}명",
+            f"받고 싶은 시술: {menus_ko}",
             "",
+            "혹시 이 날짜에 예약 가능할까요? 마취크림·전용 팁·부가세까지 포함해서 대략 총 얼마 정도 나올지도 같이 알려주시면 감사해요!",
             lang_ko,
-            "마취크림·전용 팁·부가세 포함 예상 금액도 함께 알려주시면 감사하겠습니다.",
         ]
     )
     ja = "\n".join(
         [
-            f"こんにちは、{place.name_ja}への予約についてお問い合わせです。",
-            f"日本から伺う{'初診' if first_visit else '再診'}の患者です。",
+            f"こんにちは！{place.name_ja}を予約したくてご連絡しました。",
+            "日本から旅行で伺う予定で、初診です。"
+            if first_visit
+            else "以前伺ったことがあり、再診で予約したいです。",
             "",
-            f"・お名前（パスポート表記）：{name_ja}",
-            f"・ご希望日時：{date_ja} / {time_ja}",
-            f"・人数：{count}名",
-            f"・希望施術：{menus_ja}",
+            f"名前（パスポート英字）：{name_ja}",
+            f"希望日時：{date_ja}・{time_ja}",
+            f"人数：{count}名",
+            f"希望の施術：{menus_ja}",
             "",
+            "こちらの日程で予約できますでしょうか？麻酔クリーム・専用チップ・税金込みで大体いくらくらいになるかも教えていただけるとうれしいです！",
             lang_ja,
-            "麻酔クリーム・専用チップ・税金込みのおおよその総額もあわせて教えていただけますと幸いです。",
         ]
     )
     return ko, ja
