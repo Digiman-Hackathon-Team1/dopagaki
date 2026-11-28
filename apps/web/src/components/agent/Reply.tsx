@@ -136,6 +136,11 @@ export function normalizeAgentMarkdown(raw: string): string {
   return out.join('\n');
 }
 
+/** 서버 카드의 실제 순위(1부터). 구버전 응답처럼 숫자가 비었을 때만 표시 순서를 쓴다. */
+function resolveCardRank(rank: number | undefined, fallback: number): number {
+  return typeof rank === 'number' && Number.isInteger(rank) && rank >= 1 ? rank : fallback;
+}
+
 function Card({
   card,
   rank,
@@ -173,7 +178,7 @@ function Card({
   return (
     <article
       className={`agent-card dopa-agent-card${isRank1 ? ' is-top-rec' : ''}${
-        lightning ? ' is-rank1-lightning' : ''
+        lightning && isRank1 ? ' is-rank1-lightning' : ''
       }`}
     >
       <div className="dopa-agent-card-inner">
@@ -463,7 +468,7 @@ function BundleCard({
   return (
     <article
       className={`agent-card agent-bundle dopa-agent-card${isRank1 ? ' is-top-bundle' : ''}${
-        lightning ? ' is-rank1-lightning' : ''
+        lightning && isRank1 ? ' is-rank1-lightning' : ''
       }`}
     >
       <div className="dopa-agent-card-inner">
@@ -1054,6 +1059,7 @@ export function Reply({
             const isHeroFirst = idx === 0 && !showSearch;
             if (card.kind === 'bundle') {
               bundleRank += 1;
+              const displayRank = resolveCardRank(card.rank, bundleRank);
               return (
                 <BlurFade
                   key={card.searchId + ':' + card.cardId}
@@ -1064,7 +1070,7 @@ export function Reply({
                 >
                   <BundleCard
                     card={card}
-                    rank={bundleRank}
+                    rank={displayRank}
                     lang={lang}
                     send={send}
                     saved={savedSet.has(card.placeId)}
@@ -1078,7 +1084,7 @@ export function Reply({
                         : undefined
                     }
                     onOpenClinic={onOpenClinic}
-                    lightning={isHeroFirst && bundleRank === 1}
+                    lightning={isHeroFirst && displayRank === 1}
                   />
                 </BlurFade>
               );
@@ -1086,7 +1092,7 @@ export function Reply({
             recRank += 1;
             const localRank = (searchRankMap.get(card.searchId) ?? 0) + 1;
             searchRankMap.set(card.searchId, localRank);
-            const displayRank = showSearch ? localRank : recRank;
+            const displayRank = resolveCardRank(card.rank, showSearch ? localRank : recRank);
             return (
               <BlurFade
                 key={card.searchId + ':' + card.cardId}
