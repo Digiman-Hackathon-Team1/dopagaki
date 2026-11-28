@@ -145,6 +145,7 @@ function Card({
   card,
   rank,
   lang,
+  replyLang,
   showSearch,
   send,
   saved = false,
@@ -155,6 +156,7 @@ function Card({
   showSearch: boolean;
   rank: number;
   lang: Lang;
+  replyLang: Lang;
   card: Schemas['RecommendationCard'];
   send: Send;
   saved?: boolean;
@@ -164,6 +166,7 @@ function Card({
 }) {
   const [showProof, setShowProof] = useState(false);
   const ja = lang === 'ja';
+  const replyJa = replyLang === 'ja';
   const n = (value: number) => value.toLocaleString(lang);
   const won = ja ? 'ウォン' : '원';
   const yen = ja ? '円' : '엔';
@@ -291,7 +294,7 @@ function Card({
               className="dopa-agent-action-btn is-primary"
               onClick={() =>
                 send(
-                  ja
+                  replyJa
                     ? `${card.clinicNameJa}の${card.menuNameJa}の予約方法を教えてください。`
                     : `${card.clinicNameKo}에서 ${card.menuNameKo} 예약 방법을 알려 주세요.`
                 )
@@ -434,6 +437,7 @@ function BundleCard({
   card,
   rank,
   lang,
+  replyLang,
   send,
   saved = false,
   onToggleSave,
@@ -441,6 +445,7 @@ function BundleCard({
   lightning = false,
 }: {
   lang: Lang;
+  replyLang: Lang;
   rank: number;
   card: Schemas['BundleCard'];
   send: Send;
@@ -451,10 +456,11 @@ function BundleCard({
 }) {
   const [showProof, setShowProof] = useState(false);
   const ja = lang === 'ja';
+  const replyJa = replyLang === 'ja';
   const n = (value: number) => value.toLocaleString(lang);
   const won = ja ? 'ウォン' : '원';
   const yen = ja ? '円' : '엔';
-  const names = card.items.map(i => (ja ? i.menuNameJa : i.menuNameKo));
+  const replyNames = card.items.map(i => (replyJa ? i.menuNameJa : i.menuNameKo));
   const menuIds = card.items.map(i => i.menuId);
   const tags = [...new Set(card.items.flatMap(i => i.priceTags))];
   const areaName =
@@ -588,9 +594,9 @@ function BundleCard({
               className="dopa-agent-action-btn is-primary"
               onClick={() =>
                 send(
-                  ja
-                    ? `${card.clinicNameJa}で${names.join('と')}をまとめて受ける予約方法を教えてください。`
-                    : `${card.clinicNameKo}에서 ${names.join(' + ')} 묶음으로 받는 예약 방법을 알려 주세요.`
+                  replyJa
+                    ? `${card.clinicNameJa}で${replyNames.join('と')}をまとめて受ける予約方法を教えてください。`
+                    : `${card.clinicNameKo}에서 ${replyNames.join(' + ')} 묶음으로 받는 예약 방법을 알려 주세요.`
                 )
               }
             >
@@ -685,12 +691,14 @@ function planReason(reason: PlanReason, days: number, resident: boolean, ja: boo
 function TripPlanCard({
   card,
   lang,
+  replyLang,
   send,
   savedSet,
   onToggleSaveClinic,
   onOpenClinic,
 }: {
   lang: Lang;
+  replyLang: Lang;
   card: Schemas['TripPlanCard'];
   send: Send;
   savedSet: Set<string>;
@@ -698,6 +706,7 @@ function TripPlanCard({
   onOpenClinic?: (placeId: string, menuIds: string[]) => void;
 }) {
   const ja = lang === 'ja';
+  const replyJa = replyLang === 'ja';
   const n = (value: number) => value.toLocaleString(lang);
   const won = ja ? 'ウォン' : '원';
   const yen = ja ? '円' : '엔';
@@ -773,7 +782,7 @@ function TripPlanCard({
             <h4>{resident ? (ja ? '今回受ける施術' : '지금 받을 것') : ja ? '日ごとのプラン' : '날짜별 일정'}</h4>
             <ol className="agent-plan-visits">
               {card.visits.map(visit => {
-                const names = visit.items.map(i => (ja ? i.menuNameJa : i.menuNameKo));
+                const replyNames = visit.items.map(i => (replyJa ? i.menuNameJa : i.menuNameKo));
                 const menuIds = visit.items.map(i => i.menuId);
                 return (
                   <li key={visit.cardId}>
@@ -852,9 +861,9 @@ function TripPlanCard({
                         className="dopa-agent-action-btn is-primary"
                         onClick={() =>
                           send(
-                            ja
-                              ? `${visit.clinicNameJa}で${names.join('と')}を受ける予約方法を教えてください。`
-                              : `${visit.clinicNameKo}에서 ${names.join(' + ')} 받는 예약 방법을 알려 주세요.`
+                            replyJa
+                              ? `${visit.clinicNameJa}で${replyNames.join('と')}を受ける予約方法を教えてください。`
+                              : `${visit.clinicNameKo}에서 ${replyNames.join(' + ')} 받는 예약 방법을 알려 주세요.`
                           )
                         }
                       >
@@ -995,6 +1004,7 @@ export function Reply({
 }) {
   const [showAllClinics, setShowAllClinics] = useState(false);
   const ja = lang === 'ja';
+  const replyLang: Lang = reply.lang ?? lang;
   const savedSet = useMemo(() => new Set(savedIds ?? []), [savedIds]);
 
   const searchIds = new Set([
@@ -1036,8 +1046,8 @@ export function Reply({
       <AnswerText text={reply.answer} />
       {reply.fallback && (
         <aside className="agent-fallback">
-          <p>{reply.fallback === 'daily_limit' ? copy[lang].dailyLimit : copy[lang].fallbackError}</p>
-          <PriceTableLink lang={lang} onClick={onPriceTable} />
+          <p>{reply.fallback === 'daily_limit' ? copy[replyLang].dailyLimit : copy[replyLang].fallbackError}</p>
+          <PriceTableLink lang={replyLang} onClick={onPriceTable} />
         </aside>
       )}
 
@@ -1072,6 +1082,7 @@ export function Reply({
                     card={card}
                     rank={displayRank}
                     lang={lang}
+                    replyLang={replyLang}
                     send={send}
                     saved={savedSet.has(card.placeId)}
                     onToggleSave={
@@ -1105,6 +1116,7 @@ export function Reply({
                   showSearch={showSearch}
                   rank={displayRank}
                   lang={lang}
+                  replyLang={replyLang}
                   card={card}
                   send={send}
                   saved={savedSet.has(card.placeId)}
@@ -1156,6 +1168,7 @@ export function Reply({
               key={'plan:' + index}
               card={card}
               lang={lang}
+              replyLang={replyLang}
               send={send}
               savedSet={savedSet}
               onToggleSaveClinic={onToggleSaveClinic}
