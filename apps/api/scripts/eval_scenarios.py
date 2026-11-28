@@ -306,6 +306,7 @@ SCENARIOS: tuple[Scenario, ...] = (
             ),
         ),
     ),
+    # s11은 기본 평가에 넣는다(이슈 #81).
     Scenario(
         "s11",
         "일본 시술명(하나만 모호)",
