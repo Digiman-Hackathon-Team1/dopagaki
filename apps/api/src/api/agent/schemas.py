@@ -236,6 +236,10 @@ class RecommendationCardData(ResponseModel):
     """search_clinics가 만드는 병원 추천 카드의 데이터. 금액은 모두 calc.py 결과다."""
 
     card_id: str = Field(description="병원 ID와 시술 ID를 묶은 카드 ID")
+    rank: int = Field(
+        ge=1,
+        description="이 검색 순위표에서의 순위(1부터). offset으로 다음 병원을 보면 4·5·6처럼 이어진다",
+    )
     place_id: str
     menu_id: str
     clinic_name_ja: str
@@ -466,6 +470,10 @@ class BundleCardData(ResponseModel):
 
     card_id: str = Field(
         description="<place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣을 수 있다"
+    )
+    rank: int = Field(
+        ge=1,
+        description="이 검색 순위표에서의 순위(1부터). offset으로 다음 병원을 보면 4·5·6처럼 이어진다",
     )
     place_id: str
     clinic_name_ja: str

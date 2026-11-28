@@ -73,6 +73,15 @@ class SearchBundleInput(BaseModel):
         ),
     )
     limit: int = Field(default=3, ge=1, le=5, description="돌려줄 병원 수. 기본 3")
+    offset: int = Field(
+        default=0,
+        ge=0,
+        le=50,
+        description=(
+            "순위표 앞에서 건너뛸 수. 기본 0. 사용자가 다른 병원·더 보여 달라고 하면 같은 입력으로 "
+            "이미 보여 준 수(3, 그다음 6)를 넣는다. 조건(시술·지역·예산·정렬 등)을 바꾸면 0"
+        ),
+    )
 
     @field_validator("menu_ids")
     @classmethod
@@ -122,6 +131,7 @@ DESCRIPTION = f"""\
 결과의 병원은 묶음 카드로 화면에 나간다. card_reasons에 card_id마다 이유 한 줄을 쓴다.
 예약 방법을 물으면 get_booking_options에 묶음 card_id를 그대로 넣는다(시술이 모두 문의 문장에 들어간다).
 같은 묶음을 지역·기준 위치끼리 비교할 때는 대상마다 한 번씩 부른다(결과가 모두 카드로 나간다).
+사용자가 다른 병원·더 보여 달라고 하면 앞 검색과 같은 입력으로 다시 부르고 offset에 이미 보여 준 수를 넣는다.
 쓰면 안 되는 경우: 시술이 하나일 때(search_clinics를 쓴다), 4개 이상일 때(3개로 줄일지 묻거나 시술마다
 search_clinics로 보여 주고 합계는 말하지 않는다), 아래 목록에 없는 시술, 시술을 아직 정하지 않았을 때.
 시술 목록:
@@ -177,6 +187,7 @@ def _card(
     separate: list[PriceRow],
     show_distance: bool,
     fx: Fx,
+    rank: int,
 ) -> BundleCardData:
     place = rows[0].place
     total_krw = sum(r.total_krw for r in rows)
@@ -200,6 +211,7 @@ def _card(
     ]
     return BundleCardData(
         card_id=f"{place.id}:{'+'.join(r.menu.id for r in rows)}",
+        rank=rank,
         place_id=place.id,
         clinic_name_ja=place.name_ja,
         clinic_name_ko=place.name_ko,
@@ -305,6 +317,7 @@ def search_bundle(
     area: AreaId | None = None,
     origin_id: str | None = None,
     limit: int = 3,
+    offset: int = 0,
 ) -> tuple[str, dict]:
     catalog = get_catalog()
     fx = get_fx_provider().current()
@@ -398,9 +411,12 @@ def search_bundle(
         )
 
     complete_separate = len(separate) == len(menus)
-    top = kept[:limit]
+    top = kept[offset : offset + limit]
     cards = (
-        [_card(rows, separate, location is not None, fx) for rows in top]
+        [
+            _card(rows, separate, location is not None, fx, rank)
+            for rank, rows in enumerate(top, start=offset + 1)
+        ]
         if complete_separate
         else []
     )
@@ -465,10 +481,20 @@ def search_bundle(
                 "No clinic in the data lists all of these treatments. Say so, and offer to "
                 "search each treatment separately with search_clinics."
             )
+        if offset and kept and complete_separate:
+            lines.append(
+                f"No more bundles: all {len(kept)} matching clinics were already shown "
+                f"(offset={offset}). Say so and offer to change the conditions."
+            )
         lines.append("No bundles returned.")
     else:
-        lines.append(f"Top {len(cards)} single-clinic bundles:")
-        lines += [_summary_line(i, c) for i, c in enumerate(cards, start=1)]
+        lines.append(
+            f"Ranks {offset + 1}–{offset + len(cards)} of {len(kept)} single-clinic bundles "
+            f"(ranks 1–{offset} were shown before):"
+            if offset
+            else f"Top {len(cards)} single-clinic bundles:"
+        )
+        lines += [_summary_line(c.rank, c) for c in cards]
         lines.append(
             "Booking channels of the first clinic: "
             + channel_names(catalog.place(cards[0].place_id))
