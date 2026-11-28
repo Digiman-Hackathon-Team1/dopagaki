@@ -258,7 +258,7 @@ def test_mentions_none_fails_on_jargon() -> None:
 
     assert _graded(turn, "회복 기간은 최대 3일이에요.", [])["passed"]
     assert _graded(turn, "다운타임은 최대 3일이에요.", [])["failures"] == [
-        "답변에 쓰면 안 되는 말: 다운타임"
+        "응답에 쓰면 안 되는 말: 다운타임"
     ]
 
 
@@ -280,3 +280,26 @@ def test_searched_menus_needs_every_treatment() -> None:
     graded = grade_turn(turn, body, messages)
 
     assert graded["failures"] == ["search_clinics로 juvelook-2cc를 찾지 않음"]
+
+
+def test_table_lines_accepts_short_delimiters() -> None:
+    from eval_scenarios import table_lines
+
+    assert len(table_lines("| A | B |\n|:-:|-|\n| 1 | 2 |")) == 3
+
+
+def test_mentions_none_checks_cautions_too() -> None:
+    from agent_fakes import reply_message
+    from eval_scenarios import JARGON, Turn, grade_turn
+    from langchain_core.messages import HumanMessage
+
+    reply = reply_message(
+        "회복 기간은 최대 3일이에요.", cautions=["다운타임이 최대 3일이에요."]
+    )
+    body = {"fallback": None, "cards": [], "questions": [], "conditionSummary": "조건"}
+
+    graded = grade_turn(
+        Turn("리쥬란", mentions_none=JARGON), body, [HumanMessage("질문"), reply]
+    )
+
+    assert graded["failures"] == ["응답에 쓰면 안 되는 말: 다운타임"]

@@ -56,7 +56,8 @@ class Turn:
     location_card: str | None = None
     # 원래 답변(answer)에 하나라도 들어 있어야 하는 말. 예: 추천에서 뺀 시술 이름(제외 사유 설명, 이슈 #72).
     mentions_any: tuple[str, ...] = ()
-    # 원래 답변에 들어 있으면 안 되는 말. 예: 쉬운 말로 바꿔야 하는 전문 용어(이슈 #97).
+    # 원래 응답의 화면 칸(답변, 조건 요약, 주의사항, 다음 질문 제안)에 들어 있으면 안 되는 말.
+    # 예: 쉬운 말로 바꿔야 하는 전문 용어(이슈 #97).
     mentions_none: tuple[str, ...] = ()
     # 이번 턴에 search_clinics로 모두 찾아야 하는 시술. 예: 비교 질문의 두 시술(이슈 #97).
     searched_menus: tuple[str, ...] = ()
@@ -408,7 +409,7 @@ SCENARIOS: tuple[Scenario, ...] = (
 )
 
 
-_TABLE_RULE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
+_TABLE_RULE = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
 
 
 def table_lines(text: str) -> list[str]:
@@ -502,9 +503,10 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
             failures.append(f"safety_stop={raw.safety_stop} (기대 {turn.safety_stop})")
         if turn.mentions_any and not any(w in raw.answer for w in turn.mentions_any):
             failures.append(f"답변에 {turn.mentions_any[0]} 언급 없음")
-        used = [w for w in turn.mentions_none if w in raw.answer]
+        shown = [raw.answer, raw.condition_summary, *raw.cautions, *raw.suggestions]
+        used = [w for w in turn.mentions_none if any(w in t for t in shown)]
         if used:
-            failures.append(f"답변에 쓰면 안 되는 말: {', '.join(used)}")
+            failures.append(f"응답에 쓰면 안 되는 말: {', '.join(used)}")
         table = table_lines(raw.answer)
         if turn.has_table and not table:
             failures.append("답변에 표 없음")
