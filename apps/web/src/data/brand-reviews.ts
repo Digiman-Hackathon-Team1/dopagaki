@@ -6,6 +6,19 @@ export type { TraitFilterId };
 export type ReviewVerificationTier = 'jp_kr_verified' | 'kr_verified' | 'limited';
 export type ReviewScope = 'branch' | 'brand';
 
+/** Verified recently opened clinics (medical license / opening date in YYYY.MM.DD) */
+export const NEW_CLINIC_OPENED_AT: Record<string, string> = {
+  'vands-balsan': '2026.11.25'
+};
+
+export function getClinicOpenedDate(placeId: string): string | null {
+  return NEW_CLINIC_OPENED_AT[placeId] ?? null;
+}
+
+export function isNewClinic(placeId: string): boolean {
+  return Boolean(NEW_CLINIC_OPENED_AT[placeId]);
+}
+
 export type ClinicTraitId =
   | 'rebrand_warn'
   | 'limited_rev'
@@ -239,11 +252,11 @@ export const BRAND_REVIEWS: Record<string, BrandReviewProfile> = {
     ],
     watchoutsJa: [
       '担当医は当日のシフトでランダムになりやすく、医師指名重視の方は事前確認が必要',
-      '12店舗中11店舗は韓国ローカル向けで日本語口コミは少数。下の外部リンクとオーダーシート併用が安心'
+      '12店舗中11店舗は韓国ローカル向けで日本語口コミは少数。外部口コミ抜粋とオーダーシート併用が安心'
     ],
     watchoutsKo: [
       '당일 담당 원장이 랜덤 배정되는 경우가 많아 특정 원장 지정을 원하면 사전 확인 필요',
-      '12곳 중 11곳이 내국인 중심 로컬 지점이며 일본어 후기는 적은 편 — 외부 링크·오더시트 활용 권장'
+      '12곳 중 11곳이 내국인 중심 로컬 지점이며 일본어 후기는 적은 편 — 외부 후기 요약·오더시트 활용 권장'
     ],
     sourcesLabelJa: 'Modoodoc・Yeoshin・Cashdoc等の韓国実利用者レビュー中心（日本語レポは少数）',
     sourcesLabelKo: '모두닥 · 여신티켓 · 캐시닥 등 국내 실방문자 리뷰 중심 (일본어 후기 소수)'
@@ -407,11 +420,11 @@ export const BRAND_REVIEWS: Record<string, BrandReviewProfile> = {
     ],
     watchoutsJa: [
       '個人旅行ブログ・韓国アプリで追加施術の提案や週末の待ち時間が報告されており予算固定が安心',
-      '日本語の独立口コミ件数は大手ほど多くないため、下の外部リンクで店舗別レビュー確認を推奨'
+      '日本語の独立口コミ件数は大手ほど多くないため、来院前に最新の店舗別レビュー確認を推奨'
     ],
     watchoutsKo: [
       '개인 여행 블로그·국내 앱에서 상담 시 추가 시술 권유 및 주말 대기가 언급돼 예산 고정 권장',
-      '일본어 독립 후기 표본은 대형 체인 대비 적은 편이므로 아래 링크로 지점별 리뷰 직접 확인 권장'
+      '일본어 독립 후기 표본은 대형 체인 대비 적은 편이므로 방문 전 지점별 최신 리뷰 확인 권장'
     ],
     sourcesLabelJa: 'Modoodoc・Konest・個人旅行ブログ等の公開レポ（日本語レポは中〜少数）',
     sourcesLabelKo: '모두닥 · 코네스트 · 개인 여행 블로그 등 공개 후기 (일본어 후기 소수)'
@@ -462,11 +475,11 @@ export const BRAND_REVIEWS: Record<string, BrandReviewProfile> = {
       '내국인 방문 비중이 높아 초대형 외국인 공장형보다 비교적 차분한 분위기라는 평'
     ],
     watchoutsJa: [
-      '日本語の独立レビューは非常に少ないため、来院前に下の外部リンクで店舗別口コミを要確認',
+      '日本語の独立レビューは非常に少ないため、来院前に外部口コミ抜粋や最新の店舗別口コミを確認推奨',
       '日本語通訳の有無は店舗・日程で異なるため、下の韓国語オーダーシート併用が確実'
     ],
     watchoutsKo: [
-      '일본어 독립 후기가 매우 적은 편이므로 방문 전 아래 링크에서 지점별 최신 후기 직접 확인 권장',
+      '일본어 독립 후기가 매우 적은 편이므로 방문 전 외부 후기 요약과 지점별 최신 리뷰 확인 권장',
       '지점·요일별 일본어 응대 여부가 다르므로 아래 한국어 오더시트 활용이 안전함'
     ],
     sourcesLabelJa: 'Modoodoc・Babitalk・Yeoshin等の韓国実利用者レビュー中心（日本語レポは極少）',
@@ -602,11 +615,11 @@ export const BRAND_REVIEWS: Record<string, BrandReviewProfile> = {
     ],
     watchoutsJa: [
       '工場系スタイルのため週末・人気時間帯は待ち時間が発生しやすく、事前予約と総額（税込）確認が推奨される',
-      '日本語の独立体験レポは少数のため、日本語対応や最新口コミは下の外部リンクで事前確認が安心'
+      '日本語の独立体験レポは少数のため、日本語対応や最新口コミは来院前に事前確認が安心'
     ],
     watchoutsKo: [
       '공장형 성향상 주말·인기 시간대 대기가 생길 수 있어 사전 예약 및 부가세 포함 총액 확인 권장',
-      '일본어 독립 후기는 적은 편이므로 일본어 응대 여부와 최신 후기를 아래 링크로 먼저 확인 권장'
+      '일본어 독립 후기는 적은 편이므로 일본어 응대 여부와 최신 후기를 방문 전 먼저 확인 권장'
     ],
     sourcesLabelJa: 'Babitalk・Yeoshin・Modoodoc・Cashdoc等の韓国実利用者レビュー中心（日本語レポは少数）',
     sourcesLabelKo: '바비톡 · 여신티켓 · 모두닥 · 캐시닥 등 국내 실방문자 리뷰 중심 (일본어 후기 소수)'
@@ -654,11 +667,11 @@ export const BRAND_REVIEWS: Record<string, BrandReviewProfile> = {
     ],
     watchoutsJa: [
       '店舗や担当医によって細部のメニュー・雰囲気に差があるため、契約前に総額と内容を確認するのが鉄則',
-      '海外掲示板ではSNS評判とのギャップを感じた個別レビューもあるため下の最新口コミも要確認'
+      '海外掲示板ではSNS評判とのギャップを感じた個別レビューもあるため外部口コミ抜粋も併せて確認推奨'
     ],
     watchoutsKo: [
       '지점과 담당 원장에 따라 세부 이벤트·분위기 차이가 있어 결제 전 총액·구성 확인 권장',
-      '해외 커뮤니티에는 기대치와 달랐다는 개별 후기도 있어 아래 최신 링크를 함께 참고하는 것이 안전함'
+      '해외 커뮤니티에는 기대치와 달랐다는 개별 후기도 있어 외부 후기 요약을 함께 참고하는 것이 안전함'
     ],
     sourcesLabelJa: 'Yeoshin・Babitalk・Modoodoc・海外口コミ等の公開レポ傾向',
     sourcesLabelKo: '여신티켓 · 바비톡 · 모두닥 · 해외 후기 등 공개 리뷰 종합'
@@ -906,13 +919,14 @@ function extractClinicTraits(
       positiveText
     )
   ) {
-    const isSpecialist = /전문의|1:1|정밀/.test(positiveText);
+    const hasSpecialist = /전문의/.test(positiveText);
+    const hasOneOnOne = /1:1|정밀/.test(positiveText);
     traits.push({
       id: 'careful',
       tone: 'pro',
       icon: 'spark',
-      labelKo: isSpecialist ? '전문의·1:1' : '꼼꼼 시술',
-      labelJa: isSpecialist ? '専門医・1対1' : '丁寧施術'
+      labelKo: hasSpecialist ? '전문의·1:1' : hasOneOnOne ? '1:1 맞춤' : '꼼꼼 시술',
+      labelJa: hasSpecialist ? '専門医・1対1' : hasOneOnOne ? '1対1精密' : '丁寧施術'
     });
   }
 
@@ -1072,7 +1086,7 @@ export function getBrandReview(place: PlaceItem): ResolvedClinicReview {
       '마취크림·전용 팁·첫 방문 조건은 상담 시 먼저 확인하는 것이 안전함'
     ];
     const vibeKo = '공식가 공개 피부과';
-    const shortTagKo = '후기 표본 적음 · 최신 실후기는 아래 링크로 바로 확인';
+    const shortTagKo = '후기 표본 적음 · 방문 전 최신 후기 확인 권장';
     return {
       reviewScope: 'brand',
       scopeLabelJa: SCOPE_LABELS.brand.ja,
@@ -1082,14 +1096,14 @@ export function getBrandReview(place: PlaceItem): ResolvedClinicReview {
       tierLabelKo: TIER_LABELS.limited.ko,
       vibeJa: '公式価格公開クリニック',
       vibeKo,
-      shortTagJa: '公開口コミ少数・最新レポは外部リンクで確認可',
+      shortTagJa: '公開口コミ少数・来院前に最新レポ確認推奨',
       shortTagKo,
       prosJa,
       prosKo,
       watchoutsJa,
       watchoutsKo,
-      sourcesLabelJa: '外部口コミリンク参照',
-      sourcesLabelKo: '외부 실후기 링크 참조',
+      sourcesLabelJa: '外部口コミ抜粋参照',
+      sourcesLabelKo: '외부 후기 요약 참조',
       branchNoticeJa: null,
       branchNoticeKo: null,
       traits: extractClinicTraits(place, 'brand', 'limited', vibeKo, shortTagKo, prosKo, watchoutsKo)
@@ -1110,11 +1124,11 @@ export function getBrandReview(place: PlaceItem): ResolvedClinicReview {
     branchNoticeKo = `지점 안내: ${place.nameKo} 지점별 공개 후기를 반영했습니다. 일본어 상주 미확인 로컬 지점이므로 방문 시 아래 한국어 오더시트 활용을 추천합니다.`;
   } else if (reviewScope === 'brand' && tier !== 'limited') {
     branchNoticeJa = isLocalNonJp
-      ? `店舗注意: ${place.nameJa}の個別口コミ要約は未登録（日本語常駐未確認ローカル店）のため、下記はブランド傾向参考です。来院前に下の4リンクで店舗別実レポを確認し、韓国語オーダーシートをご利用ください。`
-      : `店舗注意: ${place.nameJa}の個別口コミ要約は未登録のため、下記はブランド全体の公開傾向参考です。来院前に下の4リンクで店舗別の最新レポをご確認ください。`;
+      ? `店舗注意: ${place.nameJa}の個別口コミ要約は未登録（日本語常駐未確認ローカル店）のため、下記はブランド傾向参考です。来院前に最新の店舗別レポを確認し、韓国語オーダーシートをご利用ください。`
+      : `店舗注意: ${place.nameJa}の個別口コミ要約は未登録のため、下記はブランド全体の公開傾向参考です。来院前に最新の店舗別レポをご確認ください。`;
     branchNoticeKo = isLocalNonJp
-      ? `지점 안내: ${place.nameKo}의 개별 지점 후기 요약은 미등록(일본어 미확인 로컬 지점) 상태라 아래는 브랜드 경향 참고용입니다. 하단 4개 링크에서 지점 실후기를 확인하고 한국어 오더시트를 활용해 주세요.`
-      : `지점 안내: ${place.nameKo}의 개별 지점 후기 요약은 아직 미등록 상태라 아래는 브랜드 전체 경향 참고용입니다. 방문 전 하단 4개 링크에서 지점 최신 실후기를 직접 확인해 주세요.`;
+      ? `지점 안내: ${place.nameKo}의 개별 지점 후기 요약은 미등록(일본어 미확인 로컬 지점) 상태라 아래는 브랜드 경향 참고용입니다. 방문 전 지점 최신 후기를 확인하고 한국어 오더시트를 활용해 주세요.`
+      : `지점 안내: ${place.nameKo}의 개별 지점 후기 요약은 아직 미등록 상태라 아래는 브랜드 전체 경향 참고용입니다. 방문 전 지점 최신 후기를 함께 확인해 주세요.`;
   }
 
   // Case 1: Individually researched branch override
@@ -1167,11 +1181,11 @@ export function getBrandReview(place: PlaceItem): ResolvedClinicReview {
     const branchLabelKo = place.nameKo.split(' ').slice(1).join(' ') || place.stationKo.split(' ')[0];
     const branchLabelJa = place.nameJa.split(' ').slice(1).join(' ') || place.stationJa.split(' ')[0];
     shortTagKo = isLocalNonJp
-      ? `${branchLabelKo} 로컬 · ${base.vibeKo} · 지점 실후기는 상세 링크 확인`
-      : `${branchLabelKo} · ${base.vibeKo} · 지점 개별 후기는 상세 링크 확인`;
+      ? `${branchLabelKo} 로컬 · ${base.vibeKo} · 지점 최신 후기 확인 권장`
+      : `${branchLabelKo} · ${base.vibeKo} · 지점 최신 후기 확인 권장`;
     shortTagJa = isLocalNonJp
-      ? `${branchLabelJa}ローカル店・${base.vibeJa}・店舗別レポは詳細リンク確認`
-      : `${branchLabelJa}・${base.vibeJa}・店舗別レポは詳細リンク確認`;
+      ? `${branchLabelJa}ローカル店・${base.vibeJa}・店舗別最新レポ確認推奨`
+      : `${branchLabelJa}・${base.vibeJa}・店舗別最新レポ確認推奨`;
   }
 
   return {
@@ -1254,6 +1268,114 @@ export function buildPrimaryReviewUrl(place: PlaceItem, lang: Lang): string {
   return links.find((l) => l.id === preferredId)?.url ?? links[0].url;
 }
 
+export interface InstantReviewLink {
+  id: 'google_reviews' | 'note_jp' | 'naver_place' | 'naver_blog' | 'naver_cafe';
+  labelKo: string;
+  labelJa: string;
+  noteKo: string;
+  noteJa: string;
+  badgeKo: string;
+  badgeJa: string;
+  url: string;
+}
+
+/**
+ * Zero-login direct review sources ordered for instant reading even in iOS Safari Private Mode.
+ */
+export function buildInstantReviewLinks(place: PlaceItem, lang: Lang): InstantReviewLink[] {
+  const ext = buildExternalReviewLinks(place, lang);
+  const byId = new Map(ext.map((l) => [l.id, l]));
+  const jaBrandName = place.brandJa.replace(/\s*\([^)]*\)/, '').trim();
+
+  if (lang === 'ja') {
+    return [
+      {
+        id: 'google_reviews',
+        labelKo: '구글 지도 별점·실후기',
+        labelJa: 'Googleマップ 日本語口コミ',
+        noteKo: '로그인 없이 별점과 번역 후기 바로 보기',
+        noteJa: '星評価と日本語訳つき実体験をそのまま閲覧',
+        badgeKo: '무로그인',
+        badgeJa: '登録不要',
+        url: byId.get('google_reviews')!.url
+      },
+      {
+        id: 'note_jp',
+        labelKo: 'note 일본인 방한 후기',
+        labelJa: 'note 日本人渡韓レポ',
+        noteKo: '로그인 없이 일본인 여행객의 솔직 블로그 조회',
+        noteJa: '日本人旅行者の本音ブログ・経過レポを検索',
+        badgeKo: '무로그인',
+        badgeJa: '登録不要',
+        url: `https://note.com/search?q=${encodeURIComponent(`${jaBrandName} 韓国`)}&context=note`
+      },
+      {
+        id: 'naver_place',
+        labelKo: '네이버 지도 방문자 리뷰',
+        labelJa: 'NAVERマップ 現地レビュー',
+        noteKo: '로그인 없이 영수증 인증 방문자 리뷰 확인',
+        noteJa: '韓国ローカル訪問者の最新写真・評価を確認',
+        badgeKo: '무로그인',
+        badgeJa: '登録不要',
+        url: byId.get('naver_place')!.url
+      },
+      {
+        id: 'naver_blog',
+        labelKo: '네이버 블로그 실후기',
+        labelJa: 'NAVERブログ 写真レポ',
+        noteKo: '로그인 없이 시술 전후 사진·대기시간 확인',
+        noteJa: '施術写真や待ち時間の詳しい体験記をチェック',
+        badgeKo: '무로그인',
+        badgeJa: '登録不要',
+        url: byId.get('naver_blog')!.url
+      }
+    ];
+  }
+
+  return [
+    {
+      id: 'naver_blog',
+      labelKo: '네이버 블로그 실후기',
+      labelJa: 'NAVERブログ 写真レポ',
+      noteKo: '내돈내산 사진·대기시간·솔직 후기 바로 보기',
+      noteJa: '施術写真や待ち時間の詳しい体験記をチェック',
+      badgeKo: '무로그인',
+      badgeJa: '登録不要',
+      url: byId.get('naver_blog')!.url
+    },
+    {
+      id: 'naver_place',
+      labelKo: '네이버 지도 방문자 리뷰',
+      labelJa: 'NAVERマップ 現地レビュー',
+      noteKo: '영수증 인증 방문자 평점·최근 리뷰 바로 확인',
+      noteJa: '韓国ローカル訪問者の最新写真・評価を確認',
+      badgeKo: '무로그인',
+      badgeJa: '登録不要',
+      url: byId.get('naver_place')!.url
+    },
+    {
+      id: 'google_reviews',
+      labelKo: '구글 지도 별점·실후기',
+      labelJa: 'Googleマップ 日本語口コミ',
+      noteKo: '국내외 방문자 평점과 최근 솔직 후기 확인',
+      noteJa: '星評価と日本語訳つき実体験をそのまま閲覧',
+      badgeKo: '무로그인',
+      badgeJa: '登録不要',
+      url: byId.get('google_reviews')!.url
+    },
+    {
+      id: 'naver_cafe',
+      labelKo: '네이버 카페 실제 후기',
+      labelJa: 'NAVERカフェ本音口コミ',
+      noteKo: '커뮤니티 실방문 후기·비추 키워드 검색',
+      noteJa: '韓国コミュニティの本音口コミを検索',
+      badgeKo: '바로 검색',
+      badgeJa: '登録不要',
+      url: byId.get('naver_cafe')!.url
+    }
+  ];
+}
+
 export interface CommunityReviewLink {
   id: 'gangnamunni' | 'tribeau' | 'threads' | 'x_realtime' | 'x_login';
   labelKo: string;
@@ -1262,6 +1384,7 @@ export interface CommunityReviewLink {
   noteJa: string;
   url: string;
   requiresLogin?: boolean;
+  accessMode?: 'no_login' | 'partial_login' | 'login_required';
 }
 
 const TRIBEAU_MATCHED_BRANDS: Record<string, { keyword: string; countKo: string; countJa: string }> = {
@@ -1278,60 +1401,77 @@ const TRIBEAU_MATCHED_BRANDS: Record<string, { keyword: string; countKo: string;
 export function buildCommunityReviewLinks(place: PlaceItem, lang: Lang): CommunityReviewLink[] {
   const brandKey = place.id.split('-')[0];
   const branchQuery = place.id === 'drpetit-gangnam' ? '유에이치셀의원 강남점' : place.nameKo;
-  const links: CommunityReviewLink[] = [
-    {
-      id: 'gangnamunni',
-      labelKo: '강남언니 병원 평점·후기수',
-      labelJa: 'カンナムオンニ 病院評価・口コミ数',
-      noteKo: '로그인 없이 평점·후기수 확인 가능 (본문 열람 시 앱 로그인)',
-      noteJa: 'ログイン不要で評価・件数を確認可（本文閲覧はログイン必須）',
-      url: `https://www.gangnamunni.com/hospitals?q=${encodeURIComponent(branchQuery)}`
-    }
-  ];
+  const jaBrandName = place.brandJa.replace(/\s*\([^)]*\)/, '').trim();
+
+  const gangnamunni: CommunityReviewLink = {
+    id: 'gangnamunni',
+    labelKo: '강남언니 병원 평점·후기수',
+    labelJa: 'カンナムオンニ 日本語版',
+    noteKo: '평점·후기수 확인 가능 (본문 열람 시 앱 로그인)',
+    noteJa: '評価・件数は閲覧可（詳しい本文は要ログイン）',
+    url:
+      lang === 'ja'
+        ? `https://www.gangnamunni.com/jp/hospitals?q=${encodeURIComponent(jaBrandName)}`
+        : `https://www.gangnamunni.com/hospitals?q=${encodeURIComponent(branchQuery)}`,
+    accessMode: 'partial_login'
+  };
 
   const tribeau = TRIBEAU_MATCHED_BRANDS[brandKey];
-  if (tribeau) {
-    links.push({
-      id: 'tribeau',
-      labelKo: `트리뷰(トリビュー) 일본인 후기 (${tribeau.countKo})`,
-      labelJa: `トリビュー 韓国クリニック口コミ (${tribeau.countJa})`,
-      noteKo: '로그인 없이 일본인 시술 사진·만족도 바로 열람 가능',
-      noteJa: 'ログイン不要で日本人施術レポ・価格をすぐ閲覧可能',
-      url: `https://tribeau.jp/search/clinics?country_id=2&clinic_doctor_text=${encodeURIComponent(tribeau.keyword)}`
-    });
-  }
+  const tribeauLink: CommunityReviewLink | null = tribeau
+    ? {
+        id: 'tribeau',
+        labelKo: `트리뷰(トリビュー) 일본인 후기 (${tribeau.countKo})`,
+        labelJa: `トリビュー 韓国クリニック (${tribeau.countJa})`,
+        noteKo: '로그인 없이 일본인 시술 사진·만족도 바로 열람 가능',
+        noteJa: 'ログイン不要で日本人施術レポ・価格をすぐ閲覧可能',
+        url: `https://tribeau.jp/search/clinics?country_id=2&clinic_doctor_text=${encodeURIComponent(tribeau.keyword)}`,
+        accessMode: 'no_login'
+      }
+    : null;
 
-  const jaBrandName = place.brandJa.replace(/\s*\([^)]*\)/, '').trim();
-  links.push({
+  const threadsLink: CommunityReviewLink = {
     id: 'threads',
-    labelKo: 'Threads(스레드) 실시간 후기 검색',
-    labelJa: 'Threads 最新口コミ・リアル体験検索',
-    noteKo: 'Meta 스레드에서 방문 후기 · 비추 글 · 대기시간 확인',
-    noteJa: 'Meta Threadsで現地利用者の率直な投稿・混雑感を確認',
-    url: `https://www.threads.com/search?q=${encodeURIComponent(lang === 'ja' ? jaBrandName : branchQuery)}&serp_type=default`
-  });
+    labelKo: 'Threads(스레드) 실시간 후기',
+    labelJa: 'Threads 最新口コミ検索',
+    noteKo: '방문 후기·비추 글 확인 (비로그인·시크릿 모드는 제한 가능)',
+    noteJa: '現地利用者の率直な投稿（未ログイン時は閲覧制限あり）',
+    url: `https://www.threads.com/search?q=${encodeURIComponent(lang === 'ja' ? jaBrandName : branchQuery)}&serp_type=default`,
+    requiresLogin: true,
+    accessMode: 'login_required'
+  };
 
+  const xRealtimeLink: CommunityReviewLink = {
+    id: 'x_realtime',
+    labelKo: 'X(트위터) 일본어 실시간 글',
+    labelJa: 'X(Twitter) 本音ポスト検索',
+    noteKo: 'Yahoo! 실시간 검색으로 로그인 없이 X 후기 열람',
+    noteJa: 'Yahoo!リアルタイム検索でXログイン不要のまま確認',
+    url: `https://search.yahoo.co.jp/realtime/search?p=${encodeURIComponent(`${jaBrandName} 韓国`)}`,
+    accessMode: 'no_login'
+  };
+
+  const xLoginLink: CommunityReviewLink = {
+    id: 'x_login',
+    labelKo: 'X(트위터) 직접 검색',
+    labelJa: 'X(Twitter) 直接検索',
+    noteKo: 'X 로그인 상태에서 최근 불만·사고·강매 키워드 확인',
+    noteJa: 'Xログイン状態で最新口コミ・注意投稿を確認',
+    url: `https://x.com/search?q=${encodeURIComponent(lang === 'ja' ? `${jaBrandName} 韓国 皮膚科` : `${branchQuery} 후기`)}&src=typed_query&f=live`,
+    requiresLogin: true,
+    accessMode: 'login_required'
+  };
+
+  // On JA, put zero-login sources first so Private-mode iPhone users never hit surprise login walls first
   if (lang === 'ja') {
-    links.push({
-      id: 'x_realtime',
-      labelKo: 'X(트위터) 일본어 실시간 글 (비로그인)',
-      labelJa: 'X(Twitter) 最新本音ポスト（登録不要）',
-      noteKo: 'Yahoo! 실시간 검색으로 로그인 없이 X 후기 열람',
-      noteJa: 'Yahoo!リアルタイム検索でXログイン不要で口コミ確認',
-      url: `https://search.yahoo.co.jp/realtime/search?p=${encodeURIComponent(`${jaBrandName} 韓国`)}`
-    });
+    const links: CommunityReviewLink[] = [];
+    if (tribeauLink) links.push(tribeauLink);
+    links.push(xRealtimeLink, gangnamunni, threadsLink, xLoginLink);
+    return links;
   }
 
-  links.push({
-    id: 'x_login',
-    labelKo: 'X(트위터) 직접 검색 (로그인 필요)',
-    labelJa: 'X(Twitter) 直接検索（要ログイン）',
-    noteKo: 'X 계정 로그인 상태에서 최근 불만·사고·강매 키워드 확인',
-    noteJa: 'Xアカウントログイン状態で最新口コミ・注意投稿を確認',
-    url: `https://x.com/search?q=${encodeURIComponent(lang === 'ja' ? `${jaBrandName} 韓国 皮膚科` : `${branchQuery} 후기`)}&src=typed_query&f=live`,
-    requiresLogin: true
-  });
-
+  const links: CommunityReviewLink[] = [gangnamunni];
+  if (tribeauLink) links.push(tribeauLink);
+  links.push(threadsLink, xLoginLink);
   return links;
 }
 

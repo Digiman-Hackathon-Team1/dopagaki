@@ -11,10 +11,21 @@ import { failed, type Turn } from './useAgentChat';
  * 대기·스트리밍 중에는 도파 탐색 오브가 움직이고, 최종 응답이 도착하면 도파민 버스트로 전환된다.
  * 답이 없거나 끊기면 상태와 시세표 안내를 보여 준다(FR-08).
  */
-export function Turns({ turns, lang, send, onPriceTable }: {
+export function Turns({
+  turns,
+  lang,
+  send,
+  savedIds,
+  onToggleSaveClinic,
+  onOpenClinic,
+  onPriceTable
+}: {
   turns: Turn[];
   lang: Schemas['ChatRequest']['lang'];
   send: Send;
+  savedIds?: string[];
+  onToggleSaveClinic?: (placeId: string) => void;
+  onOpenClinic?: (placeId: string, menuIds: string[]) => void;
   onPriceTable?: () => void;
 }) {
   const t = copy[lang];
@@ -72,7 +83,15 @@ export function Turns({ turns, lang, send, onPriceTable }: {
           />
 
           {turn.reply ? (
-            <Reply lang={lang} reply={turn.reply} send={send} onPriceTable={onPriceTable} />
+            <Reply
+              lang={lang}
+              reply={turn.reply}
+              send={send}
+              savedIds={savedIds}
+              onToggleSaveClinic={onToggleSaveClinic}
+              onOpenClinic={onOpenClinic}
+              onPriceTable={onPriceTable}
+            />
           ) : (
             <>
               {hasStream && (

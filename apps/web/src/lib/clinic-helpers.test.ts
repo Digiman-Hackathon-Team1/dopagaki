@@ -667,6 +667,101 @@ test('all 137 verified clinics have realistic 5.0-scale AI ratings with 4 axes a
   }
 });
 
+test('AI rating audit invariants: 9-menu pricing, FTC cap, external complaints, truthful specialist/new-clinic copy, zero stale links', () => {
+  const byId = (id: string) => dataset.places.find((p) => p.id === id)!;
+  const staleLinkRe =
+    /아래\s*[0-9]*개?\s*링크|하단\s*[0-9]*개?\s*링크|위·아래.*링크|아래\s*최신\s*링크|아래\s*링크|상세\s*링크\s*확인|링크\s*확인|외부\s*링크|下の[0-9]*リンク|下の外部リンク|下の最新リンク|詳細リンク確認|下の最新口コミ/;
+
+  for (const place of dataset.places) {
+    const ai = getClinicAiRating(place, dataset.places);
+    const rev = getBrandReview(place);
+    const hasFtc = getClinicSafetyAudit(place).alerts.some((a) => a.id === 'ftc_prepaid');
+    const trans = ai.axes.find((a) => a.id === 'transparency')!;
+    const careReason = ai.reasons.find((r) => r.key === 'care')!;
+    const readyReason = ai.reasons.find((r) => r.key === 'readiness')!;
+
+    if (hasFtc) {
+      assert.ok(
+        trans.score <= 4.5,
+        `FTC prepaid clinic ${place.id} exceeded transparency cap 4.5: got ${trans.score}`
+      );
+      const transReason = ai.reasons.find((r) => r.key === 'transparency')!;
+      assert.ok(transReason.bodyKo.includes('공정위'), `Missing KO FTC note on ${place.id}`);
+      assert.ok(transReason.bodyJa.includes('公取委'), `Missing JA FTC note on ${place.id}`);
+    }
+
+    assert.equal(
+      /피부과\s*전문의/.test(careReason.bodyKo),
+      false,
+      `Unexpected "피부과 전문의" claim on ${place.id}: ${careReason.bodyKo}`
+    );
+    const specialistBadge = rev.traits.find((t) => t.labelKo.includes('전문의'));
+    if (specialistBadge) {
+      const posText = `${rev.vibeKo} ${rev.shortTagKo} ${rev.prosKo.join(' ')}`;
+      assert.ok(/전문의/.test(posText), `False specialist badge on ${place.id}`);
+    }
+
+    assert.equal(careReason.bodyKo.includes('지적 지적'), false, `Duplicate word typo on ${place.id}`);
+
+    if (ai.isNewClinic || ai.verificationTier === 'limited') {
+      assert.equal(
+        readyReason.bodyKo.includes('캐시닥·모두닥·여신티켓'),
+        false,
+        `Misleading readiness claim on limited/new clinic ${place.id}`
+      );
+    }
+
+    const reviewBlob = [
+      rev.shortTagKo,
+      rev.shortTagJa,
+      rev.sourcesLabelKo,
+      rev.sourcesLabelJa,
+      rev.branchNoticeKo ?? '',
+      rev.branchNoticeJa ?? '',
+      ...rev.prosKo,
+      ...rev.prosJa,
+      ...rev.watchoutsKo,
+      ...rev.watchoutsJa,
+      ai.summaryKo,
+      ai.summaryJa,
+      ...ai.reasons.flatMap((r) => [r.bodyKo, r.bodyJa])
+    ].join('\n');
+    const staleMatch = reviewBlob.match(staleLinkRe);
+    assert.equal(
+      staleMatch,
+      null,
+      `Stale removed-link wording on ${place.id}: ${staleMatch?.[0]}`
+    );
+  }
+
+  const uniWangsimni = getClinicAiRating(byId('uni-wangsimni'), dataset.places);
+  assert.ok(uniWangsimni.reasons[1].bodyKo.includes('검증된 7개 공식가'));
+  const xenia = getClinicAiRating(byId('xenia-gangnam'), dataset.places);
+  assert.ok(xenia.reasons[1].bodyKo.includes('검증된 9개 공식가'));
+
+  const changdong = getClinicAiRating(byId('uni-changdong'), dataset.places);
+  assert.ok(changdong.overall <= 4.0);
+  assert.ok(changdong.axes.find((a) => a.id === 'care')!.score <= 4.0);
+  const toxSinnon = getClinicAiRating(byId('toxnfill-sinnonhyeon'), dataset.places);
+  assert.ok(toxSinnon.axes.find((a) => a.id === 'care')!.score <= 3.8);
+
+  const balsan = getClinicAiRating(byId('vands-balsan'), dataset.places);
+  assert.equal(balsan.isNewClinic, true);
+  assert.equal(balsan.openedDate, '2026.11.25');
+  assert.equal(balsan.reasons[2].bodyKo.includes('표준 시술 만족도가 확인됐습니다'), false);
+  assert.ok(balsan.reasons[2].bodyKo.includes('2026.11.25 신규 개원'));
+  assert.ok(balsan.reasons[3].bodyKo.includes('2026.11.25 신규 개원'));
+  assert.ok(balsan.reasons[4].bodyKo.includes('2026.11.25 신규 개원'));
+
+  for (const id of ['drevers-nowon', 'uni-changdong', 'daybeau-balsan', 'drdesigner-yeongdeungpo', 'cellin-yeonsinnae']) {
+    const badge = getBrandReview(byId(id)).traits.find((t) => t.id === 'careful');
+    assert.equal(badge?.labelKo, '1:1 맞춤');
+  }
+  assert.ok(
+    getClinicAiRating(byId('lienjang-gangnam'), dataset.places).reasons[2].bodyKo.includes('전문의 연계 진료')
+  );
+});
+
 test('1회 체험가 주의 문구 및 Wave 1-2 보강 공식 스크린샷/가격 100% 정합성 검증', () => {
   const clinicPageSrc = fs.readFileSync(path.resolve(__dirname, '../components/ClinicPageView.tsx'), 'utf8');
   assert.ok(
@@ -1118,7 +1213,12 @@ test('verified external review posts are strictly branch-exact summaries, old re
     'Expected 밴스의원 신촌역 post mapped strictly to vands-sinchon'
   );
   const daybeauMd = dataset.places.find((p) => p.id === 'daybeau-myeongdong')!;
-  assert.equal(getExternalReviewPosts(daybeauMd, 'ko').length, 0, 'Must NOT attach 명동2호점 posts to 명동더프리미엄점');
+  const daybeauMdPosts = getExternalReviewPosts(daybeauMd, 'ko');
+  assert.ok(daybeauMdPosts.length >= 1, 'Expected verified 남대문로 90 N빌딩 6층 reviews for daybeau-myeongdong');
+  assert.ok(
+    daybeauMdPosts.every((p) => !p.summaryKo.includes('2호점')),
+    'Must NOT attach 명동2호점 posts to 명동더프리미엄점'
+  );
 
   // Verify deleted old review boxes are absent from clinic-page.ts
   const clinicPageSrc = fs.readFileSync(path.resolve(__dirname, '../components/ClinicPageView.tsx'), 'utf8');

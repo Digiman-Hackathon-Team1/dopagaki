@@ -52,10 +52,6 @@ import {
   getBrandReview,
   getClinicSafetyAudit
 } from '@/data/brand-reviews.ts';
-import {
-  buildEnhancedCommunityReviewLinks,
-  buildInstantReviewLinks
-} from '@/lib/review-links.ts';
 import { getClinicChannels, type ResolvedClinicChannel } from '@/data/clinic-channels.ts';
 import { getExternalReviewPosts } from '@/data/external-review-posts.ts';
 import { getClinicAiRating } from '@/lib/ai-rating.ts';
@@ -258,11 +254,6 @@ export function ClinicPageView({
     [place, dataset.places]
   );
   const externalPosts = useMemo(() => getExternalReviewPosts(place, lang), [place, lang]);
-  const instantReviewLinks = useMemo(() => buildInstantReviewLinks(place, lang), [place, lang]);
-  const communityLinks = useMemo(
-    () => buildEnhancedCommunityReviewLinks(place, lang),
-    [place, lang]
-  );
   const bookingChannels = useMemo(() => getClinicChannels(place.id, lang), [place.id, lang]);
   const bank = isJa ? naverFx.bankJa : naverFx.bankKo;
   const rateNote = copy.receiptRateNote(formatRate(krwPer100Jpy), naverFx.dateLabel, bank);
@@ -407,7 +398,7 @@ export function ClinicPageView({
       id: 'reviews',
       ko: '평점 · 후기',
       ja: '評価・口コミ',
-      badge: `★${aiRating.formatted}`
+      badge: aiRating.isNewClinic ? 'NEW' : `★${aiRating.formatted}`
     },
     { id: 'visit', ko: '위치 · 예약', ja: '場所・予約' }
   ];
@@ -496,6 +487,11 @@ export function ClinicPageView({
       <header ref={heroInViewRef} className="cp-card cp2-bento-hero">
         <div className="cp-badges">
           <span className="cp-area-pill">{areaLabel}</span>
+          {aiRating.isNewClinic && (
+            <span className="cp-new-pill">
+              NEW · {isJa ? `${aiRating.openedDate} 新規開院` : `${aiRating.openedDate} 신규 개원`}
+            </span>
+          )}
           {place.japaneseSupport && (
             <span className="tg-jp-badge">
               <span className="tg-jp-code">JP</span>
@@ -586,19 +582,32 @@ export function ClinicPageView({
               <span>{isJa ? 'AI総合評価' : 'AI 평점'}</span>
             </span>
             <strong className="cp2-kpi-val num">
-              {aiRating.formatted}
-              <small>/ 5.0</small>
+              {aiRating.isNewClinic ? (
+                <>
+                  NEW
+                  <small>{isJa ? '新規開院' : '신규 개원'}</small>
+                </>
+              ) : (
+                <>
+                  {aiRating.formatted}
+                  <small>/ 5.0</small>
+                </>
+              )}
             </strong>
             <span className="cp2-kpi-sub">
-              {externalPosts.length > 0
+              {aiRating.isNewClinic
                 ? isJa
-                  ? `実口コミ ${externalPosts.length}件を見る →`
-                  : `실후기 ${externalPosts.length}건 보기 →`
-                : topTrait
-                  ? `${isJa ? topTrait.labelJa : topTrait.labelKo} · ${isJa ? '口コミ →' : '후기 →'}`
-                  : isJa
-                    ? '口コミを見る →'
-                    : '후기 보기 →'}
+                  ? '口コミ・評価集計中 →'
+                  : '평점 · 후기 집계 중 →'
+                : externalPosts.length > 0
+                  ? isJa
+                    ? `実口コミ ${externalPosts.length}件を見る →`
+                    : `실후기 ${externalPosts.length}건 보기 →`
+                  : topTrait
+                    ? `${isJa ? topTrait.labelJa : topTrait.labelKo} · ${isJa ? '口コミ →' : '후기 →'}`
+                    : isJa
+                      ? '口コミを見る →'
+                      : '후기 보기 →'}
             </span>
           </button>
 
@@ -948,17 +957,30 @@ export function ClinicPageView({
               <div className="cp2-rev-teaser" id="clinic-review-teaser">
                 <div className="cp2-rev-teaser-top">
                   <span className="cp2-rev-teaser-kicker">
-                    <Star size={12.5} strokeWidth={2.4} fill="currentColor" />
-                    <strong className="num">{aiRating.formatted}</strong>
-                    <span className="cp2-rev-teaser-count">
-                      {externalPosts.length > 0
-                        ? isJa
-                          ? `検証済み実口コミ ${externalPosts.length}件`
-                          : `검증 실방문 후기 ${externalPosts.length}건`
-                        : isJa
-                          ? brandRev.scopeLabelJa
-                          : brandRev.scopeLabelKo}
-                    </span>
+                    {aiRating.isNewClinic ? (
+                      <>
+                        <span className="cp-new-pill is-compact">NEW</span>
+                        <span className="cp2-rev-teaser-count">
+                          {isJa
+                            ? `${aiRating.openedDate} 新規開院 · 評価集計中`
+                            : `${aiRating.openedDate} 신규 개원 · 평점 집계 중`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Star size={12.5} strokeWidth={2.4} fill="currentColor" />
+                        <strong className="num">{aiRating.formatted}</strong>
+                        <span className="cp2-rev-teaser-count">
+                          {externalPosts.length > 0
+                            ? isJa
+                              ? `外部口コミ抜粋 ${externalPosts.length}件`
+                              : `외부 후기 요약 ${externalPosts.length}건`
+                            : isJa
+                              ? brandRev.scopeLabelJa
+                              : brandRev.scopeLabelKo}
+                        </span>
+                      </>
+                    )}
                   </span>
                   <button
                     type="button"
@@ -1195,12 +1217,12 @@ export function ClinicPageView({
             </section>
           </Tabs.Content>
 
-          {/* TAB 2: Real Visitor Reviews First, Zero-Login Sources, Pros/Watchouts, AI Radar & Apps */}
+          {/* TAB 2: AI 4-Axis Radar Chart First, Real Visitor Reviews, Zero-Login Sources, Pros/Watchouts & Apps */}
           <Tabs.Content value="reviews" className="cp2-tabpanel">
             <section className="cp-card cp2-sec-card" id="clinic-reviews">
               <div className="cp-sec-head">
                 <div className="cp2-head-with-info">
-                  <h2>{isJa ? '口コミ・評価まとめ' : '실후기 · 평점 분석'}</h2>
+                  <h2>{isJa ? 'AI評価バランス・口コミ' : 'AI 4축 평점 · 실후기'}</h2>
                   <InfoPopover side="bottom" label={isJa ? 'AI採点の根拠5つ' : 'AI 평점 근거 5가지'}>
                     <div className="cp2-popover-reasons">
                       <strong>{isJa ? 'AI採点の根拠 5つ' : 'AI 평점 근거 5가지'}</strong>
@@ -1236,11 +1258,20 @@ export function ClinicPageView({
               </div>
 
               <div className="cp2-score-hero-row">
-                <div className="cp-ai-score-badge">
-                  <Star size={16} strokeWidth={2.2} fill="currentColor" className="cp-ai-star" />
-                  <strong className="cp-ai-score num">{aiRating.formatted}</strong>
-                  <span className="cp-ai-max num">/ 5.0</span>
-                </div>
+                {aiRating.isNewClinic ? (
+                  <div className="cp-ai-score-badge is-new">
+                    <strong className="cp-ai-score">NEW</strong>
+                    <span className="cp-ai-max">
+                      {isJa ? '評価集計中' : '평점 집계 중'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="cp-ai-score-badge">
+                    <Star size={16} strokeWidth={2.2} fill="currentColor" className="cp-ai-star" />
+                    <strong className="cp-ai-score num">{aiRating.formatted}</strong>
+                    <span className="cp-ai-max num">/ 5.0</span>
+                  </div>
+                )}
                 <div className="cp2-traits-inline">
                   {brandRev.traits.map((t) => (
                     <TraitChip key={t.id} trait={t} lang={lang} />
@@ -1248,43 +1279,45 @@ export function ClinicPageView({
                 </div>
               </div>
 
-              {/* 1. Real Verified Visitor Reviews (Always Visible — Stacked Full-Text Cards or Digest) */}
+              {/* 1. AI 4-Axis Radar Chart Breakdown (or Honest New-Clinic Pending Notice) */}
+              {aiRating.isNewClinic ? (
+                <div className="cp2-new-rating-notice">
+                  <div className="cp2-new-rating-head">
+                    <span className="cp-new-pill is-compact">NEW</span>
+                    <strong>
+                      {isJa
+                        ? `${aiRating.openedDate} 新規開院 · AI評価集計中`
+                        : `${aiRating.openedDate} 신규 개원 · AI 평점 집계 중`}
+                    </strong>
+                  </div>
+                  <p>
+                    {isJa
+                      ? '医療機関連携の開院直後店舗のため、実際の訪問者レビューがまだ十分に集まっていません。実体験口コミが蓄積され次第、4軸AI評価を公開します（公式価格は検証済み）。'
+                      : '최근 개원한 신규 지점이라 실제 방문자 리뷰가 아직 쌓이지 않았어요. 충분한 방문 후기가 확인되면 4축 AI 평점을 공개할 예정이며, 현재는 검증된 공식가와 기본 정보만 먼저 안내합니다.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="cp2-radar-section">
+                  <div className="cp2-radar-head">
+                    <h3>{isJa ? 'AI 4軸バランス詳細' : 'AI 4축 평점 상세'}</h3>
+                    <span className="cp2-radar-src">
+                      {isJa ? brandRev.tierLabelJa : brandRev.tierLabelKo}
+                    </span>
+                  </div>
+                  <AiRadarChart
+                    axes={aiRating.axes}
+                    overall={aiRating.formatted}
+                    isJa={isJa}
+                  />
+                </div>
+              )}
+
+              {/* 2. Real Verified Visitor Reviews (Always Visible — Stacked Full-Text Cards or Digest) */}
               <ExternalReviewsCarousel
                 posts={externalPosts}
                 isJa={isJa}
                 brandRev={brandRev}
               />
-
-              {/* 2. Zero-Login Instant Review Sources (Works in Safari Private Mode!) */}
-              <div className="cp2-nologin-reviews">
-                <div className="cp2-nologin-head">
-                  <h3>
-                    {isJa
-                      ? '登録不要ですぐ読める最新口コミ'
-                      : '로그인 없이 바로 보는 최신 실후기'}
-                  </h3>
-                  <span className="cp2-nologin-badge">
-                    {isJa ? '登録不要' : '무로그인'}
-                  </span>
-                </div>
-                <div className="cp2-nologin-grid">
-                  {instantReviewLinks.map((item) => (
-                    <a
-                      key={item.id}
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`cp2-nologin-card is-${item.id}`}
-                    >
-                      <div className="cp2-nologin-top">
-                        <strong>{isJa ? item.labelJa : item.labelKo}</strong>
-                        <ExternalLink size={12} strokeWidth={2.3} />
-                      </div>
-                      <span>{isJa ? item.noteJa : item.noteKo}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
 
               {/* 3. Pros & Watchouts (+ Branch-Specific Notice if any) */}
               <div className="cp-procon">
@@ -1318,70 +1351,6 @@ export function ClinicPageView({
                 <p className="cp2-branch-notice">
                   {isJa ? brandRev.branchNoticeJa : brandRev.branchNoticeKo}
                 </p>
-              )}
-
-              {/* 4. AI 4-Axis Radar Chart Breakdown */}
-              <div className="cp2-radar-section">
-                <div className="cp2-radar-head">
-                  <h3>{isJa ? 'AI 4軸バランス詳細' : 'AI 4축 평점 상세'}</h3>
-                  <span className="cp2-radar-src">
-                    {isJa ? brandRev.tierLabelJa : brandRev.tierLabelKo}
-                  </span>
-                </div>
-                <AiRadarChart
-                  axes={aiRating.axes}
-                  overall={aiRating.formatted}
-                  isJa={isJa}
-                />
-              </div>
-
-              {/* 5. External Community & SNS Review Apps (Clearly Badged: Free vs Login) */}
-              {communityLinks.length > 0 && (
-                <div className="cp2-comm-apps">
-                  <h3>
-                    {isJa
-                      ? '美容アプリ・SNSでさらに検索'
-                      : '뷰티 앱 · SNS에서 후기 더 찾기'}
-                  </h3>
-                  <div className="cp2-comm-grid">
-                    {communityLinks.map((cl) => {
-                      const accessMode =
-                        cl.accessMode ?? (cl.requiresLogin ? 'login_required' : 'no_login');
-                      const accessLabel =
-                        accessMode === 'no_login'
-                          ? isJa
-                            ? '登録不要'
-                            : '무로그인'
-                          : accessMode === 'partial_login'
-                            ? isJa
-                              ? '一部ログイン'
-                              : '본문 로그인'
-                            : isJa
-                              ? '要ログイン'
-                              : '로그인 필요';
-                      return (
-                        <a
-                          key={cl.id}
-                          href={cl.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="cp2-comm-card"
-                        >
-                          <div className="cp2-comm-top">
-                            <strong>{isJa ? cl.labelJa : cl.labelKo}</strong>
-                            <ExternalLink size={12} strokeWidth={2.3} />
-                          </div>
-                          <span className={`cp2-comm-access is-${accessMode}`}>
-                            {accessLabel}
-                          </span>
-                          <span className="cp2-comm-note">
-                            {isJa ? cl.noteJa : cl.noteKo}
-                          </span>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
               )}
             </section>
           </Tabs.Content>

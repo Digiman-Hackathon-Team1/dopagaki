@@ -1,7 +1,7 @@
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { motion } from 'motion/react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Bookmark, ChevronDown, MapPin, Sparkles } from 'lucide-react';
 import type { Schemas } from '@repo/api-client';
 import {
   AgentBilingualMessageBox,
@@ -14,50 +14,185 @@ import './dopa-agent-ui.css';
 
 type Lang = Schemas['ChatRequest']['lang'];
 
-export function ExternalLink({ url, children }: { url: string; children: ReactNode }) {
-  if (!/^https?:\/\//i.test(url)) return null;
-  return <a href={url} target="_blank" rel="noreferrer">{children} ↗</a>;
-}
-
-export function Channels({ channels, central, lang }: {
-  channels: Schemas['BookingChannel'][]; central: boolean; lang: Lang;
+export function SaveClinicButton({
+  saved,
+  clinicName,
+  lang,
+  onToggle,
+}: {
+  saved: boolean;
+  clinicName: string;
+  lang: Lang;
+  onToggle: () => void;
 }) {
   const ja = lang === 'ja';
-  return <div className="agent-channels">
-    {channels.map((channel, i) => <ExternalLink key={channel.kind + ':' + i} url={ja ? channel.urlJa : channel.urlKo}>{ja ? channel.labelJa : channel.labelKo}</ExternalLink>)}
-    {central && <small>{ja ? 'ブランド共通の窓口です。予約時に支店名をお伝えください。' : '브랜드 공통 창구입니다. 예약할 때 지점명을 알려 주세요.'}</small>}
-  </div>;
+  const label = saved
+    ? ja
+      ? `${clinicName}の保存を解除`
+      : `${clinicName} 저장 해제`
+    : ja
+      ? `${clinicName}を保存`
+      : `${clinicName} 저장`;
+  return (
+    <motion.button
+      type="button"
+      className={`dopa-agent-save-btn${saved ? ' is-saved' : ''}`}
+      whileTap={{ scale: 0.86 }}
+      transition={{ duration: 0.12 }}
+      aria-pressed={saved}
+      aria-label={label}
+      title={saved ? (ja ? '保存済み' : '저장됨') : ja ? '保存' : '저장'}
+      onClick={e => {
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      <Bookmark
+        size={13}
+        strokeWidth={2.2}
+        fill={saved ? 'currentColor' : 'none'}
+        aria-hidden="true"
+      />
+    </motion.button>
+  );
+}
+
+export function ExternalLink({
+  url,
+  children,
+  className,
+}: {
+  url: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  if (!/^https?:\/\//i.test(url)) return null;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className={className}>
+      <span>{children}</span>
+      <ArrowUpRight size={13} strokeWidth={2.2} aria-hidden="true" />
+    </a>
+  );
+}
+
+export function Channels({
+  channels,
+  central,
+  lang,
+}: {
+  channels: Schemas['BookingChannel'][];
+  central: boolean;
+  lang: Lang;
+}) {
+  const ja = lang === 'ja';
+  if (!channels.length) return null;
+  return (
+    <div className="dopa-agent-channels">
+      <div className="dopa-agent-channel-list">
+        {channels.map((channel, i) => (
+          <ExternalLink
+            key={channel.kind + ':' + i}
+            url={ja ? channel.urlJa : channel.urlKo}
+            className={`dopa-agent-channel-pill is-${channel.kind}`}
+          >
+            {ja ? channel.labelJa : channel.labelKo}
+          </ExternalLink>
+        ))}
+      </div>
+      {central && (
+        <small className="dopa-agent-muted-note">
+          {ja
+            ? 'ブランド共通窓口を含みます。予約時に支店名をお伝えください。'
+            : '브랜드 통합 창구가 포함되어 있어요. 예약 시 지점명을 함께 알려주세요.'}
+        </small>
+      )}
+    </div>
+  );
 }
 
 export function LocationCard({ card, lang }: { card: Schemas['LocationCard']; lang: Lang }) {
   const ja = lang === 'ja';
-  return <article className="agent-card">
-    <small>{ja ? '距離の基準地点' : '거리 측정 기준 위치'}</small>
-    <h3>{ja ? card.nameJa : card.nameKo}</h3>
-    {card.query && <p>{ja ? '入力した場所' : '입력한 위치'}: {card.query}</p>}
-    <p>{card.locationType === 'area' ? (ja ? 'エリアの中心からの直線距離です。宿泊施設の所在地とは異なります。' : '지역 중심에서 잰 직선거리입니다. 숙소의 실제 위치와는 다릅니다.') : (ja ? '駅を基準にした直線距離です。' : '역을 기준으로 잰 직선거리입니다.')}</p>
-    <details><summary>{ja ? '座標を確認' : '좌표 확인'}</summary><p>{card.lat}, {card.lng} · {card.locationId}</p></details>
-  </article>;
+  return (
+    <span
+      className="dopa-ctx-chip is-location"
+      title={card.query ? `${card.query} (${card.lat}, ${card.lng})` : `${card.lat}, ${card.lng}`}
+    >
+      <MapPin size={12} strokeWidth={2.3} aria-hidden="true" />
+      <strong>{ja ? card.nameJa : card.nameKo}</strong>
+      <span className="dopa-ctx-sub">
+        {card.locationType === 'area'
+          ? ja
+            ? 'エリア基準'
+            : '지역 기준'
+          : ja
+            ? '駅基準'
+            : '역 기준'}
+      </span>
+    </span>
+  );
 }
 
 export function JpMatchCard({ card, lang }: { card: Schemas['JpMatchCard']; lang: Lang }) {
   const ja = lang === 'ja';
   const clinic = card.jpClinic;
-  return <article className="agent-card">
-    <small>{ja ? '日本と韓国の施術名' : '일본·한국 시술명 대응'}</small>
-    <h3>{card.query} → {ja ? card.menuNameJa : card.menuNameKo}</h3>
-    <p>{ja ? card.reasonJa : card.reasonKo}</p>
-    <p>{ja ? card.unitNoteJa : card.unitNoteKo}</p>
-    {clinic && <div className="agent-comparison">
-      <h4>{ja ? clinic.nameJa : clinic.nameKo}</h4>
-      <p>{ja ? clinic.planJa : clinic.planKo} · ¥{clinic.priceJpy.toLocaleString(lang)}</p>
-      {(ja ? clinic.productNoteJa : clinic.productNoteKo) && <p>{ja ? clinic.productNoteJa : clinic.productNoteKo}</p>}
-      <ExternalLink url={clinic.sourceUrl}>{ja ? '日本の公式料金' : '일본 공식 가격'}</ExternalLink>
-    </div>}
-  </article>;
+  const menuName = ja ? card.menuNameJa : card.menuNameKo;
+  const reason = ja ? card.reasonJa : card.reasonKo;
+  const unitNote = ja ? card.unitNoteJa : card.unitNoteKo;
+
+  if (!clinic) {
+    return (
+      <span className="dopa-ctx-chip is-match" title={`${reason} ${unitNote}`.trim()}>
+        <Sparkles size={12} strokeWidth={2.3} aria-hidden="true" />
+        <span>
+          {card.query} → <strong>{menuName}</strong>
+        </span>
+      </span>
+    );
+  }
+
+  return (
+    <details className="dopa-ctx-details">
+      <summary className="dopa-ctx-chip is-match is-interactive">
+        <Sparkles size={12} strokeWidth={2.3} aria-hidden="true" />
+        <span>
+          {card.query} → <strong>{menuName}</strong>
+        </span>
+        <ChevronDown size={12} strokeWidth={2.3} className="dopa-agent-chev" aria-hidden="true" />
+      </summary>
+      <div className="dopa-ctx-popover">
+        <p className="dopa-agent-card-desc">{reason}</p>
+        {unitNote && <p className="dopa-agent-muted-note">{unitNote}</p>}
+        <div className="dopa-agent-comparison">
+          <div className="dopa-agent-comp-row">
+            <strong>{ja ? clinic.nameJa : clinic.nameKo}</strong>
+            <span className="num">¥{clinic.priceJpy.toLocaleString(lang)}</span>
+          </div>
+          <p className="dopa-agent-muted-note">{ja ? clinic.planJa : clinic.planKo}</p>
+          {(ja ? clinic.productNoteJa : clinic.productNoteKo) && (
+            <p className="dopa-agent-muted-note">
+              {ja ? clinic.productNoteJa : clinic.productNoteKo}
+            </p>
+          )}
+          <ExternalLink url={clinic.sourceUrl} className="dopa-agent-inline-link">
+            {ja ? '日本の公式料金' : '일본 공식 가격'}
+          </ExternalLink>
+        </div>
+      </div>
+    </details>
+  );
 }
 
-export function BookingCard({ card, lang }: { card: Schemas['BookingCard']; lang: Lang }) {
+export function BookingCard({
+  card,
+  lang,
+  saved = false,
+  onToggleSave,
+}: {
+  card: Schemas['BookingCard'];
+  lang: Lang;
+  saved?: boolean;
+  onToggleSave?: () => void;
+}) {
   const ja = lang === 'ja';
   const tabLineId = useId();
   const initialPeople = useMemo(() => {
@@ -93,15 +228,25 @@ export function BookingCard({ card, lang }: { card: Schemas['BookingCard']; lang
       <div className="dopa-agent-book-head">
         <div className="dopa-agent-book-title-row">
           <h3 className="dopa-agent-book-title">{ja ? card.clinicNameJa : card.clinicNameKo}</h3>
-          <span className={`dopa-agent-tag-rect${card.japaneseSupport ? ' is-jp' : ' is-ko'}`}>
-            {card.japaneseSupport
-              ? ja
-                ? '日本語OK'
-                : '일본어 OK'
-              : ja
-                ? '韓国語対応'
-                : '한국어 전용'}
-          </span>
+          <div className="dopa-agent-card-badges">
+            <span className={`dopa-agent-tag-rect${card.japaneseSupport ? ' is-jp' : ' is-ko'}`}>
+              {card.japaneseSupport
+                ? ja
+                  ? '日本語OK'
+                  : '일본어 OK'
+                : ja
+                  ? '韓国語対応'
+                  : '한국어 전용'}
+            </span>
+            {onToggleSave && (
+              <SaveClinicButton
+                saved={saved}
+                clinicName={ja ? card.clinicNameJa : card.clinicNameKo}
+                lang={lang}
+                onToggle={onToggleSave}
+              />
+            )}
+          </div>
         </div>
 
         <div className="dopa-agent-book-subrow">
