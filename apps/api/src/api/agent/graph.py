@@ -274,6 +274,9 @@ def read_failure(state: AgentState) -> Failure | None:
 
 
 CARDS = TypeAdapter(list[Card])
+# 이 카드가 나간 턴은 이미 답한 턴이라 질문 묶음을 내보내지 않는다(설계 문서 4.2·4.8, #80).
+# 기준 위치·일본 시술명 대응 카드만 나간 턴은 장소를 못 찾았거나 이름이 모호해 되물을 수 있어 뺀다.
+ANSWER_CARD_KINDS = frozenset({"recommendation", "bundle", "trip_plan", "booking"})
 
 
 def read_cards(state: AgentState) -> list[Card]:
@@ -813,6 +816,8 @@ def build_graph(
             *bookings,
         ]
         exclusions = assemble_exclusions(results)
+        if any(c.kind in ANSWER_CARD_KINDS for c in cards):
+            reply = reply.model_copy(update={"questions": []})
         return {
             "reply": reply.model_dump(),
             "cards": [c.model_dump() for c in cards],
