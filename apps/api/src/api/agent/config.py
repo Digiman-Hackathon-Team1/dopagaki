@@ -20,6 +20,9 @@ class AgentSettings(BaseSettings):
     agent_model: str = "claude-haiku-5-5"
     agent_effort: Effort = "medium"
     agent_max_tokens: int = 16000
+    # 프롬프트 캐싱(설계 문서 8장 "비용", 이슈 #59). 도구 정의·시스템 프롬프트와 대화 기록 앞부분을 캐시에서 읽어
+    # 입력 비용과 첫 글자 대기 시간을 줄인다. 문제가 생기면 0으로 끈다.
+    agent_prompt_cache: bool = True
     # 배포된 web의 환율 파일(예: https://<web 주소>/naver-fx.json). 없으면 스냅샷 환율을 쓴다(ADR 0010).
     web_fx_url: str | None = None
     # 실행 한도(설계 문서 2장, 6장, 12장). 넘으면 오류 대신 시세표 안내를 돌려준다(FR-08).
