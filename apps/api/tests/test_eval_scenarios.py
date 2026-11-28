@@ -332,11 +332,12 @@ def test_reason_checks_look_at_the_cards_reason() -> None:
     assert graded("11월 25일에 새로 개원해 평점 집계 중이에요.", shown)["passed"]
     assert graded("평점 3.7로 낮은 편이에요.", shown)["failures"] == [
         "vands-balsan 추천 이유에 개원 언급 없음",
-        "vands-balsan 추천 이유에 쓰면 안 되는 말: 3.7",
+        "vands-balsan 추천 이유·답변에 쓰면 안 되는 말: 3.7",
     ]
     assert graded(None, shown)["failures"] == ["vands-balsan 카드 추천 이유 없음"]
-    # 그 병원 카드가 나오지 않았으면 검사하지 않는다.
+    # 그 병원 카드가 나오지 않았으면 검사하지 않는다. 예약 카드는 추천 이유가 없어 보지 않는다.
     assert graded(None, [])["passed"]
+    assert graded(None, [{"kind": "booking", "placeId": "vands-balsan"}])["passed"]
     # 신규 개원 검사는 낮은 평점이라는 설명만 막는다. 개원을 말하지 않아도 된다.
     only_forbid = Turn("리쥬란", reason_checks={"vands-balsan": NEW_CLINIC_REASON})
     body = {
@@ -351,3 +352,11 @@ def test_reason_checks_look_at_the_cards_reason() -> None:
 
     message = reply_message("답", {"vands-balsan:rejuran-2cc": "2번째로 싸요."})
     assert grade_turn(only_forbid, body, [HumanMessage("질문"), message])["passed"]
+    # 답변 본문에서 낮은 평점이라고 해도 실패다.
+    message = reply_message(
+        "발산점은 평점은 낮지만 싸요.", {"vands-balsan:rejuran-2cc": "싸요."}
+    )
+    graded_answer = grade_turn(only_forbid, body, [HumanMessage("질문"), message])
+    assert graded_answer["failures"] == [
+        "vands-balsan 추천 이유·답변에 쓰면 안 되는 말: 평점은 낮"
+    ]

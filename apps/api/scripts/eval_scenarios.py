@@ -94,7 +94,18 @@ NOT_IN_DATA = (
 )
 # 신규 개원 지점(vands-balsan, 2026.11.25 개원)의 추천 이유: 평점 숫자로 낮다고 하지 않는다(이슈 #101).
 # 개원을 말하지 않고 다른 이유만 쓰는 것은 틀린 설명이 아니라 실패로 보지 않는다.
-NEW_CLINIC_REASON = ((), ("3.7", "평점이 낮", "評価が低", "評価は低"))
+NEW_CLINIC_REASON = (
+    (),
+    (
+        "3.7",
+        "평점이 낮",
+        "평점은 낮",
+        "평점이 다소 낮",
+        "評価が低",
+        "評価は低",
+        "低評価",
+    ),
+)
 # 도구 사이 모델 왕복(이슈 #72) 전후 비교용 시나리오. 기본 평가에는 넣지 않는다.
 ROUNDTRIP = ("s8", "s9", "s10")
 
@@ -526,7 +537,12 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
         in_table = [w for w in turn.table_excludes if any(w in row for row in table)]
         if in_table:
             failures.append(f"표에 데이터에 없는 행: {', '.join(in_table)}")
-        shown_places = {c.get("placeId") for c in body["cards"]}
+        # 추천 이유는 병원·묶음 카드에만 붙는다. 예약 카드에도 placeId가 있지만 이유가 없다.
+        shown_places = {
+            c.get("placeId")
+            for c in body["cards"]
+            if c["kind"] in ("recommendation", "bundle")
+        }
         for place_id, (need_any, forbid) in turn.reason_checks.items():
             if place_id not in shown_places:
                 continue
@@ -540,10 +556,11 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
                 continue
             if need_any and not any(w in r for r in reasons for w in need_any):
                 failures.append(f"{place_id} 추천 이유에 {need_any[0]} 언급 없음")
-            bad = [w for w in forbid if any(w in r for r in reasons)]
+            # 금지어는 그 병원 추천 이유와 답변 본문 모두에서 본다.
+            bad = [w for w in forbid if any(w in r for r in [*reasons, raw.answer])]
             if bad:
                 failures.append(
-                    f"{place_id} 추천 이유에 쓰면 안 되는 말: {', '.join(bad)}"
+                    f"{place_id} 추천 이유·답변에 쓰면 안 되는 말: {', '.join(bad)}"
                 )
 
     clinic_cards = [c for c in body["cards"] if c["kind"] == "recommendation"]
