@@ -15,12 +15,15 @@ class FakeChatModel(GenericFakeChatModel):
     """정해진 응답을 차례로 내고, 받은 메시지 목록을 기록하는 가짜 LLM."""
 
     calls: list[list[BaseMessage]] = Field(default_factory=list)
+    # 호출마다 받은 bind 인자(tools 제외). 캐시 표시처럼 요청 전체에 붙는 값을 확인할 때 쓴다.
+    call_kwargs: list[dict[str, Any]] = Field(default_factory=list)
 
     def bind_tools(self, tools: Sequence[Any], **kwargs: Any):
         return self.bind(tools=tools, **kwargs)
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
         self.calls.append(list(messages))
+        self.call_kwargs.append({k: v for k, v in kwargs.items() if k != "tools"})
         return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
 
     def _stream(self, messages, stop=None, run_manager=None, **kwargs):
