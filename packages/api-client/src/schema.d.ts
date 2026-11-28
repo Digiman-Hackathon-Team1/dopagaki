@@ -263,6 +263,11 @@ export interface components {
              * @description <place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣을 수 있다
              */
             cardId: string;
+            /**
+             * Rank
+             * @description 이 검색 순위표에서의 순위(1부터). offset으로 다음 병원을 보면 4·5·6처럼 이어진다
+             */
+            rank: number;
             /** Placeid */
             placeId: string;
             /** Clinicnameja */
@@ -1229,6 +1234,11 @@ export interface components {
              * @description 병원 ID와 시술 ID를 묶은 카드 ID
              */
             cardId: string;
+            /**
+             * Rank
+             * @description 이 검색 순위표에서의 순위(1부터). offset으로 다음 병원을 보면 4·5·6처럼 이어진다
+             */
+            rank: number;
             /** Placeid */
             placeId: string;
             /** Menuid */

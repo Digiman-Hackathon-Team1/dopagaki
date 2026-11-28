@@ -140,6 +140,15 @@ class SearchClinicsInput(BaseModel):
         ),
     )
     limit: int = Field(default=3, ge=1, le=10, description="돌려줄 병원 수. 기본 3")
+    offset: int = Field(
+        default=0,
+        ge=0,
+        le=200,
+        description=(
+            "순위표 앞에서 건너뛸 수. 기본 0. 사용자가 다른 병원·더 보여 달라고 하면 같은 입력으로 "
+            "이미 보여 준 수(3, 그다음 6)를 넣는다. 조건(시술·지역·예산·정렬 등)을 바꾸면 0"
+        ),
+    )
 
 
 class SearchTarget(BaseModel):
@@ -235,6 +244,9 @@ DESCRIPTION = f"""\
 결과의 병원은 모두 카드로 화면에 나간다. card_reasons에 card_id마다 추천 이유 한 줄을 쓴다.
 같은 턴에 같은 시술을 범위만 좁히거나 넓혀 다시 부르면 마지막 결과의 카드만 나간다. 지역·기준 위치·
 지점(clinic_name)이 서로 다른 대상을 부르면 비교로 보고 모두 나간다. 비교할 때는 대상마다 한 번씩 부른다.
+사용자가 다른 병원·더 보여 달라고 하면 앞 검색과 같은 입력으로 다시 부르고 offset에 이미 보여 준 수(3, 그다음 6)를
+넣는다. 카드의 순위는 4위부터 이어진다. 조건을 바꿔 다시 찾을 때는 offset=0. 한 번에 더 많이 보려면
+offset 대신 limit을 늘려 한 번만 부른다.
 쓰면 안 되는 경우: 아래 목록에 없는 시술(필러, 실 리프팅 등)이나 시술을 아직 정하지 않았을 때.
 시술명 없이 고민만 말했으면 recommend_treatments를 먼저 부른다. 아래 목록과 다른 일본 시술명(ハイフ, HIFU,
 ブナジュ, 하이후 등)으로 물었으면 match_jp_treatment를 먼저 부르고, menu_id를 직접 짐작하지 않는다.
@@ -258,11 +270,16 @@ def _jp_clinic_savings(benchmark: JpBenchmark, row: PriceRow) -> JpClinicSavings
 
 
 def _card(
-    row: PriceRow, show_distance: bool, fx: Fx, jp_clinic: JpBenchmark | None
+    row: PriceRow,
+    show_distance: bool,
+    fx: Fx,
+    jp_clinic: JpBenchmark | None,
+    rank: int,
 ) -> RecommendationCardData:
     jp_prices = [b.price_jpy for b in row.menu.jp_benchmarks]
     return RecommendationCardData(
         card_id=f"{row.place.id}:{row.menu.id}",
+        rank=rank,
         place_id=row.place.id,
         menu_id=row.menu.id,
         clinic_name_ja=row.place.name_ja,
@@ -381,6 +398,7 @@ def search_clinics(
     clinic_name: str | None = None,
     jp_clinic: str | None = None,
     limit: int = 3,
+    offset: int = 0,
 ) -> tuple[str, dict]:
     catalog = get_catalog()
     fx = get_fx_provider().current()
@@ -471,9 +489,12 @@ def search_clinics(
         else:
             kept.append(row)
 
-    top = kept[:limit]
+    top = kept[offset : offset + limit]
     reference, reference_note = _jp_reference(menu, jp_clinic)
-    cards = [_card(row, has_origin, fx, reference) for row in top]
+    cards = [
+        _card(row, has_origin, fx, reference, rank)
+        for rank, row in enumerate(top, start=offset + 1)
+    ]
     jp_prices = [b.price_jpy for b in menu.jp_benchmarks]
     benchmark = (
         f"Japan benchmark: average of {len(jp_prices)} major Japanese clinics "
@@ -499,13 +520,23 @@ def search_clinics(
     ]
     if not rows and tokens:
         lines.append(_no_clinic_note(clinic_name or "", tokens, menu_id))
-    if not top:
+    if not top and offset and kept:
+        lines.append(
+            f"No more clinics: all {len(kept)} matching clinics were already shown "
+            f"(offset={offset}). Say so and offer to change the conditions."
+        )
+    elif not top:
         lines.append("No clinics returned.")
     else:
-        lines.append(f"Top {len(top)}:")
+        lines.append(
+            f"Ranks {offset + 1}–{offset + len(top)} of {len(kept)} (ranks 1–{offset} "
+            "were shown before):"
+            if offset
+            else f"Top {len(top)}:"
+        )
         lines += [
-            _summary_line(i, card, row.place)
-            for i, (card, row) in enumerate(zip(cards, top, strict=True), start=1)
+            _summary_line(card.rank, card, row.place)
+            for card, row in zip(cards, top, strict=True)
         ]
     return "\n".join(lines), _artifact(menu_id, target, cards, excluded, found)
 
