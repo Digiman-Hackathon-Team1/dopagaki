@@ -17,10 +17,21 @@ const phaseOf = (turn: Turn): Phase =>
  * AI 상담 탭. 에이전트 대화(POST /api/agent/chat/stream) 하나로 상담한다(설계 문서 1장, ADR 0002, #44).
  * 답변 글은 만들어지는 대로 보여 주고, 에이전트가 답하지 못하면 시세표로 안내한다(FR-08).
  */
-export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
+export function AgentConsultView({
+  lang,
+  chat,
+  savedIds,
+  onToggleSaveClinic,
+  onOpenClinic,
+  onOpenPriceTable,
+  onHaptic
+}: {
   lang: Lang;
   /** App이 가진 대화. 다른 탭에 다녀와도 대화가 남는다. */
   chat: AgentChat;
+  savedIds?: string[];
+  onToggleSaveClinic?: (placeId: string) => void;
+  onOpenClinic?: (placeId: string, menuIds: string[]) => void;
   onOpenPriceTable: () => void;
   onHaptic: () => void;
 }) {
@@ -138,7 +149,15 @@ export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
             </div>
           </div>
         )}
-        <Turns turns={chat.turns} lang={lang} send={send} onPriceTable={onOpenPriceTable} />
+        <Turns
+          turns={chat.turns}
+          lang={lang}
+          send={send}
+          savedIds={savedIds}
+          onToggleSaveClinic={onToggleSaveClinic}
+          onOpenClinic={onOpenClinic}
+          onPriceTable={onOpenPriceTable}
+        />
       </div>
 
       <form className="cg-composer" onSubmit={submit}>
