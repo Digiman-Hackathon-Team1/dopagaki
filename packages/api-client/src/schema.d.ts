@@ -174,6 +174,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AnsweredQuestion
+         * @description 질문 묶음의 질문 하나와 사용자가 고르거나 쓴 답. 화면이 지난 대화를 다시 그릴 때 쓴다(#94).
+         */
+        AnsweredQuestion: {
+            /**
+             * Question
+             * @description 에이전트가 물은 질문
+             */
+            question: string;
+            /**
+             * Answer
+             * @description 사용자가 고르거나 쓴 답. 여러 개를 골랐으면 쉼표로 이은 글
+             */
+            answer: string;
+        };
         /** BookingCard */
         BookingCard: {
             /** Placeid */
@@ -480,6 +496,11 @@ export interface components {
              * @enum {string}
              */
             lang: "ja" | "ko";
+            /**
+             * Answers
+             * @description 질문 묶음에 답해 보낸 메시지면 질문과 답의 짝. 지난 대화를 다시 그릴 때 "질문: 답"으로 보여 주려고 턴과 함께 보관만 하고, 에이전트에는 넘기지 않는다(답은 message에 이미 있다). 아니면 빈 배열
+             */
+            answers?: components["schemas"]["AnsweredQuestion"][];
         };
         /** ChatResponse */
         ChatResponse: {
@@ -1465,6 +1486,11 @@ export interface components {
              * @description 사용자가 보낸 메시지
              */
             message: string;
+            /**
+             * Answers
+             * @description 질문 묶음에 답해 보낸 턴이면 질문과 답의 짝(요청의 answers 그대로). 아니면 빈 배열
+             */
+            answers?: components["schemas"]["AnsweredQuestion"][];
             /** @description 그 턴에 돌려준 응답 그대로 */
             response: components["schemas"]["ChatResponse"];
         };

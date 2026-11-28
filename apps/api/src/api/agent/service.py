@@ -16,6 +16,7 @@ import threading
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Generator, Iterator
+from contextlib import closing
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from functools import lru_cache
@@ -54,6 +55,7 @@ from api.agent.schemas import (
     ProfileBudgetResponse,
     ProfileLocation,
     ThreadHistory,
+    ThreadTurn,
     UserProfileResponse,
 )
 from api.agent.threads import ThreadStore, get_thread_store, thread_key
@@ -340,10 +342,15 @@ class ChatService:
     """대화 한 턴을 처리한다. 그래프와 설정은 요청마다 주입받는다."""
 
     def __init__(
-        self, agent: CompiledStateGraph | None, settings: AgentSettings
+        self,
+        agent: CompiledStateGraph | None,
+        settings: AgentSettings,
+        threads: ThreadStore | None = None,
     ) -> None:
         self._agent = agent
         self._settings = settings
+        # 화면이 지난 턴을 다시 그리도록 턴마다 응답을 보관한다(설계 문서 10장, #94).
+        self._threads = threads if threads is not None else get_thread_store()
         self._streams: list[Generator[ChatStreamEvent, None, None]] = []
 
     def close(self) -> None:
@@ -360,17 +367,21 @@ class ChatService:
 
     def chat(self, body: ChatRequest) -> ChatResponse:
         turn = self._begin(*self._open(body), body)
+        response: ChatResponse | None = None
         try:
             if turn.early is not None:
-                return turn.early
+                response = turn.early
+                return response
             try:
                 state = self._agent.invoke(self._input(body, turn.lang), turn.config)
             except Exception:
                 logger.exception("에이전트 실행 실패")
-                return fallback_response(turn.thread_id, turn.lang, "error")
-            return self._respond(state, turn.thread_id, turn.lang)
+                response = fallback_response(turn.thread_id, turn.lang, "error")
+                return response
+            response = self._respond(state, turn.thread_id, turn.lang)
+            return response
         finally:
-            self._end(turn)
+            self._end(turn, body, response)
 
     def stream(self, body: ChatRequest) -> Iterator[ChatStreamEvent]:
         gen = self._stream(body)
@@ -390,10 +401,16 @@ class ChatService:
         thread_id, key, config = self._open(body)
         yield ChatStreamStart(type="start", thread_id=thread_id)
         turn = self._begin(thread_id, key, config, body)
+        sent: ChatResponse | None = None
         try:
-            yield from self._stream_turn(turn, body)
+            # 연결이 끊겨 이 generator가 닫히면 안쪽 스트림(그래프 실행)도 바로 닫는다(yield from과 같게).
+            with closing(self._stream_turn(turn, body)) as events:
+                for event in events:
+                    if isinstance(event, ChatStreamDone):
+                        sent = event.response
+                    yield event
         finally:
-            self._end(turn)
+            self._end(turn, body, sent)
 
     def _stream_turn(self, turn: _Turn, body: ChatRequest) -> Iterator[ChatStreamEvent]:
         if turn.early is not None:
@@ -515,7 +532,15 @@ class ChatService:
             return fallback_response(thread_id, lang, "daily_limit")
         return None
 
-    def _end(self, turn: _Turn) -> None:
+    def _end(
+        self, turn: _Turn, body: ChatRequest, response: ChatResponse | None
+    ) -> None:
+        """잠금을 풀고, 대화 기억에 남은 대화면 이번 턴을 보관소에도 넣는다(#94).
+
+        대화 기억에 없는 요청(첫 턴부터 하루 한도로 거절 등)은 보관하지 않는다. 넣으면 대화 기억의 보관 기한·상한
+        정리에 걸리지 않아 쌓인다. 대화 기억이 오래된 대화를 지울 때 보관소에서도 같이 지워, 화면이 다시 그리는
+        대화와 Claude가 기억하는 대화가 어긋나지 않게 한다.
+        """
         if turn.conversations is None:
             return
         saver = self._agent.checkpointer if self._agent is not None else None
@@ -524,9 +549,28 @@ class ChatService:
         except Exception:
             logger.exception("대화 기억을 읽지 못했다")
             stored = False
+        if stored and response is not None:
+            try:
+                self._threads.append(
+                    turn.key,
+                    ThreadTurn(
+                        message=body.message, answers=body.answers, response=response
+                    ),
+                )
+            except Exception:
+                # 보관에 실패해도 이번 응답은 그대로 나간다. 새로고침 때 그 턴만 빠진다.
+                logger.exception("대화 턴을 보관하지 못했다")
+        threads = self._threads
+
+        def delete(key: str) -> None:
+            try:
+                threads.delete(key)
+            finally:
+                saver.delete_thread(key)
+
         turn.conversations.release(
             turn.key,
-            saver.delete_thread if saver else None,
+            delete if saver else None,
             self._settings.agent_thread_ttl_seconds,
             self._settings.agent_max_threads,
             stored=stored,
