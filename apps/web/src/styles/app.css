@@ -13198,6 +13198,8 @@ html[lang="ko"] .ti-qna-answer {
   font-weight: 800;
   letter-spacing: 0.03em;
   opacity: 0.72;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .dopa-ch-lbl {
@@ -13208,7 +13210,10 @@ html[lang="ko"] .ti-qna-answer {
 
 .dopa-ed-tabs {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .dopa-ed-tablist {
@@ -13252,7 +13257,10 @@ html[lang="ko"] .ti-qna-answer {
 
 .dopa-ed-tabpanel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 9px;
+  min-width: 0;
+  max-width: 100%;
   outline: none;
 }
 
@@ -13367,7 +13375,9 @@ html[lang="ko"] .ti-qna-answer {
 
 .dopa-cal-card {
   width: min(296px, calc(100vw - 24px));
-  padding: 12px;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid #e6dce4;
   background: #ffffff;
@@ -13375,7 +13385,7 @@ html[lang="ko"] .ti-qna-answer {
     0 4px 12px rgb(31 42 107 / 0.08),
     0 18px 42px rgb(31 42 107 / 0.14);
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .dopa-cal-quick {
@@ -13498,7 +13508,7 @@ html[lang="ko"] .ti-qna-answer {
 .dopa-rdp .rdp-day_button {
   position: relative;
   width: 100%;
-  height: 34px;
+  height: 30px;
   display: inline-grid;
   place-items: center;
   padding: 0;
@@ -13654,6 +13664,8 @@ html[lang="ko"] .ti-qna-answer {
 }
 
 .dopa-bmsg {
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid #e6dce4;
   border-radius: 10px;
   background: #ffffff;
@@ -13775,12 +13787,15 @@ html[lang="ko"] .ti-qna-answer {
 .dopa-bmsg-body {
   padding: 12px 13px;
   background: #ffffff;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .dopa-bmsg-pre {
   margin: 0;
   white-space: pre-wrap;
-  word-break: break-word;
+  word-break: var(--word-break-cjk);
+  overflow-wrap: anywhere;
   font-family: inherit;
   font-size: 12.5px;
   line-height: 1.58;

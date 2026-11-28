@@ -106,6 +106,7 @@ export function DateTimePickerPopover({
           align="center"
           sideOffset={8}
           collisionPadding={12}
+          sticky="always"
           className="dopa-cal-popover"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
