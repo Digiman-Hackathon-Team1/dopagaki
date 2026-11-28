@@ -65,6 +65,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Fx */
+        get: operations["getFx"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/menus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Menus */
+        get: operations["listMenus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clinics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Clinic Prices */
+        get: operations["listClinicPrices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clinics/{clinic_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Clinic */
+        get: operations["getClinic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -468,6 +536,107 @@ export interface components {
              */
             threadId: string;
         };
+        /** ClinicChannel */
+        ClinicChannel: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "kakao" | "line" | "instagram" | "naver_booking" | "direct_reserve";
+            /** Labelja */
+            labelJa: string;
+            /** Labelko */
+            labelKo: string;
+            /** Urlja */
+            urlJa: string;
+            /** Urlko */
+            urlKo: string;
+        };
+        /** ClinicDetail */
+        ClinicDetail: {
+            clinic: components["schemas"]["ClinicSummary"];
+            /** Addressko */
+            addressKo: string;
+            /** Sourceurl */
+            sourceUrl: string;
+            /**
+             * Sourcetype
+             * @enum {string}
+             */
+            sourceType: "official_event" | "official_standard";
+            /** Vatexcluded */
+            vatExcluded: boolean;
+            /** Caveatja */
+            caveatJa: string;
+            /** Caveatko */
+            caveatKo: string;
+            /** Channels */
+            channels: components["schemas"]["ClinicChannel"][];
+            /** Centralchannel */
+            centralChannel: boolean;
+            fx: components["schemas"]["FxRate"];
+            /**
+             * Prices
+             * @description 이 병원에 가격이 있는 시술(시술 목록 순서)
+             */
+            prices: components["schemas"]["PriceComparison"][];
+        };
+        /**
+         * ClinicPrice
+         * @description 시술 하나의 병원 순위표 한 줄.
+         */
+        ClinicPrice: {
+            clinic: components["schemas"]["ClinicSummary"];
+            price: components["schemas"]["PriceComparison"];
+            /**
+             * Distancemeters
+             * @description 기준 위치(없으면 서울 시청)에서의 직선거리
+             */
+            distanceMeters: number;
+            /** Walkminutes */
+            walkMinutes: number;
+        };
+        /** ClinicPriceList */
+        ClinicPriceList: {
+            /** Menuid */
+            menuId: string;
+            /**
+             * Sort
+             * @enum {string}
+             */
+            sort: "savings" | "distance" | "rating";
+            fx: components["schemas"]["FxRate"];
+            /** Items */
+            items: components["schemas"]["ClinicPrice"][];
+        };
+        /** ClinicSummary */
+        ClinicSummary: {
+            /** Id */
+            id: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Brandja */
+            brandJa: string;
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /** Airating */
+            aiRating: number;
+        };
         /** Exclusion */
         Exclusion: {
             /** Menuid */
@@ -489,6 +658,22 @@ export interface components {
              */
             searchId: string;
         };
+        /**
+         * FxRate
+         * @description 가격 계산에 쓴 환율. 100엔당 원.
+         */
+        FxRate: {
+            /** Krwper100Jpy */
+            krwPer100Jpy: number;
+            /** Datelabel */
+            dateLabel: string;
+            /** Bankko */
+            bankKo: string;
+            /** Bankja */
+            bankJa: string;
+            /** Sourceurl */
+            sourceUrl: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -501,6 +686,24 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /**
+         * JpBenchmarkPrice
+         * @description 일본 비교 병원 한 곳의 세금 포함 공식가.
+         */
+        JpBenchmarkPrice: {
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Planja */
+            planJa: string;
+            /** Planko */
+            planKo: string;
+            /** Pricejpy */
+            priceJpy: number;
+            /** Url */
+            url: string;
         };
         /**
          * JpClinicPrice
@@ -643,6 +846,47 @@ export interface components {
              * @enum {string}
              */
             kind: "location";
+        };
+        /** MenuList */
+        MenuList: {
+            /** Items */
+            items: components["schemas"]["MenuSummary"][];
+        };
+        /** MenuSummary */
+        MenuSummary: {
+            /** Id */
+            id: string;
+            /** Category */
+            category: string;
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Shortja */
+            shortJa: string;
+            /** Shortko */
+            shortKo: string;
+            /**
+             * Jpbenchmarkjpy
+             * @description 일본 주요 병원 공식가 평균(절약액 기준)
+             */
+            jpBenchmarkJpy: number;
+            /** Jpbenchmarks */
+            jpBenchmarks: components["schemas"]["JpBenchmarkPrice"][];
+            /** Vatappliesinkorea */
+            vatAppliesInKorea: boolean;
+            /**
+             * Downtimemaxdays
+             * @description 겉으로 보이는 회복 기간(최대 일수)
+             */
+            downtimeMaxDays: number;
+            /** Usesneedle */
+            usesNeedle: boolean;
+            /**
+             * Cliniccount
+             * @description 이 시술 가격이 있는 병원 수
+             */
+            clinicCount: number;
         };
         /**
          * PlanAlternative
@@ -860,6 +1104,52 @@ export interface components {
             priceConditionJa: string;
             /** Priceconditionko */
             priceConditionKo: string;
+        };
+        /**
+         * PriceComparison
+         * @description 병원 한 곳 × 시술 하나의 가격 비교.
+         */
+        PriceComparison: {
+            /** Menuid */
+            menuId: string;
+            /**
+             * Basekrw
+             * @description 병원 표시 가격
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 부가세 별도 병원이면 더한 부가세, 아니면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /** Jpbenchmarkjpy */
+            jpBenchmarkJpy: number;
+            /**
+             * Savingsjpy
+             * @description 일본 평균 대비 절약액(엔). 음수면 일본이 더 싸다
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            /** Noteja */
+            noteJa: string;
+            /** Noteko */
+            noteKo: string;
+            /**
+             * Pricetags
+             * @description 가격 조건 태그(첫 방문가, 이벤트가 등)
+             */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
         };
         /**
          * PriceProof
@@ -1357,6 +1647,133 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getFx: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRate"];
+                };
+            };
+        };
+    };
+    listMenus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MenuList"];
+                };
+            };
+        };
+    };
+    listClinicPrices: {
+        parameters: {
+            query: {
+                /** @description 시술 ID */
+                menuId: string;
+                /** @description 정렬 기준 */
+                sort?: "savings" | "distance" | "rating";
+                /** @description 이 지역 병원만 */
+                area?: ("sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak") | null;
+                /** @description 일본어 상담 가능 병원만 */
+                japaneseOnly?: boolean;
+                /** @description 병원 이름·브랜드·주소·역 검색어 */
+                q?: string | null;
+                lat?: number | null;
+                lng?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicPriceList"];
+                };
+            };
+            /** @description 없는 시술 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getClinic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicDetail"];
+                };
+            };
+            /** @description 없는 병원 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
