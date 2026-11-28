@@ -72,6 +72,7 @@ def test_chat_returns_reply_slots_in_camel_case(client: TestClient) -> None:
     body = response.json()
     assert set(body) == {
         "threadId",
+        "lang",
         "fallback",
         "conditionSummary",
         "answer",

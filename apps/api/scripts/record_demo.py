@@ -5,6 +5,8 @@
 - 결과는 `src/api/agent/data/demo-replies.json`에 대본 ID별로 저장한다. 같은 ID가 있으면 바꾼다.
 - 대본 턴 수만큼 에이전트 턴이 돌고, 턴마다 Claude를 2~4번 부른다. 모델이 Haiku가 아니면 실행하지 않는다.
 - 한 턴이라도 시세표 안내(실패)로 답하면 저장하지 않는다. 녹화본을 바꾼 뒤에는 커밋 전에 답을 읽어 확인한다.
+- `--lang`은 대본 메시지의 언어이고 화면 언어로도 보낸다. 녹화본은 메시지의 1차 판별 언어로 찾으므로(ADR 0020),
+  1차 판별이 `--lang`과 다른 메시지가 있거나 Claude가 다른 언어로 답하면 녹화하지 않는다.
 """
 
 import argparse
@@ -17,6 +19,7 @@ from langchain_core.messages import messages_to_dict
 
 from api.agent.config import get_settings
 from api.agent.demo import DEMO_PATH, DemoScript, DemoTurn, dump_demo, load_demo
+from api.agent.lang import turn_lang
 from api.agent.service import get_agent
 from api.main import app
 
@@ -24,10 +27,23 @@ from api.main import app
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--id", required=True, help="대본 ID. 예: hifu-ja")
-    parser.add_argument("--lang", required=True, choices=["ja", "ko"])
+    parser.add_argument(
+        "--lang", required=True, choices=["ja", "ko"], help="대본 메시지의 언어"
+    )
     parser.add_argument("messages", nargs="+", help="대본의 사용자 메시지(턴 순서대로)")
     parser.add_argument("--allow-model", help="Haiku가 아닌 모델을 쓸 때 그 모델 이름")
     args = parser.parse_args()
+
+    # 녹화본은 1차 판별 언어로 찾는다. 직전 턴은 --lang으로 답했다고 본다(아래에서 답 언어도 확인한다).
+    previous = None
+    for message in args.messages:
+        if (lang := turn_lang(message, previous, args.lang)) != args.lang:
+            print(
+                f"메시지 언어가 {lang}로 판별돼 --lang {args.lang} 대본으로 찾을 수 없다: {message}",
+                file=sys.stderr,
+            )
+            return 2
+        previous = args.lang
 
     settings = get_settings()
     if "haiku" not in settings.agent_model and settings.agent_model != args.allow_model:
@@ -65,6 +81,12 @@ def main() -> int:
         body = response.json()
         if body["fallback"] is not None:
             print(f"시세표 안내로 답해 저장하지 않는다: {message}", file=sys.stderr)
+            return 1
+        if body["lang"] != args.lang:
+            print(
+                f"{body['lang']}로 답해 저장하지 않는다(대본 언어 {args.lang}): {message}",
+                file=sys.stderr,
+            )
             return 1
         thread_id = body["threadId"]
         state = agent.get_state(

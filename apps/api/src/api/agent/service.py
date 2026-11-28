@@ -39,6 +39,7 @@ from api.agent.graph import (
     read_failure,
     read_reply,
 )
+from api.agent.lang import detect_lang, turn_lang
 from api.agent.memory import get_profile_store
 from api.agent.schemas import (
     AgentReply,
@@ -306,6 +307,7 @@ def fallback_response(
 ) -> ChatResponse:
     return ChatResponse(
         thread_id=thread_id,
+        lang=lang,
         fallback=reason,
         condition_summary="",
         answer=FALLBACK_ANSWER[reason][lang],
@@ -325,6 +327,8 @@ class _Turn:
     thread_id: UUID
     key: str
     config: dict
+    # 1차 판별 응답 언어(메시지 글자 → 직전 턴 언어 → 화면 언어). 그래프 입력과 그래프 밖 안내에 쓴다.
+    lang: Lang
     early: ChatResponse | None
     # 잠금을 잡은 대화 목록. 잡았으면 _end에서 같은 목록에 푼다. 못 잡았으면 None.
     conversations: Conversations | None
@@ -358,11 +362,11 @@ class ChatService:
             if turn.early is not None:
                 return turn.early
             try:
-                state = self._agent.invoke(self._input(body), turn.config)
+                state = self._agent.invoke(self._input(body, turn.lang), turn.config)
             except Exception:
                 logger.exception("에이전트 실행 실패")
-                return fallback_response(turn.thread_id, body.lang, "error")
-            return self._respond(state, turn.thread_id, body.lang)
+                return fallback_response(turn.thread_id, turn.lang, "error")
+            return self._respond(state, turn.thread_id, turn.lang)
         finally:
             self._end(turn)
 
@@ -396,7 +400,7 @@ class ChatService:
         answers = _AnswerStream(lambda: self._known_amounts(turn.config))
         try:
             for chunk, meta in self._agent.stream(
-                self._input(body), turn.config, stream_mode="messages"
+                self._input(body, turn.lang), turn.config, stream_mode="messages"
             ):
                 if meta.get("langgraph_node") != "agent" or not isinstance(
                     chunk, AIMessageChunk
@@ -409,11 +413,11 @@ class ChatService:
             logger.exception("에이전트 실행 실패")
             yield ChatStreamDone(
                 type="done",
-                response=fallback_response(turn.thread_id, body.lang, "error"),
+                response=fallback_response(turn.thread_id, turn.lang, "error"),
             )
             return
         yield ChatStreamDone(
-            type="done", response=self._respond(state, turn.thread_id, body.lang)
+            type="done", response=self._respond(state, turn.thread_id, turn.lang)
         )
 
     def _open(self, body: ChatRequest) -> tuple[UUID, str, dict]:
@@ -437,31 +441,54 @@ class ChatService:
         턴 상한과 대기 초과는 LLM을 부르지 않으므로 하루 한도에 세지 않는다.
         """
         registry = conversations
+        # 잠금 전에는 대화 기록을 읽지 않으므로 이번 메시지 글자만 본다(못 정하면 화면 언어).
+        lang = detect_lang(body.message) or body.lang
         if not registry.acquire(key, self._settings.agent_thread_wait_seconds):
             logger.warning("같은 대화의 앞 요청이 끝나지 않아 기다리지 않고 답한다")
             return _Turn(
                 thread_id=thread_id,
                 key=key,
                 config=config,
-                early=fallback_response(thread_id, body.lang, "busy"),
+                lang=lang,
+                early=fallback_response(thread_id, lang, "busy"),
                 conversations=None,
             )
         try:
-            early = self._early_reply(thread_id, key, config, body)
+            lang = self._turn_lang(config, body)
+            early = self._early_reply(thread_id, key, config, body, lang)
         except Exception:
             # 잠금을 잡은 뒤라 예외를 그대로 올리면 잠금이 풀리지 않는다. 시세표 안내로 끝내고 _end가 푼다.
             logger.exception("턴 시작 처리 실패")
-            early = fallback_response(thread_id, body.lang, "error")
+            early = fallback_response(thread_id, lang, "error")
         return _Turn(
             thread_id=thread_id,
             key=key,
             config=config,
+            lang=lang,
             early=early,
             conversations=registry,
         )
 
+    def _turn_lang(self, config: dict, body: ChatRequest) -> Lang:
+        """1차 판별(설계 문서 2장). 직전 턴 응답 언어는 대화 기억에 남은 값이다."""
+        previous = (
+            self._agent.get_state(config).values.get("lang")
+            if self._agent is not None
+            else None
+        )
+        if detect_lang(body.message):
+            source = "message"
+        elif previous:
+            source = "previous"
+        else:
+            source = "screen"
+        lang = turn_lang(body.message, previous, body.lang)
+        # 메시지 본문은 로그에 남기지 않는다.
+        logger.info("1차 응답 언어 %s (%s)", lang, source)
+        return lang
+
     def _early_reply(
-        self, thread_id: UUID, key: str, config: dict, body: ChatRequest
+        self, thread_id: UUID, key: str, config: dict, body: ChatRequest, lang: Lang
     ) -> ChatResponse | None:
         """그래프 없이 끝낼 턴이면 그 응답(턴 상한·데모·키 없음·하루 한도), 아니면 None."""
         if self._agent is not None and (
@@ -469,21 +496,21 @@ class ChatService:
             >= self._settings.agent_max_turns
         ):
             logger.warning("한 대화의 최대 턴 수를 넘어 새 대화를 안내한다")
-            return fallback_response(thread_id, body.lang, "turn_limit")
+            return fallback_response(thread_id, lang, "turn_limit")
         if self._settings.agent_demo_cache and (
-            demo := self._demo_reply(config, key, body, thread_id)
+            demo := self._demo_reply(config, key, body, thread_id, lang)
         ):
             return demo
         if self._agent is None:
             logger.warning("API 키가 없어 시세표 안내로 답한다")
-            return fallback_response(thread_id, body.lang, "error")
+            return fallback_response(thread_id, lang, "error")
         if not daily_usage.take(
             body.user_id,
             self._settings.agent_daily_limit,
             self._settings.agent_user_daily_limit,
         ):
             logger.warning("하루 호출 한도를 넘어 시세표 안내로 답한다")
-            return fallback_response(thread_id, body.lang, "daily_limit")
+            return fallback_response(thread_id, lang, "daily_limit")
         return None
 
     def _end(self, turn: _Turn) -> None:
@@ -504,8 +531,8 @@ class ChatService:
         )
 
     @staticmethod
-    def _input(body: ChatRequest) -> dict:
-        return {"messages": [HumanMessage(body.message)], "lang": body.lang}
+    def _input(body: ChatRequest, lang: Lang) -> dict:
+        return {"messages": [HumanMessage(body.message)], "lang": lang}
 
     def _known_amounts(self, config: dict) -> set:
         """지금까지 대화 기억에 남은 도구 결과·사용자 메시지의 금액(finalize와 같은 기준)."""
@@ -513,12 +540,15 @@ class ChatService:
 
     @staticmethod
     def _respond(state: dict, thread_id: UUID, lang: Lang) -> ChatResponse:
+        """lang은 1차 판별 언어다. 답을 냈으면 finalize가 상태에 남긴 실제 답의 언어를 쓴다."""
+        lang = state.get("lang") or lang
         if failure := read_failure(state):
             logger.warning("에이전트가 답하지 못해 시세표 안내로 답한다: %s", failure)
             return fallback_response(thread_id, lang, "error")
         reply = read_reply(state)
         return ChatResponse(
             thread_id=thread_id,
+            lang=lang,
             fallback=None,
             disclaimer=DISCLAIMER[lang],
             cards=read_cards(state),
@@ -530,7 +560,7 @@ class ChatService:
         )
 
     def _demo_reply(
-        self, config: dict, key: str, body: ChatRequest, thread_id: UUID
+        self, config: dict, key: str, body: ChatRequest, thread_id: UUID, lang: Lang
     ) -> ChatResponse | None:
         """대본과 같은 메시지면 녹화 응답(설계 문서 13장 데모 고정, ADR 0015). 아니면 None.
 
@@ -543,16 +573,17 @@ class ChatService:
             is_new = body.thread_id is None or (
                 agent is None or not agent.get_state(config).values.get("messages")
             )
-            hit = demo_sessions.take(load_demo(), key, is_new, body.message, body.lang)
+            # 녹화본은 1차 판별 언어로 찾는다. 화면 언어가 달라도 같은 메시지면 같은 녹화본이다.
+            hit = demo_sessions.take(load_demo(), key, is_new, body.message, lang)
             if hit is None:
                 return None
             script, turn = hit
-            response = demo_response(turn, thread_id)
+            response = demo_response(script, turn, thread_id)
             if agent is not None:
                 # 대본에서 벗어난 다음 턴을 실제 Claude가 앞 맥락과 함께 이어 답하게 한다.
                 agent.update_state(
                     config,
-                    {"messages": recorded_messages(turn), "lang": body.lang},
+                    {"messages": recorded_messages(turn), "lang": response.lang},
                     as_node="finalize",
                 )
         except Exception:

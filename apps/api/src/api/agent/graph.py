@@ -38,6 +38,7 @@ from langgraph.prebuilt import ToolNode
 from pydantic import TypeAdapter
 
 from api.agent.amounts import drop_unknown_amounts, known_amounts
+from api.agent.lang import reply_lang
 from api.agent.memory import profile_note, to_patch, today_note
 from api.agent.safety import (
     SafetyTopic,
@@ -222,10 +223,21 @@ return_in_days counted from today in Seoul (today 0, tomorrow 1, the day after t
 arrival_date or return_date as YYYY-MM-DD for a calendar date, using the note that gives today's date. \
 Use a location_id found by resolve_location or by search_clinics from location only for where \
 they stay or live, not for a place they only want to search.
-Write every field of your reply in the language named by the note at the end of the \
-latest user message."""
+Write every field of your reply in one language: the reply language that the note at the end of \
+the latest user message tells you how to choose."""
 
-LANG_NOTE = "[Note from Dopa app] Reply language for this turn: {language}."
+# 응답 언어는 Claude가 메시지의 뜻으로 고르고, language에는 코드가 글자로 정한 1차 판별(모호할 때 쓸 언어)을
+# 넣는다(설계 문서 2장, ADR 0020).
+# 예시는 실측 입력(scripts/eval_reply_lang.py)과 다른 문장으로 둔다.
+LANG_NOTE = (
+    "[Note from Dopa app] Reply language: the language the user's own sentence in this message is "
+    "written in, Japanese or Korean. Judge it from the grammar words (particles, endings, question "
+    "words), not from names. A Korean sentence with a Japanese treatment name is Korean, for "
+    'example "ポテンツァ 몇 번 받아야 해요?"; a Japanese sentence with a Korean clinic or place '
+    'name is Japanese, for example "신촌역 近くで安いところは?". The app screen language and the '
+    "user being Japanese do not decide it. If the user asks for a language, use it. If this message "
+    "does not show a language (only names, numbers, or English), use {language}."
+)
 SAFETY_NOTE = (
     "[Note from Dopa app] Health keywords found in the user's messages in this conversation: "
     "{topics}. Decide from the whole conversation whether the safety rule applies now."
@@ -244,6 +256,8 @@ Failure = Literal[
 
 
 class AgentState(MessagesState):
+    # 턴을 시작할 때는 서비스가 정한 1차 판별 언어이고, finalize가 Claude가 실제로 쓴 답의 언어로 바꾼다.
+    # 대화 기억에 남아 다음 턴의 직전 턴 응답 언어가 된다.
     lang: Lang
     # 대화 기억에 저장되므로 모델 객체 대신 일반 데이터로 둔다. 읽을 때는 read_reply를 쓴다.
     reply: dict | None
@@ -776,7 +790,20 @@ def build_graph(
         if reply is None:
             return {"reply": None, "cards": [], "exclusions": [], "failure": failure}
         save_memory(reply, state, config)
-        reply = screen_reply(reply, state["messages"], state["lang"])
+        # Claude가 실제로 쓴 답의 언어. 면책·금액 주의 문구를 같은 언어로 붙이고, 다음 턴의 직전 턴 언어가 된다.
+        lang = (
+            reply_lang(
+                [
+                    reply.answer,
+                    reply.condition_summary,
+                    *(q.question for q in reply.questions),
+                    *(o for q in reply.questions for o in q.options),
+                    *reply.suggestions,
+                ]
+            )
+            or state["lang"]
+        )
+        reply = screen_reply(reply, state["messages"], lang)
         results = search_results(state["messages"])
         bundles = bundle_results(state["messages"])
         plans = plan_results(state["messages"])
@@ -788,6 +815,7 @@ def build_graph(
                 for loc in location_cards(state["messages"], results, bundles, plans)
             ]
             return {
+                "lang": lang,
                 "reply": reply.model_dump(),
                 "cards": [c.model_dump() for c in locations],
                 "exclusions": [],
@@ -814,6 +842,7 @@ def build_graph(
         ]
         exclusions = assemble_exclusions(results)
         return {
+            "lang": lang,
             "reply": reply.model_dump(),
             "cards": [c.model_dump() for c in cards],
             "exclusions": [e.model_dump() for e in exclusions],

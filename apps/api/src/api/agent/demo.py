@@ -43,6 +43,7 @@ class DemoTurn(BaseModel):
 
 class DemoScript(BaseModel):
     id: str
+    # 대본 메시지의 1차 판별 언어(api.agent.lang.turn_lang). 녹화본은 이 언어로 찾는다.
     lang: Lang
     recorded_at: str
     model: str
@@ -135,8 +136,11 @@ def recorded_messages(turn: DemoTurn) -> list[BaseMessage]:
     return without_thinking(messages_from_dict(turn.messages))
 
 
-def demo_response(turn: DemoTurn, thread_id) -> ChatResponse:
-    return ChatResponse.model_validate({**turn.response, "threadId": str(thread_id)})
+def demo_response(script: DemoScript, turn: DemoTurn, thread_id) -> ChatResponse:
+    # 응답 언어 칸(lang)이 생기기 전 녹화본은 대본 언어로 채운다.
+    return ChatResponse.model_validate(
+        {"lang": script.lang, **turn.response, "threadId": str(thread_id)}
+    )
 
 
 def dump_demo(demo: DemoFile, path: Path = DEMO_PATH) -> None:
