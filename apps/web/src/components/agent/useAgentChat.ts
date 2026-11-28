@@ -4,6 +4,51 @@ import { EventSourceParserStream } from 'eventsource-parser/stream';
 import type { QuestionAnswer } from './Questions';
 import { anonymousId } from './user-id';
 
+/**
+ * 같은 탭에서 새로고침해도 대화가 남도록, 답을 받은 턴과 대화 ID를 sessionStorage에 둔다(#94 1단계).
+ * 탭을 닫으면 사라지고 서버로 보내지 않는다. 서버는 같은 대화 ID를 24시간 기억하므로 이어서 보내면 앞 대화를 이어 답한다.
+ */
+const SESSION_KEY = 'dopagaki.agent.session';
+const SESSION_VERSION = 1;
+/** 서버가 받는 한 대화의 최대 턴 수(설계 문서 8장)와 같다. */
+const MAX_SAVED_TURNS = 50;
+
+type SavedTurn = Pick<Turn, 'message' | 'answers' | 'reply'>;
+type SavedSession = { v: number; threadId?: string; turns: SavedTurn[] };
+
+function loadSession(): { threadId?: string; turns: Turn[] } {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return { turns: [] };
+    const saved = JSON.parse(raw) as SavedSession;
+    // 저장 형식이 바뀌었거나 깨졌으면 버리고 새 대화로 시작한다.
+    if (saved?.v !== SESSION_VERSION || !Array.isArray(saved.turns)) return { turns: [] };
+    const turns = saved.turns
+      .filter(turn => typeof turn?.message === 'string' && turn.reply && typeof turn.reply === 'object')
+      .map((turn, index) => ({ id: index + 1, message: turn.message, answers: turn.answers, reply: turn.reply, status: null }));
+    return { threadId: typeof saved.threadId === 'string' ? saved.threadId : undefined, turns };
+  } catch {
+    return { turns: [] };
+  }
+}
+
+function saveSession(threadId: string | undefined, turns: Turn[]) {
+  // 답을 받은 턴만 둔다. 보내는 중이거나 실패한 턴은 새로고침하면 다시 보내면 된다.
+  const done = turns.filter(turn => turn.reply && turn.status === null).slice(-MAX_SAVED_TURNS);
+  try {
+    if (!threadId && done.length === 0) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return;
+    }
+    const saved: SavedSession = {
+      v: SESSION_VERSION,
+      threadId,
+      turns: done.map(({ message, answers, reply }) => ({ message, answers, reply }))
+    };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(saved));
+  } catch { /* 저장할 수 없으면(사생활 보호 모드, 용량 초과) 이번 화면에서만 대화가 남는다. */ }
+}
+
 export type TurnStatus = 'waiting' | 'writing' | 'invalid' | 'offline' | 'serverError' | 'interrupted';
 
 type StreamEvent = Schemas['ChatStreamStart'] | Schemas['ChatStreamDelta'] | Schemas['ChatStreamDone'];
@@ -29,12 +74,13 @@ export const failed = (status: Turn['status']) =>
  * onSettled는 답을 받았거나 실패했을 때 한 번 불린다. 탭을 바꿔도 대화가 남도록 App에서 부른다.
  */
 export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (turn: Turn) => void) {
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [restored] = useState(loadSession);
+  const [turns, setTurns] = useState<Turn[]>(restored.turns);
   const userId = useRef<string>(undefined);
   const lifetime = useRef<AbortController>(null);
   const chain = useRef(Promise.resolve());
-  const thread = useRef<string>(undefined);
-  const sequence = useRef(0);
+  const thread = useRef<string | undefined>(restored.threadId);
+  const sequence = useRef(restored.turns.length);
   const settled = useRef(onSettled);
   settled.current = onSettled;
 
@@ -44,6 +90,8 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
     const current = lifetime;
     return () => current.current?.abort();
   }, []);
+
+  useEffect(() => saveSession(thread.current, turns), [turns]);
 
   /** 대화를 비우고 새 대화로 시작한다. 보내는 중인 요청은 취소한다. */
   function reset() {
