@@ -165,6 +165,7 @@ def _run_scenario(
         )
         messages = state.values["messages"]
         ai = _this_turn_ai(messages)
+        grade = grade_turn(turn, body, messages)
         key = {"label": label, "rep": rep, "scenario": scenario.id, "turn": turn_no}
         for call_idx, message in enumerate(ai):
             rows.append(
@@ -188,7 +189,8 @@ def _run_scenario(
                 "unrecorded_retries": log.retries,
                 "unrecorded_failures": log.failures,
                 "fallback": body["fallback"],
-                "passed": grade_turn(turn, body, messages)["passed"],
+                "passed": grade["passed"],
+                "failures": grade["failures"],
             }
         )
     return rows
@@ -395,6 +397,13 @@ def summary(args: argparse.Namespace) -> int:
             )
         if notes:
             print(f"\n- {label}: " + ", ".join(notes))
+        # 앞 버전 기록에는 failures가 없다.
+        failed = [r for r in rows if r["kind"] == "turn" and r.get("failures")]
+        for r in failed:
+            print(
+                f"  - 채점 실패 {r['scenario']} {r['turn']}턴(반복 {r['rep']}): "
+                + "; ".join(r["failures"])
+            )
     return 0
 
 

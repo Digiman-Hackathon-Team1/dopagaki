@@ -175,4 +175,5 @@ def test_run_scenario_records_calls_and_stream_timing(client: TestClient) -> Non
     for t in turns:
         assert t["has_delta"]
         assert t["fallback"] is None
+        assert t["failures"] == []
         assert 0 <= t["start_s"] <= t["ttft_s"] <= t["total_s"]
