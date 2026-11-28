@@ -108,6 +108,11 @@ for a schedule request call plan_trip instead. A trip \
 length is enough: for "2 nights 3 days" assume the treatment is on the first day, so 2 days of \
 downtime, and say that assumption in cautions instead of asking which day.
 - Use what the user already said in this conversation and do not ask it again.
+- When this response also shows clinics, a bundle, a plan, or booking options, ask your one \
+question in the last sentence of answer and leave questions empty: the app does not show \
+questions next to those cards. A question a tool result asks for comes first; name its choices in \
+that sentence. Example after showing Rejuran clinics when the hotel area was not found: "Which \
+subway station is your hotel near?"
 - condition_summary: one line restating the conditions you used, including defaults, so the user \
 can correct you. Example: Rejuran, sorted by savings, budget and return date not given (written \
 in the reply language). Empty only when there are none.
