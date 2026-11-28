@@ -171,6 +171,34 @@ def test_location_card_checks_the_searched_location() -> None:
     assert not none["passed"]
 
 
+def test_answer_turn_fails_when_claude_asked_even_if_app_removed_questions() -> None:
+    # 앱은 병원 카드가 나간 턴의 질문 묶음을 지운다(#80). 채점은 Claude 원래 응답을 본다.
+    import json
+
+    from agent_fakes import reply_message
+    from eval_scenarios import Turn, grade_turn
+    from langchain_core.messages import AIMessage, HumanMessage
+
+    raw = json.loads(reply_message("답").content)
+    raw["questions"] = [
+        {"question": "귀국일은?", "options": ["내일"], "multi_select": False}
+    ]
+    body = {
+        "fallback": None,
+        "cards": [{"kind": "recommendation"}],
+        "questions": [],
+        "conditionSummary": "조건",
+    }
+    messages = [
+        HumanMessage("질문"),
+        AIMessage(content=json.dumps(raw, ensure_ascii=False)),
+    ]
+
+    graded = grade_turn(Turn("리쥬란 싼 곳", shape="answer"), body, messages)
+
+    assert graded["failures"] == ["답과 함께 질문 묶음 1개를 냄"]
+
+
 def test_mentions_any_needs_one_of_the_words_in_answer() -> None:
     from eval_scenarios import EXCLUDED_INMODE, Turn
 
