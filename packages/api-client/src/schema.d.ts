@@ -65,6 +65,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/users/{userId}/threads/{threadId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Agent Thread
+         * @description 지난 대화의 턴. 보관 기한이 지났거나, 서버를 재시작했거나, 다른 사용자의 대화 ID면 404다.
+         */
+        get: operations["getAgentThread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fx": {
         parameters: {
             query?: never;
@@ -1422,6 +1442,32 @@ export interface components {
             /** Totaljpy */
             totalJpy: number;
         };
+        /** ThreadHistory */
+        ThreadHistory: {
+            /**
+             * Threadid
+             * Format: uuid
+             */
+            threadId: string;
+            /**
+             * Turns
+             * @description 오래된 턴부터
+             */
+            turns: components["schemas"]["ThreadTurn"][];
+        };
+        /**
+         * ThreadTurn
+         * @description 지난 대화의 한 턴. 화면은 이 값으로 그 턴을 다시 그린다.
+         */
+        ThreadTurn: {
+            /**
+             * Message
+             * @description 사용자가 보낸 메시지
+             */
+            message: string;
+            /** @description 그 턴에 돌려준 응답 그대로 */
+            response: components["schemas"]["ChatResponse"];
+        };
         /** TripPlanCard */
         TripPlanCard: {
             /**
@@ -1663,6 +1709,47 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getAgentThread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 브라우저가 만든 익명 사용자 ID */
+                userId: string;
+                /** @description 대화 ID */
+                threadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadHistory"];
+                };
+            };
+            /** @description 보관된 대화가 없음 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
