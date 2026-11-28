@@ -5,8 +5,9 @@ import type { QuestionAnswer } from './Questions';
 import { anonymousId } from './user-id';
 
 /**
- * 새로고침하거나 탭을 닫았다 다시 열어도 같은 대화를 이어 보도록, 대화 ID를 localStorage에 두고 화면을 열 때
- * 서버가 보관한 지난 턴(getAgentThread)을 받아 다시 그린다(#94). 대화 내용은 브라우저에 두지 않는다.
+ * 새로고침하거나 탭을 닫았다 다시 열어도 같은 대화를 이어 보도록, 대화 ID를 localStorage에 두고 페이지를 열 때
+ * (App이 대화를 들고 있으므로 AI 상담 탭을 열기 전) 서버가 보관한 지난 턴(getAgentThread)을 받아 다시 그린다(#94).
+ * 대화 내용은 브라우저에 두지 않는다.
  * 서버가 그 대화를 모르면(보관 기한 24시간이 지났거나 서버를 다시 시작함) 404라서 새 대화로 시작한다.
  */
 const THREAD_KEY = 'dopagaki.agent.threadId';
@@ -100,7 +101,8 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
           params: { path: { userId: userId.current, threadId: saved } }
         });
         if (signal.aborted) return;
-        if (response.status === 404) {
+        // 404: 서버가 그 대화를 모름. 422: 남겨 둔 대화 ID가 깨짐. 둘 다 다시 물어도 같으므로 지운다.
+        if (response.status === 404 || response.status === 422) {
           saveThread(undefined);
           return;
         }
