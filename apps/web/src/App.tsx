@@ -44,7 +44,8 @@ import { SvgIcon } from '@/components/SvgIcon.tsx';
 import { ClinicPageView } from '@/components/ClinicPageView.tsx';
 import { BrandGroupList } from '@/components/BrandGroupList.tsx';
 import { TreatmentInfoView } from '@/components/TreatmentInfoView.tsx';
-import { ConciergeView } from '@/components/ConciergeView.tsx';
+import { AgentConsultView } from '@/components/AgentConsultView.tsx';
+import { useAgentChat } from '@/components/agent/useAgentChat';
 import { SavedClinicsView } from '@/components/SavedClinicsView.tsx';
 import { MenuEmoji } from '@/components/emoji.tsx';
 import QRCode from 'qrcode';
@@ -244,6 +245,13 @@ function ClinicApp() {
   const [guideOpen, setGuideOpen] = useState<boolean>(false);
   const [shareOpen, setShareOpen] = useState<boolean>(false);
   const [shareLang, setShareLang] = useState<Lang>(lang);
+  // AI 상담 대화. 다른 탭(시세표 안내 포함)에 다녀와도 남도록 App이 가진다.
+  const agentChat = useAgentChat(lang, (turn) => {
+    track('concierge_agent', {
+      cards: turn.reply?.cards.length ?? 0,
+      fallback: turn.reply ? (turn.reply.fallback ?? 'none') : turn.status
+    });
+  });
   const [activeTab, setActiveTab] = useState<'list' | 'info' | 'recommend' | 'saved'>('list');
   const [infoMenuId, setInfoMenuId] = useState<string>(initialQuery.menuId);
   const lastMainTabRef = useRef<'list' | 'info' | 'recommend' | 'saved'>('list');
@@ -1082,25 +1090,53 @@ function ClinicApp() {
             onHaptic={() => triggerHaptic(6)}
           />
         ) : activeTab === 'recommend' ? (
-          <ConciergeView
+          <AgentConsultView
             lang={lang}
-            dataset={dataset}
-            naverFx={naverFx}
-            krwPer100Jpy={krwPer100Jpy}
-            includeVat={includeVat}
+            chat={agentChat}
+            savedIds={savedClinicIds}
+            onToggleSaveClinic={(pid) => {
+              triggerHaptic(8);
+              const res = toggleSavedClinicId(pid);
+              setSavedClinicIds(res.ids);
+              const target = dataset.places.find((p) => p.id === pid);
+              const pName = target ? (isJa ? target.nameJa : target.nameKo) : '';
+              showToast(
+                isJa
+                  ? res.saved
+                    ? pName
+                      ? `${pName}を保存しました`
+                      : 'このクリニックを保存しました'
+                    : pName
+                      ? `${pName}の保存を解除しました`
+                      : '保存を解除しました'
+                  : res.saved
+                    ? pName
+                      ? `${pName} 저장했어요`
+                      : '이 병원을 저장했어요'
+                    : pName
+                      ? `${pName} 저장을 해제했어요`
+                      : '저장을 해제했어요',
+                res.saved,
+                {
+                  label: isJa ? '元に戻す' : '되돌리기',
+                  onClick: () => {
+                    const reverted = toggleSavedClinicId(pid);
+                    setSavedClinicIds(reverted.ids);
+                  }
+                }
+              );
+            }}
             onOpenClinic={(pid, menus) => {
               triggerHaptic(10);
               if (menus[0]) setMenuId(menus[0]);
               navigateToClinic(pid, true, menus, 1);
             }}
-            onApplyMenu={(selectedMenuId) => {
+            onOpenPriceTable={() => {
               triggerHaptic(10);
-              setMenuId(selectedMenuId);
               lastMainTabRef.current = 'list';
               setActiveTab('list');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            onShowToast={showToast}
             onHaptic={() => triggerHaptic(6)}
           />
         ) : activeTab === 'saved' ? (

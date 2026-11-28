@@ -1,0 +1,2040 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Isolated AI Agent UI Styles:
+ *   1. DopaThinkingOrb (bouncing phone-look orb → dopamine burst climax)
+ *   2. Editorial BookingCard (channel tiles, underline tabs, quick-fill bar,
+ *      lightweight calendar popover, interlinear KO/JA message sheet)
+ *
+ * Scoped to `.dopa-orb-*`, `.dopa-agent-*`, and `.agent-card.dopa-agent-booking`
+ * so `app.css` and `agent.css` remain untouched with zero cascade/merge conflicts.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.dopa-agent-turn-reply {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ── 1. DopaThinkingOrb ──────────────────────────────────────────────────── */
+.dopa-orb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 2px 0;
+  min-width: 0;
+}
+
+.dopa-orb-stage {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.dopa-orb-shadow {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 24px;
+  height: 5px;
+  margin-left: -12px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(194 41 138 / 0.28), transparent 100%);
+  animation: dopa-orb-shadow-bounce 1.05s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+  pointer-events: none;
+}
+
+.dopa-orb-aura {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgb(255 94 168 / 0.28) 0%, rgb(255 210 236 / 0.14) 55%, transparent 72%);
+}
+
+.dopa-orb-row.is-thinking .dopa-orb-aura,
+.dopa-orb-row.is-streaming .dopa-orb-aura {
+  animation: dopa-orb-aura-pulse 1.3s ease-in-out infinite;
+}
+
+.dopa-orb-row.is-bliss .dopa-orb-aura {
+  inset: -6px;
+  background: radial-gradient(circle, rgb(255 128 190 / 0.38) 0%, rgb(255 232 163 / 0.22) 54%, transparent 74%);
+  animation: dopa-orb-bliss-glow 2.4s ease-in-out infinite;
+}
+
+.dopa-orb-twinkles {
+  position: absolute;
+  inset: -4px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dopa-orb-twinkle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  animation: dopa-twinkle-pulse 2.2s ease-in-out infinite;
+}
+
+.dopa-orb-twinkle.is-1 {
+  top: -3px;
+  right: -2px;
+  animation-delay: 0s;
+}
+
+.dopa-orb-twinkle.is-2 {
+  top: 4px;
+  left: -4px;
+  animation-delay: 0.7s;
+}
+
+.dopa-orb-twinkle.is-3 {
+  bottom: -2px;
+  right: -3px;
+  animation-delay: 1.3s;
+}
+
+@keyframes dopa-twinkle-pulse {
+  0%,
+  100% {
+    transform: scale(0.75) rotate(0deg);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.18) rotate(14deg);
+    opacity: 1;
+  }
+}
+
+.dopa-orb-burst-layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+
+.dopa-orb-ring {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid rgb(255 94 168 / 0.8);
+  box-shadow: 0 0 10px rgb(255 94 168 / 0.35);
+}
+
+.dopa-orb-ring.is-outer {
+  border-width: 1.5px;
+  border-color: rgb(222 173 227 / 0.85);
+}
+
+.dopa-orb-particle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 1px 3px rgb(214 64 159 / 0.28));
+}
+
+.dopa-orb-circle {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgb(238 196 220 / 0.95);
+  background: #fff2fa;
+  overflow: hidden;
+  cursor: default;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgb(194 41 138 / 0.14);
+  transform-origin: center bottom;
+}
+
+.dopa-orb-circle.is-thinking {
+  border-color: rgb(214 64 159 / 0.55);
+  animation: dopa-orb-kimi-hop 1.05s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+}
+
+.dopa-orb-circle.is-streaming {
+  border-color: rgb(214 64 159 / 0.72);
+  box-shadow: 0 0 0 2px #fff, 0 0 12px rgb(255 94 168 / 0.28);
+  animation: dopa-orb-stream-float 1.15s ease-in-out infinite;
+}
+
+.dopa-orb-circle.is-bliss {
+  cursor: pointer;
+  border-color: rgb(255 94 168 / 0.78);
+  box-shadow: 0 0 0 2px #fff, 0 0 14px rgb(255 94 168 / 0.34);
+}
+
+.dopa-orb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.18s ease, filter 0.35s ease;
+  pointer-events: none;
+}
+
+.dopa-orb-img.is-look {
+  object-position: 56% 42%;
+  transform: scale(1.1);
+}
+
+.dopa-orb-img.is-bliss {
+  object-position: 50% 42%;
+  transform: scale(1.08);
+  filter: brightness(1.04) saturate(1.06);
+}
+
+.dopa-orb-img.is-bliss.is-popping {
+  animation: dopa-bliss-brighten 0.58s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.dopa-orb-img.is-visible {
+  opacity: 1;
+}
+
+.dopa-orb-sheen {
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.58) 50%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  animation: dopa-orb-sheen-sweep 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.dopa-orb-flash {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #ffe0f3 48%, rgb(255 94 168 / 0) 76%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dopa-orb-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dopa-orb-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.dopa-orb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  max-width: 100%;
+}
+
+.dopa-orb-status.is-thinking {
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  color: var(--color-soft-ink-strong);
+}
+
+.dopa-orb-status.is-done {
+  background: linear-gradient(135deg, #fff2fa 0%, #fff8eb 100%);
+  border: 1px solid rgb(255 94 168 / 0.28);
+  color: var(--color-accent);
+  font-size: 11px;
+  padding: 2px 9px;
+}
+
+.dopa-orb-status-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.dopa-orb-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--color-ink-2) 0%,
+    var(--color-accent) 45%,
+    var(--color-ink-2) 90%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: dopa-text-shimmer 1.8s linear infinite;
+}
+
+@keyframes dopa-orb-kimi-hop {
+  0%,
+  100% {
+    transform: translateY(1px) scaleX(1.07) scaleY(0.93) rotate(-2.5deg);
+  }
+  18% {
+    transform: translateY(2px) scaleX(1.1) scaleY(0.9) rotate(-4deg);
+  }
+  48% {
+    transform: translateY(-6.5px) scaleX(0.94) scaleY(1.07) rotate(3.5deg);
+  }
+  72% {
+    transform: translateY(-1px) scaleX(1.02) scaleY(0.98) rotate(1deg);
+  }
+}
+
+@keyframes dopa-orb-shadow-bounce {
+  0%,
+  100% {
+    transform: scaleX(1.08);
+    opacity: 0.72;
+  }
+  18% {
+    transform: scaleX(1.16);
+    opacity: 0.85;
+  }
+  48% {
+    transform: scaleX(0.68);
+    opacity: 0.32;
+  }
+}
+
+@keyframes dopa-orb-stream-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2.5px) scale(1.03);
+  }
+}
+
+@keyframes dopa-orb-aura-pulse {
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.95;
+  }
+}
+
+@keyframes dopa-orb-bliss-glow {
+  0%,
+  100% {
+    transform: scale(0.98);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.95;
+  }
+}
+
+@keyframes dopa-orb-sheen-sweep {
+  0% {
+    transform: translateX(-130%);
+  }
+  55%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+@keyframes dopa-bliss-brighten {
+  0% {
+    transform: scale(1.2);
+    filter: brightness(1.42) saturate(1.25);
+  }
+  45% {
+    transform: scale(1.04);
+    filter: brightness(1.16) saturate(1.14);
+  }
+  100% {
+    transform: scale(1.08);
+    filter: brightness(1.04) saturate(1.06);
+  }
+}
+
+@keyframes dopa-text-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+/* ── 2. Editorial AI Chat BookingCard ────────────────────────────────────── */
+.agent-card.dopa-agent-booking {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 11px;
+  padding: 15px 16px;
+  border-radius: 14px;
+  border: 1px solid #e6dce4;
+  background: var(--color-paper);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.agent-card.dopa-agent-booking > * + * {
+  margin-top: 0;
+}
+
+.dopa-agent-book-head {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0e6ee;
+  min-width: 0;
+}
+
+.dopa-agent-book-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-book-title {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--color-ink);
+  line-height: 1.25;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dopa-agent-tag-rect {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dopa-agent-tag-rect.is-jp {
+  background: #eaf6fe;
+  color: #0369a1;
+}
+
+.dopa-agent-tag-rect.is-ko {
+  background: #f5f0f4;
+  color: #62566e;
+}
+
+.dopa-agent-book-subrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+
+.dopa-agent-book-caption {
+  font-size: 11.5px;
+  color: var(--color-muted);
+}
+
+.dopa-agent-book-ledger {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-book-ledger strong {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--color-ink);
+}
+
+.dopa-agent-book-ledger small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.dopa-agent-book-fx {
+  font-size: 10.5px;
+  color: var(--color-muted);
+  line-height: 1.35;
+}
+
+.dopa-agent-book-channels {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dopa-agent-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 6px;
+}
+
+.dopa-agent-channel-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #e6dce4;
+  background: #faf7fa;
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  min-width: 0;
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out);
+}
+
+.dopa-agent-channel-tile.is-line {
+  border-color: #bbf7d0;
+  background: #f2fdf5;
+  color: #15803d;
+}
+
+.dopa-agent-channel-tile.is-kakao {
+  border-color: #f4df8c;
+  background: #fffbeb;
+  color: #7c4a03;
+}
+
+.dopa-agent-channel-tile.is-instagram {
+  border-color: #f3cfe3;
+  background: #fff6fb;
+  color: #a61e69;
+}
+
+.dopa-agent-ch-lbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dopa-agent-ch-ico {
+  flex-shrink: 0;
+  opacity: 0.78;
+}
+
+.dopa-agent-muted-note {
+  display: block;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.dopa-agent-inline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Underline Tabs (Radix Tabs + Motion spring indicator) */
+.dopa-agent-ed-tabs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dopa-agent-ed-tablist {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid #ede3eb;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-ed-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  margin: 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-align: center;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-short) var(--ease-out);
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-ed-tab[data-state='active'] {
+  color: var(--color-ink);
+  font-weight: 800;
+}
+
+.dopa-agent-ed-tab-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-ink);
+}
+
+.dopa-agent-ed-tabpanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+  max-width: 100%;
+  outline: none;
+}
+
+/* Unified 3-cell Quick-Fill Strip */
+.dopa-agent-qf-strip {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 0.62fr;
+  border: 1px solid #e4dae2;
+  border-radius: 8px;
+  background: #fcfafc;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.dopa-agent-qf-cell {
+  display: grid;
+  gap: 1px;
+  padding: 6px 9px;
+  min-width: 0;
+  border-right: 1px solid #ece3ea;
+}
+
+.dopa-agent-qf-cell:last-child {
+  border-right: 0;
+}
+
+.dopa-agent-qf-cell > span {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--color-muted);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dopa-agent-qf-cell input,
+.dopa-agent-qf-cell select {
+  width: 100%;
+  min-width: 0;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  outline: none;
+}
+
+.dopa-agent-qf-cell input::placeholder {
+  color: #b4a7ba;
+  font-weight: 500;
+}
+
+.dopa-agent-qf-cell:focus-within {
+  background: #ffffff;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-qf-date-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #b4a7ba;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-qf-date-trigger.has-val {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.dopa-agent-qf-date-val {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dopa-agent-qf-date-ico {
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.dopa-agent-qf-date-trigger.has-val .dopa-agent-qf-date-ico {
+  color: var(--color-accent);
+}
+
+/* Editorial Calendar Popover (Radix Popover + Motion, zero-dep grid) */
+.dopa-agent-cal-popover {
+  z-index: 650;
+  outline: none;
+}
+
+.dopa-agent-cal-card {
+  width: min(296px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #e6dce4;
+  background: #ffffff;
+  font-family: var(--font-body);
+  box-shadow:
+    0 4px 12px rgb(31 42 107 / 0.08),
+    0 18px 42px rgb(31 42 107 / 0.14);
+  display: grid;
+  gap: 9px;
+}
+
+.dopa-agent-cal-quick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.dopa-agent-cal-quick-btn {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 6px;
+  border-radius: 7px;
+  border: 1px solid #eae0e8;
+  background: #faf7fa;
+  color: var(--color-ink-2);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    color var(--dur-short) var(--ease-out);
+}
+
+.dopa-agent-cal-quick-btn small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.dopa-agent-cal-quick-btn.is-on {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+.dopa-agent-cal-quick-btn.is-on small {
+  color: rgb(255 255 255 / 0.78);
+}
+
+.dopa-agent-cal-month {
+  display: grid;
+  gap: 6px;
+}
+
+.dopa-agent-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dopa-agent-cal-caption {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.dopa-agent-cal-nav-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border-radius: 7px;
+  border: 1px solid #eee4ec;
+  background: #ffffff;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out);
+}
+
+.dopa-agent-cal-weekdays,
+.dopa-agent-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.dopa-agent-cal-weekday {
+  padding: 3px 0 4px;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.dopa-agent-cal-weekday.is-sun {
+  color: #c2298a;
+}
+
+.dopa-agent-cal-day {
+  width: 100%;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out);
+}
+
+.dopa-agent-cal-day.is-outside {
+  color: #c4b8cb;
+  font-weight: 500;
+}
+
+.dopa-agent-cal-day.is-today {
+  border-color: #f0cce2;
+  background: #fff7fb;
+  color: var(--color-accent);
+  font-weight: 800;
+}
+
+.dopa-agent-cal-day.is-selected {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.dopa-agent-cal-day:disabled {
+  color: #dad0df;
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.dopa-agent-cal-times {
+  display: grid;
+  gap: 5px;
+  padding-top: 8px;
+  border-top: 1px solid #f0e6ee;
+}
+
+.dopa-agent-cal-times-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.dopa-agent-cal-times-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.dopa-agent-cal-time-btn {
+  min-height: 28px;
+  margin: 0;
+  padding: 0 4px;
+  border-radius: 6px;
+  border: 1px solid #eae0e8;
+  background: #ffffff;
+  color: var(--color-ink-2);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    color var(--dur-short) var(--ease-out);
+}
+
+.dopa-agent-cal-time-btn.is-on {
+  border-color: var(--color-accent);
+  background: #fff2fa;
+  color: var(--color-accent);
+  font-weight: 800;
+}
+
+.dopa-agent-cal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.dopa-agent-cal-clear {
+  margin: 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dopa-agent-cal-done {
+  min-height: 30px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--color-ink);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Interlinear Bilingual Message Sheet */
+.dopa-agent-bmsg {
+  border: 1px solid #e6dce4;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dopa-agent-bmsg-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding: 7px 11px;
+  background: #faf6f9;
+  border-bottom: 1px solid #efe6ed;
+}
+
+.dopa-agent-bmsg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink-2);
+  letter-spacing: -0.015em;
+}
+
+.dopa-agent-bmsg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d97706;
+  flex-shrink: 0;
+}
+
+.dopa-agent-bmsg-dot.is-jp {
+  background: #0284c7;
+}
+
+.dopa-agent-bmsg-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dopa-agent-bmsg-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-bmsg-lang button {
+  margin: 0;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-bmsg-lang button.is-on {
+  background: #ece7f0;
+  color: var(--color-ink);
+  font-weight: 800;
+}
+
+.dopa-agent-bmsg-sep {
+  font-size: 10px;
+  color: #cbbdd2;
+}
+
+.dopa-agent-bmsg-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dopa-agent-bmsg-switch-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 30px;
+  height: 17px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #d9cedc;
+  cursor: pointer;
+  transition: background-color var(--dur-short) var(--ease-out);
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-switch[aria-checked='true'] {
+  background: var(--color-accent);
+}
+
+.dopa-agent-switch-thumb {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  transform: translateX(2px);
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.dopa-agent-switch[aria-checked='true'] .dopa-agent-switch-thumb {
+  transform: translateX(15px);
+}
+
+.dopa-agent-bmsg-body {
+  padding: 12px 13px;
+  background: #ffffff;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.dopa-agent-bmsg-pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: var(--word-break-cjk);
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.58;
+  color: var(--color-ink);
+  max-width: 100%;
+}
+
+.dopa-agent-bmsg-interlinear {
+  display: grid;
+  gap: 6px;
+  padding-left: 9px;
+  border-left: 2px solid #f1d9e8;
+  min-width: 0;
+}
+
+.dopa-agent-bmsg-spacer {
+  height: 4px;
+}
+
+.dopa-agent-bmsg-line {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dopa-agent-bmsg-primary {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.48;
+  color: var(--color-ink);
+  word-break: var(--word-break-cjk);
+  overflow-wrap: anywhere;
+}
+
+.dopa-agent-bmsg-gloss {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #7c7188;
+  word-break: var(--word-break-cjk);
+  overflow-wrap: anywhere;
+}
+
+.dopa-agent-bmsg-foot {
+  display: grid;
+  gap: 5px;
+  padding: 9px 11px;
+  background: #fcfafc;
+  border-top: 1px solid #f1e8ef;
+}
+
+.agent-card.dopa-agent-booking .dopa-agent-bmsg-copy-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 0;
+  background: var(--color-ink);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color var(--dur-short) var(--ease-out);
+}
+
+.dopa-agent-bmsg-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--color-muted);
+  line-height: 1.35;
+}
+
+/* ── Hover-capable devices only ──────────────────────────────────────────── */
+@media (hover: hover) {
+  .dopa-orb-circle.is-bliss:hover {
+    border-color: var(--color-accent);
+  }
+  .dopa-agent-channel-tile:hover {
+    border-color: var(--color-ink);
+  }
+  .agent-card.dopa-agent-booking .dopa-agent-bmsg-copy-btn:hover {
+    background: var(--color-accent);
+  }
+  .dopa-agent-cal-day:not(.is-selected):not(:disabled):hover {
+    background: #f6eff5;
+  }
+  .dopa-agent-cal-nav-btn:hover {
+    border-color: var(--color-accent);
+    background: #fff8fc;
+  }
+  .dopa-agent-cal-quick-btn:not(.is-on):hover,
+  .dopa-agent-cal-time-btn:not(.is-on):hover {
+    border-color: var(--color-accent);
+  }
+}
+
+/* ── Mobile Safari zoom guard & centered calendar popover ────────────────── */
+@media (max-width: 768px), (pointer: coarse) {
+  .dopa-agent-qf-cell input,
+  .dopa-agent-qf-cell select {
+    /* 16px prevents iOS Safari automatic zoom & viewport clip on focus */
+    font-size: 16px;
+    height: 24px;
+  }
+
+  .dopa-agent-qf-cell input::placeholder {
+    font-size: 12px;
+  }
+
+  .agent-card.dopa-agent-booking .dopa-agent-qf-date-trigger {
+    height: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  [data-radix-popper-content-wrapper]:has(.dopa-agent-cal-popover) {
+    position: fixed !important;
+    inset: auto !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .dopa-agent-qf-strip {
+    grid-template-columns: 1.15fr 1fr 0.65fr;
+  }
+  .dopa-agent-qf-cell {
+    padding: 6px 7px;
+  }
+}
+
+/* ── Reduced motion accessibility ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .dopa-orb-shadow,
+  .dopa-orb-aura,
+  .dopa-orb-twinkle,
+  .dopa-orb-circle,
+  .dopa-orb-sheen,
+  .dopa-orb-img.is-bliss.is-popping,
+  .dopa-orb-shimmer-text {
+    animation: none !important;
+  }
+  .dopa-orb-shimmer-text {
+    background: none;
+    color: var(--color-ink-2);
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 3. Minimal Editorial Answer Cards, Comparison Tables, Context Chips &
+ *    Compact Bookmark Save Button (20-30s Tokyo × Seoul aesthetic)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.dopa-agent-table-wrap {
+  margin: 10px 0;
+  border-radius: 14px;
+  border: 1px solid rgb(214 64 159 / 0.14);
+  background: #ffffff;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dopa-agent-cmp-table {
+  width: 100%;
+  margin: 0 !important;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  line-height: 1.48;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dopa-agent-cmp-table thead th {
+  padding: 9px 12px;
+  background: #fff6fb;
+  border-bottom: 1px solid rgb(214 64 159 / 0.16);
+  text-align: left;
+  font-size: 12.2px;
+  font-weight: 800;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.dopa-agent-cmp-table thead th:first-child {
+  width: 72px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.dopa-agent-cmp-table thead th:not(:first-child) {
+  color: var(--pink-11, var(--color-accent));
+}
+
+.dopa-agent-cmp-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgb(214 64 159 / 0.08);
+  vertical-align: top;
+  color: var(--color-ink);
+  word-break: var(--word-break-cjk);
+}
+
+.dopa-agent-cmp-table tbody td:first-child {
+  background: #fffbfe;
+  font-size: 11.5px;
+  font-weight: 750;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.dopa-agent-cmp-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Inline Context Strip (Location + JP Treatment Match chips) */
+.dopa-ctx-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.dopa-ctx-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+.dopa-ctx-chip svg {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.dopa-ctx-chip strong {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.dopa-ctx-chip.is-match {
+  background: #fff9fc;
+  border-color: rgb(194 41 138 / 0.25);
+}
+
+.dopa-ctx-chip.is-interactive {
+  cursor: pointer;
+  list-style: none;
+}
+
+.dopa-ctx-chip.is-interactive::-webkit-details-marker {
+  display: none;
+}
+
+.dopa-ctx-sub {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.dopa-ctx-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 100%;
+}
+
+.dopa-ctx-details[open] .dopa-agent-chev {
+  transform: rotate(180deg);
+}
+
+.dopa-ctx-popover {
+  display: grid;
+  gap: 5px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper);
+}
+
+/* Card Stack & Editorial Recommendation / Bundle Cards */
+.dopa-agent-cards-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-card.dopa-agent-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 14px 15px 13px;
+  border-radius: 18px;
+  border: 1px solid rgb(31 42 107 / 0.09);
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgb(31 42 107 / 0.03);
+  min-width: 0;
+}
+
+.agent-card.dopa-agent-card > * + * {
+  margin-top: 0;
+}
+
+.dopa-agent-card-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.agent-card.dopa-agent-card.is-rank1-lightning {
+  border-color: rgb(214 64 159 / 0.34);
+  background: linear-gradient(112deg, #fff1f8 0%, #ffffff 48%, #ffeff8 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.96),
+    0 10px 26px -14px rgb(194 41 138 / 0.24);
+}
+
+.agent-card.dopa-agent-card.is-rank1-lightning::after {
+  content: '';
+  position: absolute;
+  top: -28%;
+  bottom: -28%;
+  left: 0;
+  width: 48%;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0) 0%,
+    rgb(255 255 255 / 0.22) 24%,
+    rgb(255 255 255 / 0.86) 48%,
+    rgb(255 214 242 / 0.42) 66%,
+    rgb(255 255 255 / 0) 100%
+  );
+  transform: translateX(-145%) skewX(-22deg);
+  opacity: 0;
+  animation: dopa-rank1-light-sweep 5s ease-in-out 0.6s infinite;
+}
+
+@keyframes dopa-rank1-light-sweep {
+  0%, 2% {
+    transform: translateX(-145%) skewX(-22deg);
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  32% {
+    transform: translateX(265%) skewX(-22deg);
+    opacity: 1;
+  }
+  36%, 100% {
+    transform: translateX(265%) skewX(-22deg);
+    opacity: 0;
+  }
+}
+
+@keyframes dopa-rank1-badge-glint {
+  0%, 21%, 36%, 100% {
+    filter: brightness(1);
+    box-shadow: 0 3px 10px rgb(194 41 138 / 0.26);
+  }
+  28% {
+    filter: brightness(1.18);
+    box-shadow: 0 0 14px rgb(255 94 168 / 0.52);
+  }
+}
+
+.dopa-agent-card-head {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dopa-agent-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dopa-agent-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dopa-agent-card-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.dopa-agent-rank1-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7.5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #d6409f 0%, #e11d74 100%);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgb(214 64 159 / 0.28);
+}
+
+.dopa-agent-rank1-spark {
+  font-size: 8.5px;
+  line-height: 1;
+}
+
+.dopa-agent-rank-index {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.dopa-agent-rating-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5px;
+  color: #b45309;
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+.dopa-agent-new-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 6.5px;
+  border-radius: 999px;
+  background: #effcf6;
+  border: 1px solid #a6e3c5;
+  color: #0f764a;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.dopa-agent-jp-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 6px;
+  border-radius: 6px;
+  background: rgb(3 105 161 / 0.08);
+  color: #0369a1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Compact bookmark save button (24x24 visual, 36x36 tap zone) */
+.agent-card .dopa-agent-save-btn,
+.dopa-agent-save-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border-radius: 7px;
+  border: 1px solid rgb(31 42 107 / 0.11);
+  background: rgb(255 255 255 / 0.85);
+  color: var(--color-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.dopa-agent-save-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.agent-card .dopa-agent-save-btn.is-saved,
+.dopa-agent-save-btn.is-saved {
+  border-color: rgb(214 64 159 / 0.34);
+  background: #fff0f8;
+  color: var(--color-accent);
+  box-shadow: 0 1px 4px rgb(214 64 159 / 0.14);
+}
+
+.dopa-agent-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.028em;
+  color: var(--color-ink);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-card.dopa-agent-card.is-rank1-lightning .dopa-agent-card-title {
+  font-size: 15.5px;
+}
+
+.dopa-agent-card-loc,
+.dopa-agent-card-desc {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--color-muted);
+  line-height: 1.38;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dopa-agent-card-loc strong {
+  font-weight: 650;
+  color: var(--color-ink-2);
+}
+
+.dopa-agent-price-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 2px 0;
+}
+
+.dopa-agent-price-nums {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dopa-agent-price-nums strong {
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  color: var(--color-ink);
+  line-height: 1.05;
+}
+
+.agent-card.dopa-agent-card.is-rank1-lightning .dopa-agent-price-nums strong {
+  font-size: 25px;
+  font-weight: 900;
+}
+
+.dopa-agent-price-nums > span {
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.dopa-agent-price-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dopa-agent-save-pill {
+  padding: 2.5px 8.5px;
+  border-radius: 999px;
+  background: var(--color-soft);
+  color: var(--color-accent);
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.agent-card.dopa-agent-card.is-rank1-lightning .dopa-agent-save-pill {
+  background: linear-gradient(135deg, #d6409f 0%, #c2298a 100%);
+  color: #ffffff;
+  font-size: 12px;
+  padding: 3px 9.5px;
+  box-shadow: 0 3px 10px rgb(194 41 138 / 0.26);
+  animation: dopa-rank1-badge-glint 5s ease-in-out 0.6s infinite;
+}
+
+.dopa-agent-savings-inline {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.dopa-agent-bundle-receipt {
+  display: grid;
+  gap: 5px;
+  padding-top: 9px;
+  border-top: 1px solid rgb(31 42 107 / 0.075);
+}
+
+.dopa-agent-bundle-item-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.dopa-agent-bundle-item-name {
+  font-weight: 600;
+  color: var(--color-ink-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dopa-agent-bundle-item-price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-weight: 750;
+  color: var(--color-ink);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dopa-agent-bundle-item-price small {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.dopa-agent-submeta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgb(31 42 107 / 0.07);
+}
+
+.dopa-agent-micro-tag {
+  padding: 1.5px 6.5px;
+  border-radius: 6px;
+  background: rgb(31 42 107 / 0.055);
+  color: var(--color-ink-2);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dopa-agent-reason-inline {
+  font-size: 11.5px;
+  line-height: 1.38;
+  color: var(--color-muted);
+}
+
+.dopa-agent-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.agent-card .dopa-agent-action-btn,
+.dopa-agent-action-btn {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 11px;
+  border: 1px solid rgb(31 42 107 / 0.12);
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.agent-card .dopa-agent-action-btn.is-primary,
+.dopa-agent-action-btn.is-primary {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+.agent-card .dopa-agent-action-btn.is-ghost,
+.dopa-agent-action-btn.is-ghost {
+  flex: 0 0 auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 0 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.agent-card .dopa-agent-action-btn.is-ghost.is-open,
+.dopa-agent-action-btn.is-ghost.is-open {
+  color: var(--color-ink);
+}
+
+.dopa-agent-action-btn.is-ghost.is-open .dopa-agent-chev {
+  transform: rotate(180deg);
+}
+
+.dopa-agent-chev {
+  transition: transform 0.16s ease;
+  flex-shrink: 0;
+}
+
+.dopa-agent-chev.is-flipped {
+  transform: rotate(180deg);
+}
+
+.dopa-agent-details-body {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(31 42 107 / 0.08);
+}
+
+.dopa-agent-compare-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 2px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: rgb(214 64 159 / 0.06);
+  color: var(--color-soft-ink-strong);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.42;
+}
+
+.dopa-agent-compare-note svg {
+  color: var(--color-accent);
+  flex-shrink: 0;
+  margin-top: 1.5px;
+}
+
+.dopa-agent-channels {
+  display: grid;
+  gap: 5px;
+}
+
+.dopa-agent-channel-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dopa-agent-channel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.dopa-agent-channel-pill.is-line {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.dopa-agent-channel-pill.is-kakao {
+  border-color: #fde68a;
+  background: #fefce8;
+  color: #854d0e;
+}
+
+.dopa-agent-proof-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dopa-agent-comparison {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8f9fc;
+  display: grid;
+  gap: 3px;
+}
+
+.dopa-agent-comp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.dopa-agent-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--color-line);
+  background: rgb(255 255 255 / 0.72);
+  color: var(--color-ink-2);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.dopa-agent-more-preview {
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dopa-agent-plan-visit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+@media (hover: hover) {
+  .agent-card .dopa-agent-save-btn:hover,
+  .dopa-agent-save-btn:hover {
+    border-color: var(--color-accent);
+    background: #fff5fa;
+    color: var(--color-accent);
+  }
+  .agent-card .dopa-agent-action-btn:hover,
+  .dopa-agent-action-btn:hover {
+    border-color: var(--color-accent);
+  }
+  .agent-card .dopa-agent-action-btn.is-ghost:hover,
+  .dopa-agent-action-btn.is-ghost:hover {
+    border-color: transparent;
+    color: var(--color-ink);
+  }
+  .agent-card .dopa-agent-action-btn.is-primary:hover,
+  .dopa-agent-action-btn.is-primary:hover {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .dopa-agent-more-btn:hover {
+    border-color: var(--color-accent);
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+}
+
+@media (max-width: 420px) {
+  .dopa-agent-cmp-table {
+    font-size: 12px;
+  }
+  .dopa-agent-cmp-table thead th,
+  .dopa-agent-cmp-table tbody td {
+    padding: 8px 9px;
+  }
+  .dopa-agent-cmp-table thead th:first-child {
+    width: 62px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-card.dopa-agent-card.is-rank1-lightning::after,
+  .agent-card.dopa-agent-card.is-rank1-lightning .dopa-agent-save-pill {
+    animation: none !important;
+  }
+}

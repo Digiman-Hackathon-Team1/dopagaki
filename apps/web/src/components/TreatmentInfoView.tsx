@@ -12,8 +12,8 @@ import {
   renderScoreGaugesHtml
 } from '@/lib/score-rings.ts';
 import { SvgIcon } from '@/components/SvgIcon.tsx';
-import { ConciergeEmoji, MenuEmoji } from '@/components/emoji.tsx';
-import { formatMinutes, treatmentMinutes } from '@/lib/concierge.ts';
+import { InfoEmoji, MenuEmoji } from '@/components/emoji.tsx';
+import { formatMinutes, treatmentMinutes } from '@/lib/treatment-rules.ts';
 import {
   Disclosure,
   DisclosureContent,
@@ -101,7 +101,7 @@ export function TreatmentInfoView({
                 <div className="ti-detail-badges">
                   {treatmentMinutes(activeMenu) !== null && (
                     <span className="ti-time-pill">
-                      <ConciergeEmoji name="stopwatch" size={13} />
+                      <InfoEmoji name="stopwatch" size={13} />
                       {isJa
                         ? `施術 ${formatMinutes(treatmentMinutes(activeMenu)!, true)}`
                         : `시술 ${formatMinutes(treatmentMinutes(activeMenu)!, false)}`}

@@ -9,14 +9,16 @@
 만든다(ADR 0009).
 """
 
+from datetime import date
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
 from pydantic.alias_generators import to_camel
 
-from api.domain.catalog import AreaId, ChannelKind
+from api.domain.catalog import AreaId, ChannelKind, ConcernId
 from api.domain.price_tags import PriceTag
+from api.domain.profile import BudgetScope, Visitor
 
 Lang = Literal["ja", "ko"]
 
@@ -37,6 +39,58 @@ class CardReason(BaseModel):
     card_id: str = Field(description="도구 결과에 있는 card_id를 그대로 쓴다")
     reason: str = Field(
         description="이 병원을 권하는 이유 한 줄. 예: 가장 싸고 일본어 상담이 가능해요"
+    )
+
+
+class RememberBudget(BaseModel):
+    amount: int = Field(description="사용자가 말한 금액 그대로. 예: 3만 엔이면 30000")
+    currency: Literal["JPY", "KRW"] = Field(description="엔이면 JPY, 원이면 KRW")
+    scope: BudgetScope | None = Field(
+        description=(
+            "per_treatment 시술 1회 예산, total 일정 전체 예산. 사용자가 어느 쪽인지 말하지 않았으면 null"
+        )
+    )
+
+
+class Remember(BaseModel):
+    """이번 사용자 메시지에서 사용자가 자기 조건으로 직접 말한 것. 앱이 검사해 사용자 기억에 저장한다.
+
+    말하지 않은 칸은 null(목록은 빈 배열)이다. 기본값·추측·건강 정보는 넣지 않는다.
+    """
+
+    visitor: Visitor | None = Field(
+        description="traveler 여행자, resident 서울 거주자. 사용자가 직접 말했을 때만"
+    )
+    budget: RememberBudget | None
+    arrival_in_days: int | None = Field(
+        description="서울 도착일이 오늘(서울)부터 며칠 뒤인지. 오늘 0, 내일 1. 달력 날짜로 말했으면 null"
+    )
+    arrival_date: str | None = Field(
+        description="달력 날짜로 말한 서울 도착일(YYYY-MM-DD). 앱 안내의 오늘 날짜로 연도를 정한다"
+    )
+    return_in_days: int | None = Field(
+        description="귀국일이 오늘(서울)부터 며칠 뒤인지. 오늘 0, 내일 1, 모레 2. 달력 날짜로 말했으면 null"
+    )
+    return_date: str | None = Field(
+        description="달력 날짜로 말한 귀국일(YYYY-MM-DD). 앱 안내의 오늘 날짜로 연도를 정한다"
+    )
+    location_id: str | None = Field(
+        description=(
+            "숙소나 사는 곳. 이번 대화에서 resolve_location이나 search_clinics의 location이 찾은 "
+            "location_id만 쓴다"
+        )
+    )
+    concerns: list[ConcernId] = Field(
+        description=(
+            "사용자가 말한 고민 분류(3개까지). pores 모공·여드름 흉터, glow 윤기·칙칙함, lift 처짐·턱선, "
+            "dry 건조·잔주름, jaw 사각턱·이갈이, skinbase 피부 밀도·피부결. 분류에 없으면 넣지 않는다"
+        )
+    )
+    avoid_needle: bool | None = Field(
+        description="바늘을 피하고 싶다고 하면 true, 상관없다고 하면 false"
+    )
+    jp_treatments: list[str] = Field(
+        description="일본에서 받은 시술. 사용자가 쓴 표현 그대로(3개까지, 각 40자까지)"
     )
 
 
@@ -72,6 +126,13 @@ class AgentReply(BaseModel):
         description=(
             "사용자가 지금 임신·수유 중이거나, 질환이 있거나, 약을 먹고 있어 병원 추천을 멈추면 true. "
             '"임신 계획은 없어요"처럼 부정하거나 과거·가정의 이야기면 false. 화면에는 보내지 않는다'
+        )
+    )
+    # 답변 뒤에 만들어지는 칸이라 화면에 흘려보내는 답변을 늦추지 않는다(ADR 0019). 마지막 칸으로 둔다.
+    remember: Remember | None = Field(
+        description=(
+            "이번 사용자 메시지에서 사용자가 자기 조건으로 직접 말한 것. 새로 말한 조건이 없으면 null. "
+            "화면에는 보내지 않는다"
         )
     )
 
@@ -370,13 +431,260 @@ class BookingCard(BookingCardData):
     kind: Literal["booking"]
 
 
+class BundleItem(ResponseModel):
+    """묶음 카드 안의 시술 하나. 금액은 같은 병원의 병원 추천 카드와 같은 계산이다."""
+
+    menu_id: str
+    menu_name_ja: str
+    menu_name_ko: str
+    base_krw: int = Field(description="병원 게시가(원)")
+    vat_krw: int = Field(description="게시가에 더하는 부가세(원). 이미 포함이면 0")
+    total_krw: int = Field(description="부가세 포함 가격(원)")
+    total_jpy: int = Field(description="부가세 포함 가격의 엔화 환산")
+    jp_average_jpy: int = Field(description="이 시술의 일본 주요 병원 평균(세금 포함)")
+    price_tags: list[PriceTag]
+    price_note_ja: str
+    price_note_ko: str
+    proof: PriceProof = Field(description="이 시술 가격의 가격표 증빙 링크")
+
+
+class SeparatePick(ResponseModel):
+    """따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준)."""
+
+    menu_id: str
+    menu_name_ja: str
+    menu_name_ko: str
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    total_krw: int = Field(description="이 병원의 부가세 포함 가격(원)")
+    total_jpy: int
+
+
+class BundleCardData(ResponseModel):
+    """search_bundle이 찾은 한 병원 묶음(설계 문서 FR-03, #43). 시술을 모두 이 병원에서 받을 때의 합계다."""
+
+    card_id: str = Field(
+        description="<place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣을 수 있다"
+    )
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    area: AreaId
+    station_ja: str
+    station_ko: str
+    japanese_support: bool
+    items: list[BundleItem] = Field(description="묶음 시술. 사용자가 말한 순서")
+    total_krw: int = Field(description="시술 합계(부가세 포함, 원)")
+    total_jpy: int = Field(description="시술별 엔화 환산의 합")
+    jp_total_jpy: int = Field(description="시술별 일본 평균의 합")
+    savings_jpy: int = Field(
+        description="일본 평균 합계 대비 절약액(엔). 음수면 일본보다 비쌈"
+    )
+    savings_pct: int
+    separate_total_krw: int = Field(
+        description=(
+            "같은 조건(지역·일본어)에서 시술마다 가장 싼 병원에서 따로 받을 때의 합계(원). "
+            "병원을 여러 곳 가야 할 수 있다"
+        )
+    )
+    separate_total_jpy: int
+    separate_clinic_count: int = Field(
+        description="따로 받을 때 가야 하는 병원 수. 1이면 한 병원이 모든 시술의 최저가다"
+    )
+    separate_picks: list[SeparatePick] = Field(
+        description="따로 받을 때 시술마다 가는 병원. 예산은 보지 않는다"
+    )
+    extra_vs_separate_krw: int = Field(
+        description="이 병원 묶음 합계 - 따로 받을 때 합계(원). 0이면 따로 받는 것과 같다"
+    )
+    extra_vs_separate_jpy: int
+    krw_per_100_jpy: float = Field(description="엔화 환산에 쓴 환율(100엔당 원)")
+    fx_date_label: str = Field(description="환율 기준일")
+    distance_meters: int | None = Field(
+        description="기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null"
+    )
+    walk_minutes: int | None
+    rating: float
+    rating_scope: RatingScope
+    rating_tier: RatingTier
+    booking_channels: list[BookingChannel]
+    central_channel: bool
+    price_condition_ja: str
+    price_condition_ko: str
+    source_url: str
+
+
+class BundleCard(BundleCardData):
+    kind: Literal["bundle"]
+    search_id: str = Field(
+        description=(
+            "어느 묶음 검색의 카드인지(이번 턴 묶음 검색 순서, 예: b1). 같은 시술 묶음을 지역끼리 비교하면 "
+            "검색마다 값이 다르고, 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다"
+        )
+    )
+    reason: str | None = Field(
+        description="LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null"
+    )
+
+
+PlanReason = Literal["downtime", "budget", "needle", "far", "no_clinic", "one_clinic"]
+
+
+class PlanItem(BundleItem):
+    """일정에 넣은 시술 하나. 금액은 병원 추천 카드와 같은 계산이다."""
+
+    downtime_max_days: int = Field(description="겉으로 보이는 회복 기간(최대 일수)")
+
+
+class PlanVisit(ResponseModel):
+    """병원 한 곳에 한 번 가는 일정. 같은 병원에서 받는 시술은 한 번 방문으로 묶는다."""
+
+    card_id: str = Field(
+        description=(
+            "<place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣으면 이 방문의 시술이 "
+            "모두 문의 문장에 들어간다"
+        )
+    )
+    day: int | None = Field(
+        description=(
+            "여행자: 몇째 날에 가는지(1 = 병원에 갈 수 있는 첫날, tripDays = 귀국일). 거주자는 null"
+            "(약속 전 언제든, 회복이 긴 방문부터 순서대로)"
+        )
+    )
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    area: AreaId
+    station_ja: str
+    station_ko: str
+    japanese_support: bool
+    items: list[PlanItem]
+    total_krw: int = Field(description="이 방문의 시술 합계(부가세 포함, 원)")
+    total_jpy: int = Field(description="시술별 엔화 환산의 합")
+    downtime_max_days: int = Field(description="이 방문 시술 중 가장 긴 회복 기간")
+    distance_meters: int | None = Field(
+        description="기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null"
+    )
+    walk_minutes: int | None
+    rating: float
+    rating_scope: RatingScope
+    rating_tier: RatingTier
+    booking_channels: list[BookingChannel]
+    central_channel: bool
+    price_condition_ja: str
+    price_condition_ko: str
+
+
+class PlanOption(ResponseModel):
+    """일정에서 뺀 시술을 받는다면 가장 싼 병원(거르기 조건 안)."""
+
+    place_id: str
+    clinic_name_ja: str
+    clinic_name_ko: str
+    total_krw: int = Field(description="부가세 포함 가격(원)")
+    total_jpy: int
+    distance_meters: int | None
+
+
+class PlanDeferred(ResponseModel):
+    """이번 일정에 넣지 않은 시술과 그 이유."""
+
+    menu_id: str
+    menu_name_ja: str
+    menu_name_ko: str
+    downtime_max_days: int
+    reasons: list[PlanReason] = Field(
+        description=(
+            "downtime 회복 기간 초과(여행자: 귀국 전에 회복되지 않음, 거주자: 약속 뒤로 미룸), "
+            "budget 예산 초과(여행자: 이번 여행 예산, 거주자: 다음 달로 미룸), needle 바늘 시술 기피, "
+            "far 기준 위치 6km 안에 병원 없음(거주자), no_clinic 조건에 맞는 병원 없음, "
+            "one_clinic 한 병원에서 같이 받을 수 있는 곳이 없거나 시술 3개를 넘음"
+        )
+    )
+    cheapest: PlanOption | None = Field(
+        description="이 시술을 받는다면 가장 싼 병원. 병원이 없으면(far, no_clinic) null"
+    )
+
+
+class PlanAlternative(ResponseModel):
+    """같은 시술을 다른 방식으로 받을 때의 합계. 일정과 비교해 보여 준다."""
+
+    one_clinic: bool = Field(
+        description="true: 모든 시술을 한 병원에서 같이, false: 시술마다 가장 싼 병원에 따로"
+    )
+    clinic_count: int
+    place_id: str | None = Field(description="한 병원이면 그 병원 ID, 아니면 null")
+    clinic_name_ja: str | None
+    clinic_name_ko: str | None
+    total_krw: int
+    total_jpy: int
+    extra_krw: int = Field(
+        description="이 방식의 합계 - 일정 합계(원). 음수면 이 방식이 쌈"
+    )
+    extra_jpy: int
+
+
+class PlanBudget(ResponseModel):
+    currency: Literal["JPY", "KRW"]
+    amount: int
+    left: int = Field(
+        description="예산 - 일정 합계(예산 통화). 일정은 예산을 넘지 않는다"
+    )
+
+
+class TripPlanCardData(ResponseModel):
+    """plan_trip이 만든 일정(설계 문서 FR-11, 9장, #45)."""
+
+    visitor: Visitor
+    trip_days: int | None = Field(
+        description="여행자: 병원에 갈 수 있는 첫날부터 귀국일까지 날 수(2박 3일이면 3). 거주자는 null"
+    )
+    days_until_event: int | None = Field(
+        description="거주자: 오늘부터 다음 약속(얼굴이 깨끗해야 하는 날)까지 날 수(내일이면 1). 모르면 null"
+    )
+    one_clinic: bool = Field(
+        description="모든 시술을 한 병원에서 같이 받는 일정이면 true"
+    )
+    radius_meters: int | None = Field(
+        description=(
+            "거주자: 기준 위치에서 이 거리 안의 병원만 골랐다(3km, 3km 안에 없는 시술이 있으면 6km). "
+            "기준 위치가 없거나 여행자면 null"
+        )
+    )
+    visits: list[PlanVisit] = Field(
+        description="이번에 받을 방문. 여행자는 날짜 순, 거주자는 회복이 긴 순"
+    )
+    total_krw: int = Field(description="일정 합계(부가세 포함, 원)")
+    total_jpy: int
+    jp_total_jpy: int = Field(description="일정 시술의 일본 평균 합계")
+    savings_jpy: int
+    savings_pct: int
+    budget: PlanBudget | None
+    alternative: PlanAlternative | None = Field(
+        description="같은 시술을 다른 방식(한 병원 또는 따로)으로 받을 때의 합계. 비교할 것이 없으면 null"
+    )
+    deferred: list[PlanDeferred]
+    krw_per_100_jpy: float
+    fx_date_label: str
+
+
+class TripPlanCard(TripPlanCardData):
+    kind: Literal["trip_plan"]
+
+
 Card = Annotated[
-    RecommendationCard | LocationCard | JpMatchCard | BookingCard,
+    RecommendationCard
+    | LocationCard
+    | JpMatchCard
+    | BundleCard
+    | TripPlanCard
+    | BookingCard,
     Field(discriminator="kind"),
 ]
 
 
-FallbackReason = Literal["error", "daily_limit"]
+FallbackReason = Literal["error", "daily_limit", "busy", "turn_limit"]
 
 
 class ChatResponse(ResponseModel):
@@ -384,7 +692,9 @@ class ChatResponse(ResponseModel):
     fallback: FallbackReason | None = Field(
         description=(
             "에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·"
-            "시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 "
+            "시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도, "
+            "busy는 같은 대화의 앞 요청이 대기 시간 안에 끝나지 않음, turn_limit은 한 대화 최대 턴 수를 넘음(새 대화를 열어야 함). "
+            "화면은 시세표로 가는 길을 "
             "보여 준다. 정상 답변이면 null"
         )
     )
@@ -393,7 +703,8 @@ class ChatResponse(ResponseModel):
     cards: list[Card] = Field(
         description=(
             "kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), "
-            "recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다"
+            "recommendation(병원 추천), bundle(한 병원 묶음), trip_plan(일정), booking(예약 채널과 문의 문장) "
+            "순서로 온다"
         )
     )
     exclusions: list[Exclusion] = Field(
@@ -403,3 +714,69 @@ class ChatResponse(ResponseModel):
     suggestions: list[str]
     cautions: list[str]
     disclaimer: str
+
+
+class ChatStreamStart(ResponseModel):
+    """스트림 첫 이벤트. 새 대화면 여기서 대화 ID를 알 수 있다."""
+
+    type: Literal["start"]
+    thread_id: UUID
+
+
+class ChatStreamDelta(ResponseModel):
+    """답변(answer)에 이어 붙일 글. 화면은 받은 순서대로 이어 붙여 보여 준다."""
+
+    type: Literal["delta"]
+    text: str = Field(
+        description=(
+            "이번에 늘어난 답변 글. 도구 결과에 없는 금액이 든 문장은 보내지 않으므로, 문장이나 줄이 끝날 때 "
+            "한꺼번에 온다"
+        )
+    )
+
+
+class ChatStreamDone(ResponseModel):
+    """스트림 마지막 이벤트. `POST /api/agent/chat`과 같은 응답 전체."""
+
+    type: Literal["done"]
+    response: ChatResponse = Field(
+        description=(
+            "최종 응답. 화면은 delta로 이어 붙인 답변을 response.answer로 바꾼다. 시세표 안내(fallback)도 "
+            "이 이벤트로 온다"
+        )
+    )
+
+
+ChatStreamEvent = Annotated[
+    ChatStreamStart | ChatStreamDelta | ChatStreamDone, Field(discriminator="type")
+]
+
+
+class ProfileBudgetResponse(ResponseModel):
+    amount: int
+    currency: Literal["JPY", "KRW"]
+    scope: BudgetScope | None = Field(
+        description="per_treatment 시술 1회 예산, total 일정 전체 예산. 사용자가 말하지 않았으면 null"
+    )
+
+
+class ProfileLocation(ResponseModel):
+    location_id: str = Field(description="위치 ID. 예: area:hongdae, station:홍대입구")
+    name_ja: str
+    name_ko: str
+
+
+class UserProfileResponse(ResponseModel):
+    """저장된 사용자 기억(설계 문서 8장, 10장). 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다."""
+
+    visitor: Visitor | None = Field(description="traveler 여행자, resident 서울 거주자")
+    budget: ProfileBudgetResponse | None
+    arrival_date: date | None = Field(description="서울 도착일")
+    return_date: date | None = Field(description="귀국일")
+    location: ProfileLocation | None = Field(description="숙소나 사는 곳")
+    concerns: list[ConcernId] = Field(description="고민 분류")
+    avoid_needle: bool | None = Field(description="바늘 시술을 피하면 true")
+    jp_treatments: list[str] = Field(
+        description="일본에서 받은 시술(사용자 표현 그대로)"
+    )
+    updated_at: AwareDatetime | None = Field(description="마지막으로 저장한 시각")

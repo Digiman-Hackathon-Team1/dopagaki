@@ -1,6 +1,11 @@
 import type { Lang, PlaceItem } from '../types.ts';
 
-export type ExternalReviewPlatform = 'threads' | 'naver_blog' | 'note';
+export type ExternalReviewPlatform =
+  | 'threads'
+  | 'naver_blog'
+  | 'note'
+  | 'naver_place'
+  | 'google_maps';
 
 export interface ExternalReviewPost {
   id: string;
@@ -2207,6 +2212,270 @@ export const VERIFIED_EXTERNAL_REVIEW_POSTS: ExternalReviewPost[] = [
     summaryKo: '눈가 잔주름이 신경 쓰여 쥬베룩 시술을 받은 후기. 시술 과정과 이후 변화를 자세히 리뷰하며 주기적으로 받을 생각이라는 내용.',
     summaryJa: '目元の小じわが気になりジュベルックを受けたレビュー。施術の流れとその後の変化を詳しく書き、定期的に受けるつもりという内容。',
     url: 'https://blog.naver.com/bebecool/224299456561'
+  },
+  // === 14. Additional strictly verified branch-exact reviews (26.11 audit) ===
+  {
+    id: 'blog-forever-gangnam-1',
+    platform: 'naver_blog',
+    placeId: 'forever-gangnam',
+    dateLabel: '26.04.18',
+    summaryKo: '강남점 레이저토닝 10회 자비 시작. 대기 길지 않고 원내가 깔끔하며 외국인 방문객도 보임. 잔털 정리 포함, 통증은 예상보다 적음.',
+    summaryJa: '江南店でレーザートーニング10回を自費契約。待ち時間は短めで院内が清潔、外国人客も見かけ、痛みは想定より控えめだった。',
+    url: 'https://blog.naver.com/egg_1979/224257161714'
+  },
+  {
+    id: 'blog-forever-gangnam-2',
+    platform: 'naver_blog',
+    placeId: 'forever-gangnam',
+    dateLabel: '26.02.25',
+    summaryKo: '강남점 슈링크 600샷·스킨보톡스 자비 솔직 후기. 비예약 방문 시 겨울 성수기 대기 있음. 슈링크는 1달 뒤 턱선 정리에 추천, 스킨보톡스는 통증 강해 비추.',
+    summaryJa: '江南店でシュリンク600ショットとスキンボトックス自費体験。予約なし冬休み時期は混雑。シュリンクは1ヶ月後の輪郭に満足、スキンボトックスは痛みが強く非推奨。',
+    url: 'https://blog.naver.com/lovelysu-11/224195848574'
+  },
+  {
+    id: 'note-drdesigner-myeongdong-1',
+    platform: 'note',
+    placeId: 'drdesigner-myeongdong',
+    dateLabel: '26.08.11',
+    summaryKo: '일본인 1인 방문 후기. 베테랑 일본어 통역이 동행해 불필요 시술은 빼고 예산·퇴점 시간(13시 전)에 맞춰 진행, 원장 직접 시술에 만족.',
+    summaryJa: '日本人ひとり渡韓レポ。ベテラン日本語通訳が親身に不要な施術を省き、予算と13時退店希望に合わせて提案（押し売りなし）。院長直接施術にも満足。',
+    url: 'https://note.com/magic_newt1213/n/n5c37acc22104'
+  },
+  {
+    id: 'note-muse-myeongdong-1',
+    platform: 'note',
+    placeId: 'muse-myeongdong',
+    dateLabel: '26.01.01',
+    summaryKo: '일본인 가족여행 중 LINE 예약 후 방문. 일본어 직원 응대, 기미 레이저 5종+팩(약 4만엔) 2시간 반 소요, 귀국 2주 뒤 기미 개선 체감.',
+    summaryJa: '子連れ渡韓でLINE予約・日本語スタッフ対応に安心。顔全体のシミ取り（レーザー5種＋パック約4万円）は約2時間半で終了し、帰国2週間後に変化を実感。',
+    url: 'https://note.com/quirky_jaguar213/n/nd8135e5a9c47'
+  },
+  {
+    id: 'blog-vands-sinsa-1',
+    platform: 'naver_blog',
+    placeId: 'vands-sinsa',
+    dateLabel: '23.09.28',
+    summaryKo: '신사역점 리쥬란힐러 4cc 손주사 자비 시술(부가세 포함 약 33만원 미만). 가성비는 좋으나 마감 전 방문이라 마취 대기(25분)가 다소 짧게 느껴짐.',
+    summaryJa: '新沙駅店でリジュラン4cc手打ち自費（税込約33万W未満）。コスパ良好だが閉店間際の来院で麻酔時間25分がやや短く感じたとの率直レポ。',
+    url: 'https://blog.naver.com/luminous8090/223223957880'
+  },
+  {
+    id: 'blog-vands-samsung-1',
+    platform: 'naver_blog',
+    placeId: 'vands-samsung',
+    dateLabel: '25.05.31',
+    summaryKo: '삼성점 젠틀맥스프로플러스 1회 체험가(3.9만원) 레이저제모 자비 방문. 내부·세안실 깔끔하고 친절하나 시술 시간이 짧고 자극이 약해 출력은 다소 아쉬움.',
+    summaryJa: '三成店でジェントルマックスプロプラス脱毛の初回体験（3.9万W）。院内・洗顔室は清潔で親切だが照射時間が短く出力はやや控えめに感じた。',
+    url: 'https://blog.naver.com/w2022004/223883661203'
+  },
+  {
+    id: 'blog-ppeum-jamsil-1',
+    platform: 'naver_blog',
+    placeId: 'ppeum-jamsil',
+    dateLabel: '24.05.08',
+    summaryKo: '잠실새내점 미간 보톡스 자비 재방문. 카톡 문의 응대가 친절하고 현장 대기 거의 없이 냉찜질 후 주름 위치 확인하고 빠르게 시술 완료.',
+    summaryJa: '蚕室セネ店で眉間ボトックス自費再訪。カカオ相談が親切で現地待ちもほぼなく、冷却後にシワ位置を確認して手早く施術が終わった。',
+    url: 'https://blog.naver.com/mwahmuah/223440482325'
+  },
+  {
+    id: 'blog-drevers-gongdeok-1',
+    platform: 'naver_blog',
+    placeId: 'drevers-gongdeok',
+    dateLabel: '26.10.29',
+    summaryKo: '공덕점 엠페이스 3회 자비 결제 중 1회차 후기. 칸막이 베드·파우더룸 깔끔, 원장이 표정 근육과 비대칭을 꼼꼼히 확인했고 20분간 통증 거의 없이 진행.',
+    summaryJa: '孔徳店でエムフェイス3回自費の1回目。仕切りベッドとパウダールームが清潔、院長が表情筋と左右差を丁寧に確認し20分間ほぼ無痛で進行。',
+    url: 'https://blog.naver.com/leerna4/224457972759'
+  },
+  {
+    id: 'blog-forever-gangdong-1',
+    platform: 'naver_blog',
+    placeId: 'forever-gangdong',
+    dateLabel: '24.09.19',
+    summaryKo: '천호역점 리프팅 무료 상담 솔직 후기. 예약 시간 바로 입장했으나 의사 아닌 데스크 상담이 짧고 무성의하게 느껴졌으며 안내가도 광고와 달라 미시술 귀가.',
+    summaryJa: '千戸駅店の無料相談レポ。予約通り案内されたが医師ではなくスタッフ相談が短くそっけない印象で、見積りも広告価格と差があり施術せず帰宅。',
+    url: 'https://blog.naver.com/bbx666/223588772589'
+  },
+  {
+    id: 'blog-forever-mapo-1',
+    platform: 'naver_blog',
+    placeId: 'forever-mapo',
+    dateLabel: '23.08.12',
+    summaryKo: '마포점 겨드랑이 레이저 제모 3회차 자비 후기. 1회차엔 따끔했으나 2회차 이후 털이 대부분 줄어 3회차는 거의 무통, 여성 스태프가 젤 도포해 부담 적음.',
+    summaryJa: '麻浦店で脇レーザー脱毛3回目自費。初回はチクッとしたが2回目以降は毛が減り3回目はほぼ無痛、女性スタッフがジェル塗布してくれて安心感あり。',
+    url: 'https://blog.naver.com/heekyjung/223181903849'
+  },
+  {
+    id: 'blog-forever-mapo-2',
+    platform: 'naver_blog',
+    placeId: 'forever-mapo',
+    dateLabel: '21.12.30',
+    summaryKo: '마포점 재방문으로 얼굴·목·상체 편평사마귀 CO2 레이저 제거 자비 시술. 과거 방문 후 다시 찾았으며 약 795개 제거를 한 번에 진행한 기록.',
+    summaryJa: '麻浦店を再訪し顔・首・上半身の扁平いぼCO2レーザー除去を自費施術。以前の利用後にリピートし約795個をまとめて処置した記録。',
+    url: 'https://blog.naver.com/jadoresj/222608951488'
+  },
+  {
+    id: 'blog-toxnfill-magok-1',
+    platform: 'naver_blog',
+    placeId: 'toxnfill-magok',
+    dateLabel: '22.07.20',
+    summaryKo: '강서마곡(발산역 인근) 점심시간 제모+염증주사 자비 방문. 도착 직후 시술은 빨랐으나 처방전 발급이 20분 이상 지연되고 안내가 미흡해 못 받고 귀가.',
+    summaryJa: '江西麻谷（鉢山駅近く）で昼休みに脱毛とニキビ注射を自費受診。施術までは早かったが処方箋発行が20分以上遅れ案内も不十分で受け取れず帰宅。',
+    url: 'https://blog.naver.com/minjooinhanoi/222820831655'
+  },
+  {
+    id: 'blog-maypure-magok-1',
+    platform: 'naver_blog',
+    placeId: 'maypure-magok',
+    dateLabel: '26.09.03',
+    summaryKo: '마곡점 쥬베룩+모공 패키지 5회 자비 후기. 1~2회차 손주사 통증 후 3회차부터 기계 시술로 변경, 3~5회차에 피부결·모공 정돈 체감, 건물 주차 2시간 지원.',
+    summaryJa: '麻谷店でジュベルック＋毛穴ケア5回自費。1〜2回目の手打ちが痛く3回目から機械へ変更、3〜5回目で肌キメと毛穴の変化を実感、駐車2時間無料。',
+    url: 'https://blog.naver.com/10040438/224399691424'
+  },
+  {
+    id: 'blog-maypure-nowon-1',
+    platform: 'naver_blog',
+    placeId: 'maypure-nowon',
+    dateLabel: '25.10.26',
+    summaryKo: '중계은행사거리점 오픈 시간(10:30)에도 대기가 있을 만큼 인기. 세안실 넓고 청결하며 원장이 꼼꼼히 확인, 필요 시술 외 과한 권유가 없어 편함.',
+    summaryJa: '中渓銀行サゴリ店は10:30開院直後から待ちが出る人気。洗顔室が広く清潔で院長が丁寧に確認、必要な施術以外の過剰勧誘がなく利用しやすい。',
+    url: 'https://blog.naver.com/citrontree_yuja/224050991372'
+  },
+  {
+    id: 'blog-ppeum-nowon-1',
+    platform: 'naver_blog',
+    placeId: 'ppeum-nowon',
+    dateLabel: '25.02.28',
+    summaryKo: '노원점 카톡 예약 후 평일 오후 방문, 3,900원 특가 미간 보톡스 1부위만 자비 시술. 대기 적고 냉찜질 후 간단히 끝났으며 역 접근성이 좋아 재방문.',
+    summaryJa: '蘆原店をカカオ予約し平日午後に訪問、3,900W特価の眉間ボトックス1部位のみ自費施術。待ち少なく冷却後に手早く終わり駅近でリピート中。',
+    url: 'https://blog.naver.com/bonniebeerang/223777553401'
+  },
+  {
+    id: 'blog-uni-mokdong-1',
+    platform: 'naver_blog',
+    placeId: 'uni-mokdong',
+    dateLabel: '26.07.12',
+    summaryKo: '목동 SBS 사옥 내 여의사 레이저 제모 내돈내산. 원내 크고 청결하며 상담·결제·시술이 5~10분 내 빠름, 흉터 레이저는 전문의 진료를 권유할 만큼 솔직.',
+    summaryJa: '木洞SBSビル内で女性医師のレーザー脱毛を自費体験。院内が広く清潔で相談から施術まで5〜10分と迅速、傷跡治療は専門医受診を勧める誠実対応。',
+    url: 'https://blog.naver.com/makesunworld/224344135213'
+  },
+  {
+    id: 'blog-velyb-mokdong-1',
+    platform: 'naver_blog',
+    placeId: 'velyb-mokdong',
+    dateLabel: '25.04.05',
+    summaryKo: '목동점 쥬베룩 볼륨 원장 직접 시술 자비 후기. 예약해도 대기가 있을 정도로 인기 지점이며 주사 통증·3~7일 붓기 개인차 있음, 첫 시술 제오민 보톡스 가성비 언급.',
+    summaryJa: '木洞店でジュベルックボリュームを院長直接施術。予約しても待ちが出る人気店で痛みや3〜7日の腫れは個人差あり、初回ゼオミンボトックスがお得との声。',
+    url: 'https://blog.naver.com/jooyoungjin80/223822610780'
+  },
+  {
+    id: 'blog-reverse-nowon-1',
+    platform: 'naver_blog',
+    placeId: 'reverse-nowon',
+    dateLabel: '23.05.30',
+    summaryKo: '노원점(화랑빌딩 6층) 아쿠아필 방문 후기. 휴일 방문 시 내원객이 많아 예약보다 30분 일찍 도착해 로비 소파에서 대기 후 관리받았다는 현장 기록.',
+    summaryJa: '蘆原店（ファランビル6階）のアクアピール体験。休日は来院客が多く予約より30分早く到着してロビーのソファで待機後に施術を受けた現地記録。',
+    url: 'https://blog.naver.com/heenijuuni/223115148795'
+  },
+
+  // === Wave 3: Multi-platform verified branch reviews (note / Naver Blog / Naver Place / Google Maps) ===
+  {
+    id: 'note-drevers-cheongdam-1',
+    platform: 'note',
+    placeId: 'drevers-cheongdam',
+    dateLabel: '26.04.29',
+    summaryKo: '점심 방문 기준 대기 없이 바로 상담, 강매 없이 피코토닝·제네시스·피코프락셀·리쥬란HB·스킨보톡스 5종을 약 1시간 30분 만에 마쳐 여행 중 시단 효율이 좋았다는 일본인 후기.',
+    summaryJa: '昼訪問で待ち時間ゼロ・押し売りなし。ピコトーニング・ジェネシス・リジュランHB・スキンボトックスなど5施術を約1時間半で終え、旅行中の時短に助かったとの体験記。',
+    url: 'https://note.com/maichi0403/n/n787f3df0257c'
+  },
+  {
+    id: 'blog-drevers-cheongdam-1',
+    platform: 'naver_blog',
+    placeId: 'drevers-cheongdam',
+    dateLabel: '25.07.31',
+    summaryKo: '청담점(선릉로 830) LDM 12분 3회(12.6만) 이벤트 재방문 후기. 공장형이라 30~40분 내 빠르게 끝나고 엘리베이터·유모차 접근이 편하며 택스프리·외국인 방문이 많은 편.',
+    summaryJa: '清潭店（宣陵路830）のLDM12分×3回（12.6万W）イベント再訪。システマチックで30〜40分と早く完了、エレベーター完備で外国人客やタックスフリー対応も目立つ記録。',
+    url: 'https://blog.naver.com/totooto_/223953929222'
+  },
+  {
+    id: 'blog-uni-sangbong-1',
+    platform: 'naver_blog',
+    placeId: 'uni-sangbong',
+    dateLabel: '26.11.02',
+    summaryKo: '상봉망우점(듀오트리스 3층) 리투오+온다리프팅 내돈내산 후기. 온다는 다음 날 가벼운 홍조 후 2일차 완화, 리투오는 통증·주사 자국 있으나 건조감 개선, 주차 2시간 무료(초과 시 적립금 보전).',
+    summaryJa: '上鳳忘憂店（デュオトリス3階）でリトゥオ＋オンダ自費施術。オンダは翌日軽い赤み後2日目に落ち着き、リトゥオは痛みと針跡ありつつ乾燥改善、駐車2時間無料。',
+    url: 'https://blog.naver.com/doeverything0109/224462184385'
+  },
+  {
+    id: 'blog-vands-gongdeok-1',
+    platform: 'naver_blog',
+    placeId: 'vands-gongdeok',
+    dateLabel: '26.11.03',
+    summaryKo: '마포공덕점 팔 잡티 아리아 색소레이저 내돈내산 후기. 원장이 색소 부위 위주로 꼼꼼히 조사했고 통증은 참을 만한 따끔거림 수준, 시술 직후 미세 딱지 형성 후 1~2주 자연 탈락 대기.',
+    summaryJa: '麻浦孔徳店で腕の色素レーザーを自費施術。院長がシミ部位を丁寧に照射し痛みは我慢できるチクッと感、直後に細かい薄いかさぶたができ1〜2週間で自然脱落を待つ記録。',
+    url: 'https://blog.naver.com/hyochanj/224463482117'
+  },
+  {
+    id: 'blog-ppeum-balsan-1',
+    platform: 'naver_blog',
+    placeId: 'ppeum-balsan',
+    dateLabel: '25.04.10',
+    summaryKo: '발산점 1회 체험가로 피코토닝과 아쿠아필+촉촉팩을 함께 받은 방문 후기. 가벽·커튼으로 나뉜 베드에서 지인과 나란히 관리받았고, 토닝 후 건조감 대비 보습팩 추가가 도움 됐다는 기록.',
+    summaryJa: '鉢山店で初回体験価格のピコトーニングとアクアピール＋保湿パックを施術。仕切りカーテン付きのベッドで知人と並んで受け、トーニング後の乾燥対策にパック追加が良かったとの声。',
+    url: 'https://blog.naver.com/kpachul10/223829131154'
+  },
+  {
+    id: 'gmaps-ppeum-snu-1',
+    platform: 'google_maps',
+    placeId: 'ppeum-snu',
+    dateLabel: '26.02.01',
+    summaryKo: '구글 지도 방문자 리뷰. 제모 시 마취크림 도포 시간이 짧고 턱밑 등 세부 부위 제외·추가금 안내가 있어 사전 범위 확인이 필요하다는 지적과, 친절하고 꼼꼼했다는 만족 평이 공존.',
+    summaryJa: 'Googleマップ訪問者口コミ。脱毛時の麻酔塗布が短めで顎下など部位除外・追加料金の案内があるため事前範囲確認が必要との指摘と、丁寧な施術に満足との声が混在。',
+    url: 'https://www.google.com/maps/place/%EC%98%88%EC%81%A8%EC%A3%BC%EC%9D%98%EC%81%A8%EC%9D%98%EC%9B%90+%EC%84%9C%EC%9A%B8%EB%8C%80%EC%9E%85%EA%B5%AC%EC%A0%90/data=!4m6!3m5!1s0x357c9f844eefe917:0x50c3ae2021f93efa!9m1!1b1!16s%2Fg%2F11qyq3l9_3'
+  },
+  {
+    id: 'gmaps-uni-hongdae-1',
+    platform: 'google_maps',
+    placeId: 'uni-hongdae',
+    dateLabel: '26.09.01',
+    summaryKo: '홍대신촌점(양화로 162 좋은사람들빌딩 5층) 구글 지도 리뷰. 몇 년째 다니는 단골들이 과한 권유 없이 피부 상태에 맞춰 상담하고, 내부가 넓고 차분하며 이벤트 가격이 합리적이라고 평가.',
+    summaryJa: '弘大新村店（楊花路162・5階）のGoogleマップ口コミ。数年通う常連客から過剰な勧誘なく肌状態に合わせて提案してくれ、広く落ち着いた院内と手頃なイベント価格が好評。',
+    url: 'https://www.google.com/maps/place/%EC%9C%A0%EC%95%A4%EC%95%84%EC%9D%B4%EC%9D%98%EC%9B%90+%ED%99%8D%EB%8C%80%EC%8B%A0%EC%B4%8C%EC%A0%90/data=!4m6!3m5!1s0x357c99fe3a75e3e9:0x91bdebf1697489ec!9m1!1b1!16s%2Fg%2F11ffm71lct'
+  },
+  {
+    id: 'nplace-daybeau-myeongdong-1',
+    platform: 'naver_place',
+    placeId: 'daybeau-myeongdong',
+    dateLabel: '26.10.04',
+    summaryKo: '명동더프리미엄점(남대문로 90 N빌딩 6층) 네이버 방문자 리뷰. 이동 없이 프라이빗 1인실에서 피부진단·클렌징·시술을 1대1로 진행해 공장형보다 쾌적하고 강매 부담이 적었다는 평.',
+    summaryJa: '明洞ザ・プレミアム（南大門路90・Nビル6階）のNAVER訪問者口コミ。移動なしの完全個室で肌診断・洗顔・施術まで1対1対応、工場型より落ち着いて押し売り感も少ないとの声。',
+    url: 'https://m.place.naver.com/hospital/1159646885/review/visitor'
+  },
+  {
+    id: 'gmaps-daybeau-myeongdong-1',
+    platform: 'google_maps',
+    placeId: 'daybeau-myeongdong',
+    dateLabel: '26.09.01',
+    summaryKo: '남대문로 90 N빌딩 6층 구글 지도 리뷰. 프라이빗 1인실과 친절한 상담·신속 정확한 원장 시술에 만족도가 높고, 외국인 통역 지원과 공휴일 진료로 여행 중 이용하기 편하다는 평.',
+    summaryJa: '南大門路90・Nビル6階のGoogleマップ口コミ。プライベート個室の快適さと丁寧な相談・的確な医師の施術が高評価で、通訳対応や祝日診療もあり旅行中に利用しやすいとの声。',
+    url: 'https://www.google.com/maps/place/%EB%8D%B0%EC%9D%B4%EB%B7%B0%EC%9D%98%EC%9B%90+%EB%AA%85%EB%8F%99%EC%A0%90/data=!4m6!3m5!1s0x357ca3eec93bd331:0x74deffc3075b17a8!9m1!1b1!16s%2Fg%2F11x1nqgr2t'
+  },
+  {
+    id: 'nplace-beautylounge-myeongdong-1',
+    platform: 'naver_place',
+    placeId: 'beautylounge-myeongdong',
+    dateLabel: '26.10.23',
+    summaryKo: '명동점(퇴계로 109 8층) 네이버 방문자 리뷰. 사전 예약 시 대기 없이 바로 상담했고 과도한 권유 없이 피부에 맞게 추천, 리쥬란(무통+에어샤인팁)·스킨바이브·제모가 꼼꼼했다는 평.',
+    summaryJa: '明洞店（退渓路109・8階）のNAVER訪問者口コミ。事前予約で待ち時間なく相談でき、無理な勧誘なく肌悩みに合わせて提案、リジュラン（無痛＋エアシャインチップ）や脱毛も丁寧との声。',
+    url: 'https://m.place.naver.com/hospital/1184067480/review/visitor'
+  },
+  {
+    id: 'gmaps-beautylounge-myeongdong-1',
+    platform: 'google_maps',
+    placeId: 'beautylounge-myeongdong',
+    dateLabel: '26.10.20',
+    summaryKo: '구글 지도 방문자 리뷰. 역 바로 앞 깔끔한 환경에서 셀링 부담 없이 원장이 꼼꼼히 시술했다는 호평이 다수이나, 과거 일부 후기에선 상담 직원 응대 태도가 아쉽다는 지적도 있음.',
+    summaryJa: 'Googleマップ口コミ。駅すぐの清潔な院内で押し売り感なく院長が丁寧に施術する好評価が多い一方、過去の一部投稿では相談スタッフの対応に不満の声もあり。',
+    url: 'https://www.google.com/maps/place/%EB%B7%B0%ED%8B%B0%EB%9D%BC%EC%9A%B4%EC%A7%80%EC%9D%98%EC%9B%90+%EB%AA%85%EB%8F%99+BEAUTYLOUNGE+CLINIC+MYEONGDONG/data=!4m6!3m5!1s0x357ca355d265aab3:0x5129437f5fcedb21!9m1!1b1!16s%2Fg%2F11v3szg0v6'
   }
 
 ];
@@ -2215,7 +2484,9 @@ function resolveMeta(post: ExternalReviewPost): ResolvedExternalReviewPost {
   const platformMap: Record<ExternalReviewPlatform, { ko: string; ja: string }> = {
     threads: { ko: 'Threads', ja: 'Threads' },
     naver_blog: { ko: '네이버 블로그', ja: 'Naverブログ' },
-    note: { ko: 'note', ja: 'note' }
+    note: { ko: 'note', ja: 'note' },
+    naver_place: { ko: '네이버 플레이스', ja: 'NAVERプレイス' },
+    google_maps: { ko: '구글 지도', ja: 'Googleマップ' }
   };
   const p = platformMap[post.platform];
   return {
@@ -2228,12 +2499,16 @@ function resolveMeta(post: ExternalReviewPost): ResolvedExternalReviewPost {
 function platformRank(post: ExternalReviewPost, lang: Lang): number {
   if (lang === 'ja') {
     if (post.platform === 'note') return 0;
-    if (post.platform === 'threads') return 1;
-    return 2;
+    if (post.platform === 'google_maps') return 1;
+    if (post.platform === 'threads') return 2;
+    if (post.platform === 'naver_place') return 3;
+    return 4;
   }
   if (post.platform === 'threads') return 0;
   if (post.platform === 'naver_blog') return 1;
-  return 2;
+  if (post.platform === 'naver_place') return 2;
+  if (post.platform === 'google_maps') return 3;
+  return 4;
 }
 
 /**

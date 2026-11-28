@@ -1,15 +1,15 @@
 {
   "sources": {
-    "apps/web/src/data/prices.json": "f842f71073595b8913d93328c7b905fc9a3a8c6ca6cf84e47144d80287c2370c",
+    "apps/web/src/data/prices.json": "16754d26947145c2fba85f88713a8473307e3684581b759ae83746df0e64e6d0",
     "apps/web/src/lib/calc.ts": "3bd5c2b0242d6807b14d6384d03b193566400e9fc1f2a55ea1c42c71129c3d09",
-    "apps/web/src/lib/concierge.ts": "185f63d3d46fb60a99cc8b6fb4ea11583fe4fadbad1760b249fcb257bffe01dd",
-    "apps/web/src/lib/ai-rating.ts": "7beff55d6e9ddf42a704035c0f19661203507e12caba45aec8b880eee65478b8",
-    "apps/web/src/data/brand-reviews.ts": "8a631e620af9be852f5491c95bf1d8601426a3919c32a62316abb70c28e37fe9",
-    "apps/web/src/data/branch-reviews.ts": "4a73a60154b10bcf58b00b80ffcbca1af2b9f8998007fcac9929e7814f935a9d",
+    "apps/web/src/lib/treatment-rules.ts": "7169d9b5c041f5393c94a58a900ed3fde201f7152fccb445c63471405fdd4548",
+    "apps/web/src/lib/ai-rating.ts": "7c6e1f2ae5f210cf69c1fd1bbbf9c5d498ef48ddd38117041f347d20746ad76c",
+    "apps/web/src/data/brand-reviews.ts": "980128657f2e23c325526892be114deded75a87c7dba18bc876a6bfdc27672c5",
+    "apps/web/src/data/branch-reviews.ts": "6403b8be273caf3c88050aa15ca56c2a0f3cae24b15bd951d75853970e7b6ee3",
     "apps/web/src/data/clinic-channels.ts": "301a6533f56e5eca240a1ab3a49061f6c81ff5359e0cad8826fa2ec6730bb3b0",
-    "apps/web/src/data/official-proofs.ts": "dfaf707e37b4e49755e24dd66a41a16645b47cdd2bd3aca8248e2ad637e346d9",
+    "apps/web/src/data/official-proofs.ts": "879df0bb3ec116fc1faadf5537603d47d23d2c10fd39f85b795b893161c2c83b",
     "apps/web/src/lib/clinic-helpers.ts": "19be50f4de79ca654069cfe32004c7a18b7c1787cbb6269de77e26aac06211ef",
-    "apps/api/scripts/export-web-snapshot.mts": "5e6019b995bfd3252d0938396340a76fd567d5df90a4899c47e9aa877aae2f89",
+    "apps/api/scripts/export-web-snapshot.mts": "b690ab961ee050a791905594cf8ebdeb155533bc4cd67ed7bf5bad55b3cdb99d",
     "apps/web/src/data/proof-hidden.ts": "749e8e26e15f1d9a99b68739987ff212c251665dc03a5d981ec6c43b7ed460a2"
   },
   "meta": {
@@ -24,8 +24,8 @@
     }
   },
   "fx": {
-    "krwPer100Jpy": 843.75,
-    "dateLabel": "2026.11.27",
+    "krwPer100Jpy": 837.54,
+    "dateLabel": "2026.11.28",
     "bankKo": "하나은행",
     "bankJa": "ハナ銀行",
     "sourceUrl": "https://stock.naver.com/marketindex/exchange/FX_JPYKRW"
@@ -1143,7 +1143,7 @@
       "stationKo": "홍대입구역 9번 출구 도보 2분",
       "lat": 37.55572,
       "lng": 126.92131,
-      "sourceUrl": "https://www.ppeum.com/",
+      "sourceUrl": "https://event.ppeum.com/v1/event/reserve?branch=ppeum6&type=homepage&idx=",
       "sourceType": "official_event",
       "vatExcluded": true,
       "japaneseSupport": true,
@@ -1161,7 +1161,7 @@
           "noteKo": "쁨글로벌의원 홍대점 공식 가격 (사각턱 보톡스 19,000원)"
         }
       },
-      "aiRating": 3.9,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -1240,7 +1240,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)"
         }
       },
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -1270,7 +1270,7 @@
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouonline.com/ja/hongdae/price/skin-booster/rejuran-healer",
-          "urlKo": "https://abijouonline.com/hongdae/price/skin-booster/rejuran-healer",
+          "urlKo": "https://abijouonline.com/ko/hongdae/price/skin-booster/rejuran-healer",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1279,7 +1279,7 @@
         },
         "shrink-300": {
           "urlJa": "https://abijouonline.com/ja/hongdae/price/laser-lifting-treatments/shurink-universe",
-          "urlKo": "https://abijouonline.com/hongdae/price/laser-lifting-treatments/shurink-universe",
+          "urlKo": "https://abijouonline.com/ko/hongdae/price/laser-lifting-treatments/shurink-universe",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1288,7 +1288,7 @@
         },
         "jaw-botox": {
           "urlJa": "https://abijouonline.com/ja/hongdae/price/botulinum-toxin-contouring/masseter-toxin",
-          "urlKo": "https://abijouonline.com/hongdae/price/botulinum-toxin-contouring/masseter-toxin",
+          "urlKo": "https://abijouonline.com/ko/hongdae/price/botulinum-toxin-contouring/masseter-toxin",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1297,7 +1297,7 @@
         },
         "inmode-fx": {
           "urlJa": "https://abijouonline.com/ja/hongdae/price",
-          "urlKo": "https://abijouonline.com/hongdae/price/laser-lifting-treatments/inmode",
+          "urlKo": "https://abijouonline.com/ko/hongdae/price/laser-lifting-treatments/inmode",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1306,7 +1306,7 @@
         },
         "re2o-5cc": {
           "urlJa": "https://abijouonline.com/ja/hongdae/price/skin-booster/elravie-re2o",
-          "urlKo": "https://abijouonline.com/hongdae/price/skin-booster/elravie-re2o",
+          "urlKo": "https://abijouonline.com/ko/hongdae/price/skin-booster/elravie-re2o",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1617,9 +1617,9 @@
           "matchedText": "리쥬란 힐러 2cc 190,000원 350,000원"
         },
         "shrink-300": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill35.com/",
           "urlKo": "https://www.toxnfill35.com/eventDetail.php?c=399&i=39947",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill35.com",
           "domainKo": "toxnfill35.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -1777,7 +1777,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)"
         }
       },
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -1807,7 +1807,7 @@
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouonline.com/ja/myeongdong/price/skin-booster/rejuran-healer",
-          "urlKo": "https://abijouonline.com/myeongdong/price/skin-booster/rejuran-healer",
+          "urlKo": "https://abijouonline.com/ko/myeongdong/price/skin-booster/rejuran-healer",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1816,7 +1816,7 @@
         },
         "shrink-300": {
           "urlJa": "https://abijouonline.com/ja/myeongdong/price/laser-lifting-treatments/shurink-universe",
-          "urlKo": "https://abijouonline.com/myeongdong/price/laser-lifting-treatments/shurink-universe",
+          "urlKo": "https://abijouonline.com/ko/myeongdong/price/laser-lifting-treatments/shurink-universe",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1825,7 +1825,7 @@
         },
         "jaw-botox": {
           "urlJa": "https://abijouonline.com/ja/myeongdong/price/botulinum-toxin-contouring/masseter-toxin",
-          "urlKo": "https://abijouonline.com/myeongdong/price/botulinum-toxin-contouring/masseter-toxin",
+          "urlKo": "https://abijouonline.com/ko/myeongdong/price/botulinum-toxin-contouring/masseter-toxin",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1834,7 +1834,7 @@
         },
         "inmode-fx": {
           "urlJa": "https://abijouonline.com/ja/myeongdong/price",
-          "urlKo": "https://abijouonline.com/myeongdong/price/laser-lifting-treatments/inmode",
+          "urlKo": "https://abijouonline.com/ko/myeongdong/price/laser-lifting-treatments/inmode",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1843,7 +1843,7 @@
         },
         "re2o-5cc": {
           "urlJa": "https://abijouonline.com/ja/myeongdong/price/skin-booster/elravie-re2o",
-          "urlKo": "https://abijouonline.com/myeongdong/price/skin-booster/elravie-re2o",
+          "urlKo": "https://abijouonline.com/ko/myeongdong/price/skin-booster/elravie-re2o",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -1912,7 +1912,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)（初回体験価格）"
         }
       },
-      "aiRating": 4.5,
+      "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -2074,7 +2074,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)（初回体験価格）"
         }
       },
-      "aiRating": 4.6,
+      "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -2214,7 +2214,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)"
         }
       },
-      "aiRating": 4.3,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -2626,7 +2626,7 @@
           "noteJa": "公式料金表・インモード ミニFX 1部位"
         }
       },
-      "aiRating": 4.1,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -2656,7 +2656,7 @@
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouonline.com/ja/gangnam-annex/price/skin-booster/rejuran-healer",
-          "urlKo": "https://abijouonline.com/gangnam-annex/price/skin-booster/rejuran-healer",
+          "urlKo": "https://abijouonline.com/ko/gangnam-annex/price/skin-booster/rejuran-healer",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -2665,7 +2665,7 @@
         },
         "shrink-300": {
           "urlJa": "https://abijouonline.com/ja/gangnam-annex/price/laser-lifting-treatments/shurink-universe",
-          "urlKo": "https://abijouonline.com/gangnam-annex/price/laser-lifting-treatments/shurink-universe",
+          "urlKo": "https://abijouonline.com/ko/gangnam-annex/price/laser-lifting-treatments/shurink-universe",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -2674,7 +2674,7 @@
         },
         "jaw-botox": {
           "urlJa": "https://abijouonline.com/ja/gangnam-annex/price/botulinum-toxin-contouring/masseter-toxin",
-          "urlKo": "https://abijouonline.com/gangnam-annex/price/botulinum-toxin-contouring/masseter-toxin",
+          "urlKo": "https://abijouonline.com/ko/gangnam-annex/price/botulinum-toxin-contouring/masseter-toxin",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -2683,7 +2683,7 @@
         },
         "inmode-fx": {
           "urlJa": "https://abijouonline.com/ja/gangnam-annex/price",
-          "urlKo": "https://abijouonline.com/gangnam-annex/price/laser-lifting-treatments/inmode",
+          "urlKo": "https://abijouonline.com/ko/gangnam-annex/price/laser-lifting-treatments/inmode",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -2898,7 +2898,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)（初回体験価格）"
         }
       },
-      "aiRating": 4.4,
+      "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -3210,9 +3210,9 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)（初回体験価格）"
         }
       },
-      "aiRating": 4.3,
+      "aiRating": 3.7,
       "ratingScope": "branch",
-      "ratingTier": "kr_verified",
+      "ratingTier": "limited",
       "channels": [
         {
           "kind": "kakao",
@@ -4027,7 +4027,7 @@
           "noteJa": "公式料金表・アクアピール 1回"
         }
       },
-      "aiRating": 3.6,
+      "aiRating": 3.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -4186,63 +4186,63 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill6.com/",
           "urlKo": "https://www.toxnfill6.com/eventDetail.php?c=4655&i=38277",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill6.com",
           "domainKo": "toxnfill6.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] [첫방문] 리쥬란 힐러 2CC 1 회 250,000원 139,000원"
         },
         "shrink-300": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill6.com/",
           "urlKo": "https://www.toxnfill6.com/eventDetail.php?c=4655&i=38277",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill6.com",
           "domainKo": "toxnfill6.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] [첫방문] 슈링크 유니버스 울트라 F 300 샷 1 회 97,000원 49,000원"
         },
         "potenza": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill6.com/",
           "urlKo": "https://www.toxnfill6.com/detail.php?c=356&i=8879",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill6.com",
           "domainKo": "toxnfill6.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] [1회/체험가] 포텐자 600샷 1회 290,000원 200,000원"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill6.com/",
           "urlKo": "https://www.toxnfill6.com/eventList.php",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill6.com",
           "domainKo": "toxnfill6.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[첫방문] 턱 톡신 50U (국산) 1회 9,900원 19,500원"
         },
         "aquapeel": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill6.com/",
           "urlKo": "https://www.toxnfill6.com/eventDetail.php?c=4655&i=38277",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill6.com",
           "domainKo": "toxnfill6.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] [첫방문] 아쿠아필 1회 28,000원 14,900원"
         },
         "lalapeel": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill6.com/",
           "urlKo": "https://www.toxnfill6.com/eventServiceInfo.php?c=",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill6.com",
           "domainKo": "toxnfill6.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] 라라필 자세히 보기 -> 11월01일 ~ 11월30일 평일/토 진료시간과 동일 80,000원 49,000원 시술 담기"
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill6.com/",
           "urlKo": "https://www.toxnfill6.com/serviceInfo.php?c=356",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill6.com",
           "domainKo": "toxnfill6.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -4290,7 +4290,7 @@
           "noteJa": "公式料金表・アクアピール 1回"
         }
       },
-      "aiRating": 3.6,
+      "aiRating": 3.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -4728,7 +4728,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)"
         }
       },
-      "aiRating": 3.5,
+      "aiRating": 3.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -4834,7 +4834,7 @@
           "noteJa": "公式料金表・アクアピール 1回"
         }
       },
-      "aiRating": 3.8,
+      "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -4940,7 +4940,7 @@
           "noteJa": "公式料金表・アクアピール 1回"
         }
       },
-      "aiRating": 3.6,
+      "aiRating": 3.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -5320,7 +5320,7 @@
           "noteKo": "메이퓨어의원 공식 이벤트 (사각턱 톡신 45,000원)"
         }
       },
-      "aiRating": 3.9,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -5391,7 +5391,7 @@
           "noteKo": "메이퓨어의원 공식 이벤트 (사각턱 톡신 45,000원)"
         }
       },
-      "aiRating": 4,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -5706,7 +5706,7 @@
       "stationJa": "蚕室セネ駅 4番出口 徒歩2分",
       "lat": 37.510255,
       "lng": 127.081062,
-      "sourceUrl": "https://www.ppeum.com/",
+      "sourceUrl": "https://jamsil.ppeum.com/",
       "sourceType": "official_event",
       "vatExcluded": true,
       "japaneseSupport": true,
@@ -5734,9 +5734,9 @@
       "centralChannel": false,
       "proofs": {
         "jaw-botox": {
-          "urlJa": "https://global.ppeum.com/?lan=global_jp",
+          "urlJa": "https://jamsil.ppeum.com/selectSurgery",
           "urlKo": "https://jamsil.ppeum.com/selectSurgery",
-          "domainJa": "global.ppeum.com",
+          "domainJa": "jamsil.ppeum.com",
           "domainKo": "jamsil.ppeum.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -5756,7 +5756,7 @@
       "stationJa": "建大入口駅 1番出口 徒歩1分",
       "lat": 37.542711,
       "lng": 127.069904,
-      "sourceUrl": "https://www.ppeum.com/",
+      "sourceUrl": "https://konkukuniv.ppeum.com/",
       "sourceType": "official_event",
       "vatExcluded": true,
       "japaneseSupport": true,
@@ -5774,7 +5774,7 @@
           "noteKo": "쁨클리닉 건대점 공식 가격 (사각턱 보톡스 45,000원)"
         }
       },
-      "aiRating": 3.8,
+      "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -5796,18 +5796,18 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://global.ppeum.com/?lan=global_jp",
+          "urlJa": "https://konkukuniv.ppeum.com/selectSurgery",
           "urlKo": "https://konkukuniv.ppeum.com/selectSurgery",
-          "domainJa": "global.ppeum.com",
+          "domainJa": "konkukuniv.ppeum.com",
           "domainKo": "konkukuniv.ppeum.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란힐러 2cc 리쥬란힐러는 피부의 DNA를 이루는 폴리뉴클레오티드(PN)를 진피층에 직접 주사하는 스킨부스터 시술입니다. 피부의 DNA를 근본부터 재구성 하여 노화, 자외선 등 다양한 피부 자극으로부터 피부 속 환경을 개선 시키고, 진피 조직 재생 및 탄력 회복 효과를 동시에 느낄 수 있습니다. 더보기 209,000원 350,000원 40%"
         },
         "jaw-botox": {
-          "urlJa": "https://global.ppeum.com/?lan=global_jp",
+          "urlJa": "https://konkukuniv.ppeum.com/selectSurgery",
           "urlKo": "https://konkukuniv.ppeum.com/selectSurgery",
-          "domainJa": "global.ppeum.com",
+          "domainJa": "konkukuniv.ppeum.com",
           "domainKo": "konkukuniv.ppeum.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -5827,7 +5827,7 @@
       "stationJa": "盧原駅 4番出口 徒歩2分",
       "lat": 37.6534,
       "lng": 127.0545,
-      "sourceUrl": "https://www.ppeum.com/",
+      "sourceUrl": "https://event.ppeum.com/v1/event/reserve?branch=ppeum22&type=homepage&idx=",
       "sourceType": "official_event",
       "vatExcluded": true,
       "japaneseSupport": false,
@@ -5840,7 +5840,7 @@
           "noteKo": "쁨클리닉 노원점 공식 가격 (사각턱 보톡스 29,000원)"
         }
       },
-      "aiRating": 3.5,
+      "aiRating": 3.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -5855,9 +5855,9 @@
       "centralChannel": false,
       "proofs": {
         "jaw-botox": {
-          "urlJa": "https://global.ppeum.com/?lan=global_jp",
+          "urlJa": "https://event.ppeum.com/v1/event/reserve?branch=ppeum22&type=homepage&idx=",
           "urlKo": "https://event.ppeum.com/v1/event/reserve?branch=ppeum22&type=homepage&idx=",
-          "domainJa": "global.ppeum.com",
+          "domainJa": "event.ppeum.com",
           "domainKo": "event.ppeum.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -5877,7 +5877,7 @@
       "stationJa": "鉢山駅 5番出口 徒歩2分",
       "lat": 37.558089,
       "lng": 126.838694,
-      "sourceUrl": "https://www.ppeum.com/",
+      "sourceUrl": "https://balsan.ppeum.com/",
       "sourceType": "official_event",
       "vatExcluded": true,
       "japaneseSupport": false,
@@ -5905,9 +5905,9 @@
       "centralChannel": false,
       "proofs": {
         "jaw-botox": {
-          "urlJa": "https://global.ppeum.com/?lan=global_jp",
+          "urlJa": "https://balsan.ppeum.com/selectSurgery",
           "urlKo": "https://balsan.ppeum.com/selectSurgery",
-          "domainJa": "global.ppeum.com",
+          "domainJa": "balsan.ppeum.com",
           "domainKo": "balsan.ppeum.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -5960,7 +5960,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)"
         }
       },
-      "aiRating": 3.9,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -5982,8 +5982,8 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://abijouonline.com/jamsil/price/skin-booster/rejuran-healer",
-          "urlKo": "https://abijouonline.com/jamsil/price/skin-booster/rejuran-healer",
+          "urlJa": "https://abijouonline.com/ko/jamsil/price/skin-booster/rejuran-healer",
+          "urlKo": "https://abijouonline.com/ko/jamsil/price/skin-booster/rejuran-healer",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -5991,8 +5991,8 @@
           "matchedText": "리쥬란힐러 2cc 1회 ₩220,000"
         },
         "shrink-300": {
-          "urlJa": "https://abijouonline.com/jamsil/price/laser-lifting-treatments/shurink-universe",
-          "urlKo": "https://abijouonline.com/jamsil/price/laser-lifting-treatments/shurink-universe",
+          "urlJa": "https://abijouonline.com/ko/jamsil/price/laser-lifting-treatments/shurink-universe",
+          "urlKo": "https://abijouonline.com/ko/jamsil/price/laser-lifting-treatments/shurink-universe",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6000,8 +6000,8 @@
           "matchedText": "[첫방문체험가] 슈링크 유니버스 300샷 ₩155,000 49% ₩79,000"
         },
         "jaw-botox": {
-          "urlJa": "https://abijouonline.com/jamsil/price/botulinum-toxin-contouring/masseter-toxin",
-          "urlKo": "https://abijouonline.com/jamsil/price/botulinum-toxin-contouring/masseter-toxin",
+          "urlJa": "https://abijouonline.com/ko/jamsil/price/botulinum-toxin-contouring/masseter-toxin",
+          "urlKo": "https://abijouonline.com/ko/jamsil/price/botulinum-toxin-contouring/masseter-toxin",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6009,8 +6009,8 @@
           "matchedText": "[국산] 사각턱톡신 50u ₩17,900"
         },
         "inmode-fx": {
-          "urlJa": "https://abijouonline.com/ja/",
-          "urlKo": "https://abijouonline.com/jamsil/price/laser-lifting-treatments/inmode",
+          "urlJa": "https://abijouonline.com/ko/jamsil/price/laser-lifting-treatments/inmode",
+          "urlKo": "https://abijouonline.com/ko/jamsil/price/laser-lifting-treatments/inmode",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6018,8 +6018,8 @@
           "matchedText": "인모드 FX 부분 ₩39,000"
         },
         "re2o-5cc": {
-          "urlJa": "https://abijouonline.com/ja",
-          "urlKo": "https://abijouonline.com/jamsil/price/skin-booster/elravie-re2o",
+          "urlJa": "https://abijouonline.com/ko/jamsil/price/skin-booster/elravie-re2o",
+          "urlKo": "https://abijouonline.com/ko/jamsil/price/skin-booster/elravie-re2o",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6040,7 +6040,7 @@
       "stationJa": "盧原駅 5番出口 徒歩1分",
       "lat": 37.6545,
       "lng": 127.0544,
-      "sourceUrl": "https://abijouonline.com/",
+      "sourceUrl": "https://abijouclinicnw.com/",
       "sourceType": "official_event",
       "vatExcluded": true,
       "japaneseSupport": false,
@@ -6063,7 +6063,7 @@
           "noteKo": "아비쥬의원 노원점 공식 가격 (사각턱 보톡스 29,000원)"
         }
       },
-      "aiRating": 3.8,
+      "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -6092,27 +6092,27 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicnw.com/price2/price_view.php?idx=34056",
           "urlKo": "https://abijouclinicnw.com/price2/price_view.php?idx=34056",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicnw.com",
           "domainKo": "abijouclinicnw.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란힐러 2cc+재생레이저 220,000원"
         },
         "shrink-300": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicnw.com/price2/price_view.php?idx=34053",
           "urlKo": "https://abijouclinicnw.com/price2/price_view.php?idx=34053",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicnw.com",
           "domainKo": "abijouclinicnw.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "슈링크 300샷 99,000원"
         },
         "jaw-botox": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicnw.com/price2/price_view.php?idx=34055",
           "urlKo": "https://abijouclinicnw.com/price2/price_view.php?idx=34055",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicnw.com",
           "domainKo": "abijouclinicnw.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -6132,7 +6132,7 @@
       "stationJa": "汝矣島駅 3番出口 徒歩3分 (IFC/ザ・現代圏)",
       "lat": 37.524028,
       "lng": 126.926023,
-      "sourceUrl": "https://abijouonline.com/",
+      "sourceUrl": "https://abijouclinicyeo.com/",
       "sourceType": "official_event",
       "vatExcluded": true,
       "japaneseSupport": true,
@@ -6155,7 +6155,7 @@
           "noteKo": "아비쥬의원 여의도점 공식 가격 (사각턱 보톡스 17,900원)"
         }
       },
-      "aiRating": 3.8,
+      "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -6184,27 +6184,27 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicyeo.com/price2/price_view.php?idx=34056",
           "urlKo": "https://abijouclinicyeo.com/price2/price_view.php?idx=34056",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicyeo.com",
           "domainKo": "abijouclinicyeo.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란힐러 2cc+크라이오셀 220,000원"
         },
         "shrink-300": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicyeo.com/price2/price_view.php?idx=34053",
           "urlKo": "https://abijouclinicyeo.com/price2/price_view.php?idx=34053",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicyeo.com",
           "domainKo": "abijouclinicyeo.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "슈링크 유니버스 300샷 120,000원"
         },
         "jaw-botox": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicyeo.com/price2/price_view.php?idx=34055",
           "urlKo": "https://abijouclinicyeo.com/price2/price_view.php?idx=34055",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicyeo.com",
           "domainKo": "abijouclinicyeo.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -6257,7 +6257,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 6cc(1本)"
         }
       },
-      "aiRating": 3.7,
+      "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -6287,7 +6287,7 @@
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouonline.com/ja/gangseo/price/skin-booster/rejuran-healer",
-          "urlKo": "https://abijouonline.com/gangseo/price/skin-booster/rejuran-healer",
+          "urlKo": "https://abijouonline.com/ko/gangseo/price/skin-booster/rejuran-healer",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6296,7 +6296,7 @@
         },
         "shrink-300": {
           "urlJa": "https://abijouonline.com/ja/gangseo/price/laser-lifting-treatments/shurink-universe",
-          "urlKo": "https://abijouonline.com/gangseo/price/laser-lifting-treatments/shurink-universe",
+          "urlKo": "https://abijouonline.com/ko/gangseo/price/laser-lifting-treatments/shurink-universe",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6305,7 +6305,7 @@
         },
         "jaw-botox": {
           "urlJa": "https://abijouonline.com/ja/gangseo/price/botulinum-toxin-contouring/masseter-toxin",
-          "urlKo": "https://abijouonline.com/gangseo/price/botulinum-toxin-contouring/masseter-toxin",
+          "urlKo": "https://abijouonline.com/ko/gangseo/price/botulinum-toxin-contouring/masseter-toxin",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6314,7 +6314,7 @@
         },
         "inmode-fx": {
           "urlJa": "https://abijouonline.com/ja/gangseo/price",
-          "urlKo": "https://abijouonline.com/gangseo/price/laser-lifting-treatments/inmode",
+          "urlKo": "https://abijouonline.com/ko/gangseo/price/laser-lifting-treatments/inmode",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6323,7 +6323,7 @@
         },
         "re2o-5cc": {
           "urlJa": "https://abijouonline.com/ja/gangseo/price/skin-booster/elravie-re2o",
-          "urlKo": "https://abijouonline.com/gangseo/price/skin-booster/elravie-re2o",
+          "urlKo": "https://abijouonline.com/ko/gangseo/price/skin-booster/elravie-re2o",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6377,7 +6377,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 1本(1バイアル)"
         }
       },
-      "aiRating": 4.2,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -6407,7 +6407,7 @@
       "proofs": {
         "rejuran-2cc": {
           "urlJa": "https://abijouonline.com/ja/cheongdam/price/skin-booster/rejuran-healer",
-          "urlKo": "https://abijouonline.com/cheongdam/price/skin-booster/rejuran-healer",
+          "urlKo": "https://abijouonline.com/ko/cheongdam/price/skin-booster/rejuran-healer",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6416,7 +6416,7 @@
         },
         "shrink-300": {
           "urlJa": "https://abijouonline.com/ja/cheongdam/price/laser-lifting-treatments/shurink-universe",
-          "urlKo": "https://abijouonline.com/cheongdam/price/laser-lifting-treatments/shurink-universe",
+          "urlKo": "https://abijouonline.com/ko/cheongdam/price/laser-lifting-treatments/shurink-universe",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6425,7 +6425,7 @@
         },
         "jaw-botox": {
           "urlJa": "https://abijouonline.com/ja/cheongdam/price/botulinum-toxin-contouring/masseter-toxin",
-          "urlKo": "https://abijouonline.com/cheongdam/price/botulinum-toxin-contouring/masseter-toxin",
+          "urlKo": "https://abijouonline.com/ko/cheongdam/price/botulinum-toxin-contouring/masseter-toxin",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6434,7 +6434,7 @@
         },
         "inmode-fx": {
           "urlJa": "https://abijouonline.com/ja/cheongdam/price",
-          "urlKo": "https://abijouonline.com/cheongdam/price/laser-lifting-treatments/inmode",
+          "urlKo": "https://abijouonline.com/ko/cheongdam/price/laser-lifting-treatments/inmode",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6443,7 +6443,7 @@
         },
         "re2o-5cc": {
           "urlJa": "https://abijouonline.com/ja/cheongdam/price/skin-booster/elravie-re2o",
-          "urlKo": "https://abijouonline.com/cheongdam/price/skin-booster/elravie-re2o",
+          "urlKo": "https://abijouonline.com/ko/cheongdam/price/skin-booster/elravie-re2o",
           "domainJa": "abijouonline.com",
           "domainKo": "abijouonline.com",
           "capturedDate": "2026-11-25",
@@ -6502,7 +6502,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 5cc(1本)"
         }
       },
-      "aiRating": 4.3,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -6643,7 +6643,7 @@
           "noteJa": "公式料金表・ブナジュ(リトゥオ) 6cc(1本)"
         }
       },
-      "aiRating": 4.6,
+      "aiRating": 4.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -7062,7 +7062,7 @@
       "brandJa": "バンス医院 (VandS)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -7207,7 +7207,7 @@
       "brandJa": "バンス医院 (VandS)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -7918,63 +7918,63 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill51.com/",
           "urlKo": "https://www.toxnfill51.com/detail.php?c=5312&i=37466",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill51.com",
           "domainKo": "toxnfill51.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] 리쥬란 힐러 2cc 1회 372,000원 190,000원"
         },
         "shrink-300": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill51.com/",
           "urlKo": "https://www.toxnfill51.com/detail.php?c=5311&i=37479",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill51.com",
           "domainKo": "toxnfill51.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] 슈링크 유니버스 300샷 270,000원 139,000원"
         },
         "potenza": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill51.com/",
           "urlKo": "https://www.toxnfill51.com/detail.php?c=5314&i=37511",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill51.com",
           "domainKo": "toxnfill51.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] 포텐자(얼굴 전체) 1회 *팁 값 별도 372,000원 190,000원"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill51.com/",
           "urlKo": "https://www.toxnfill51.com/detail.php?c=5310&i=37467",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill51.com",
           "domainKo": "toxnfill51.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] 사각턱 톡신 50U (국산) 1회 37,000원 19,000원"
         },
         "inmode-fx": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill51.com/",
           "urlKo": "https://www.toxnfill51.com/eventList.php",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill51.com",
           "domainKo": "toxnfill51.com",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "lalapeel": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill51.com/",
           "urlKo": "https://www.toxnfill51.com/eventList.php",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill51.com",
           "domainKo": "toxnfill51.com",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill51.com/",
           "urlKo": "https://www.toxnfill51.com/eventList.php",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill51.com",
           "domainKo": "toxnfill51.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -8027,7 +8027,7 @@
       "brandJa": "トックスエンフィル (Toxnfill)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.4,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -8056,45 +8056,45 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill9.com/",
           "urlKo": "https://www.toxnfill9.com/eventList.php",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill9.com",
           "domainKo": "toxnfill9.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란 힐러 2cc 149,000원 250,000원"
         },
         "shrink-300": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill9.com/",
           "urlKo": "https://www.toxnfill9.com/eventDetail.php?c=4387&i=39509",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill9.com",
           "domainKo": "toxnfill9.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] 슈링크유니버스 300샷 90,000원 49,000원"
         },
         "potenza": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill9.com/",
           "urlKo": "https://www.toxnfill9.com/eventDetail.php?c=4388&i=39473",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill9.com",
           "domainKo": "toxnfill9.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[EVENT] 포텐자 얼굴전체(팁값 별도) 95,000원 49,000원"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill9.com/",
           "urlKo": "https://www.toxnfill9.com/eventList.php",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill9.com",
           "domainKo": "toxnfill9.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "[국산,소분] 사각턱 보톡스 50u(중복x) 9,900원 19,000원"
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.toxnfill.com/",
+          "urlJa": "https://jp.toxnfill9.com/",
           "urlKo": "https://www.toxnfill9.com/eventList.php",
-          "domainJa": "jp.toxnfill.com",
+          "domainJa": "jp.toxnfill9.com",
           "domainKo": "toxnfill9.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -8274,7 +8274,7 @@
       "brandJa": "メイピュア医院 (Maypure)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -8327,7 +8327,7 @@
       "lat": 37.483276,
       "lng": 126.90128,
       "japaneseSupport": false,
-      "sourceUrl": "https://abijouonline.com/",
+      "sourceUrl": "https://abijouclinicgr.com/",
       "caveatJa": "月間イベント・麻酔費確認",
       "caveatKo": "월간 이벤트・마취비 확인",
       "prices": {
@@ -8350,7 +8350,7 @@
       "brandJa": "アビジュー医院 (Abijou)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -8379,27 +8379,27 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicgr.com/price2/price_view.php?idx=34056",
           "urlKo": "https://abijouclinicgr.com/price2/price_view.php?idx=34056",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicgr.com",
           "domainKo": "abijouclinicgr.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란힐러 2cc + 재생레이저 220,000원"
         },
         "shrink-300": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicgr.com/price2/price_view.php?idx=34053",
           "urlKo": "https://abijouclinicgr.com/price2/price_view.php?idx=34053",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicgr.com",
           "domainKo": "abijouclinicgr.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "슈링크 유니버스 300샷 89,000원"
         },
         "jaw-botox": {
-          "urlJa": "https://abijouonline.com/ja/",
+          "urlJa": "https://abijouclinicgr.com/price2/price_view.php?idx=34055",
           "urlKo": "https://abijouclinicgr.com/price2/price_view.php?idx=34055",
-          "domainJa": "abijouonline.com",
+          "domainJa": "abijouclinicgr.com",
           "domainKo": "abijouclinicgr.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -8419,7 +8419,7 @@
       "lat": 37.47982,
       "lng": 126.952912,
       "japaneseSupport": false,
-      "sourceUrl": "https://www.ppeum.com/",
+      "sourceUrl": "https://event.ppeum.com/v1/event/reserve?branch=ppeum25&type=homepage&idx=",
       "caveatJa": "2号線駅直近・イベント確認",
       "caveatKo": "2호선 역 앞・이벤트 확인",
       "prices": {
@@ -8432,7 +8432,7 @@
       "brandJa": "プムクリニック (PPEUM)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 3.5,
+      "aiRating": 3.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -8447,9 +8447,9 @@
       "centralChannel": false,
       "proofs": {
         "jaw-botox": {
-          "urlJa": "https://global.ppeum.com/?lan=global_jp",
+          "urlJa": "https://event.ppeum.com/v1/event/reserve?branch=ppeum25&type=homepage&idx=",
           "urlKo": "https://event.ppeum.com/v1/event/reserve?branch=ppeum25&type=homepage&idx=",
-          "domainJa": "global.ppeum.com",
+          "domainJa": "event.ppeum.com",
           "domainKo": "event.ppeum.com",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -8487,7 +8487,7 @@
       "brandJa": "リエンジャン医院 (Lienjang)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -8573,7 +8573,7 @@
       "brandJa": "ドクターエバース (Dr. Evers)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -8705,7 +8705,7 @@
       "brandJa": "ドクターエバース (Dr. Evers)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -8959,7 +8959,7 @@
       "brandJa": "ドクターエバース (Dr. Evers)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -9095,7 +9095,7 @@
       "brandJa": "ドクターエバース (Dr. Evers)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -9232,7 +9232,7 @@
       "brandJa": "ドクターエバース (Dr. Evers)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.4,
+      "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -9387,7 +9387,7 @@
       "brandJa": "ドクターエバース (Dr. Evers)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -9537,7 +9537,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.5,
+      "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -9705,63 +9705,63 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.sluni114.co.kr/event/",
           "urlKo": "https://www.sluni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "sluni114.co.kr",
           "domainKo": "sluni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문_스킨부스터 280,000원 150,000원 리쥬란 힐러 2cc"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.sluni114.co.kr/event/",
           "urlKo": "https://www.sluni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "sluni114.co.kr",
           "domainKo": "sluni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문_보톡스/윤곽 12,000원 6,900원 국산 턱 보톡스"
         },
         "aquapeel": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.sluni114.co.kr/event/",
+          "urlKo": "https://www.sluni114.co.kr/event/",
+          "domainJa": "sluni114.co.kr",
+          "domainKo": "sluni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "inmode-fx": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.sluni114.co.kr/event/",
+          "urlKo": "https://www.sluni114.co.kr/event/",
+          "domainJa": "sluni114.co.kr",
+          "domainKo": "sluni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리프팅 18,000원 9,900원 첫방문고객) 인모드 FX 1부위 1회 체험가"
         },
         "juvelook-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.sluni114.co.kr/event/",
           "urlKo": "https://www.sluni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "sluni114.co.kr",
           "domainKo": "sluni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "lalapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.sluni114.co.kr/event/",
           "urlKo": "https://www.sluni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "sluni114.co.kr",
           "domainKo": "sluni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.sluni114.co.kr/event/",
           "urlKo": "https://www.sluni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "sluni114.co.kr",
           "domainKo": "sluni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
@@ -9829,7 +9829,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.6,
+      "aiRating": 4.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -9886,18 +9886,18 @@
         },
         "aquapeel": {
           "urlJa": "https://jp.jsuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.jsuni114.co.kr/event/",
           "domainJa": "jp.jsuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "jsuni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "inmode-fx": {
           "urlJa": "https://jp.jsuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.jsuni114.co.kr/event/",
           "domainJa": "jp.jsuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "jsuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리프팅 18,000원 9,900원 첫방문고객) 인모드 FX 1부위 1회 체험가"
@@ -9913,9 +9913,9 @@
         },
         "lalapeel": {
           "urlJa": "https://jp.jsuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.jsuni114.co.kr/event/",
           "domainJa": "jp.jsuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "jsuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 55,000원 29,000원 첫방문고객) 라라필 1회 체험가"
@@ -10043,27 +10043,27 @@
         },
         "aquapeel": {
           "urlJa": "https://jp.wsnuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.wsnuni114.co.kr/event/",
           "domainJa": "jp.wsnuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "wsnuni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "inmode-fx": {
           "urlJa": "https://jp.wsnuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.wsnuni114.co.kr/event/",
           "domainJa": "jp.wsnuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "wsnuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리프팅 18,000원 9,900원 첫방문고객) 인모드 FX 1부위 1회 체험가"
         },
         "lalapeel": {
           "urlJa": "https://jp.wsnuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.wsnuni114.co.kr/event/",
           "domainJa": "jp.wsnuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "wsnuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 55,000원 29,000원 첫방문고객) 라라필 1회 체험가"
@@ -10139,7 +10139,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.2,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -10306,7 +10306,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.2,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -10552,18 +10552,18 @@
         },
         "inmode-fx": {
           "urlJa": "https://jp.ydpuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.ydpuni114.co.kr/event/",
           "domainJa": "jp.ydpuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "ydpuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리프팅 18,000원 9,900원 첫방문고객) 인모드 FX 1부위 1회 체험가"
         },
         "lalapeel": {
           "urlJa": "https://jp.ydpuni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.ydpuni114.co.kr/event/",
           "domainJa": "jp.ydpuni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "ydpuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 55,000원 29,000원 첫방문고객) 라라필 1회 체험가"
@@ -10644,7 +10644,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -10673,81 +10673,81 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문_스킨부스터 270,000원 139,000원 리쥬란 힐러 2cc 1회 체험가"
         },
         "shrink-300": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "슈링크 유니버스 190,000원 99,000원 슈링크 유니버스 울트라 F 300샷"
         },
         "potenza": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "🖤블랙프라이데이 370,000원 190,000원 [Black To Clear ②] 아쿠아필 + 모공 포텐자RF + 진정 모델링팩"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문_보톡스 15,000원 8,000원 국산 턱보톡스 1회 체험가"
         },
         "aquapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 56,000원 29,000원 아쿠아필 1회"
         },
         "inmode-fx": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문_리프팅 43,000원 22,000원 인모드 FX 1부위 1회 체험가"
         },
         "juvelook-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "화수목 이벤트 190,000원 99,000원 쥬베룩 스킨 2cc"
         },
         "lalapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "라라필 160,000원 85,000원 라라필 1회"
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mguni114.co.kr/event/",
           "urlKo": "https://www.mguni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mguni114.co.kr",
           "domainKo": "mguni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -10820,7 +10820,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -10879,9 +10879,9 @@
         },
         "aquapeel": {
           "urlJa": "https://jp.kduni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.kduni114.co.kr/event/",
           "domainJa": "jp.kduni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "kduni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
@@ -10906,9 +10906,9 @@
         },
         "lalapeel": {
           "urlJa": "https://jp.kduni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
+          "urlKo": "https://www.kduni114.co.kr/event/",
           "domainJa": "jp.kduni114.com",
-          "domainKo": "uni114.co.kr",
+          "domainKo": "kduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 55,000원 29,000원 첫방문고객) 라라필 1회 체험가"
@@ -10979,7 +10979,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -11130,7 +11130,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.2,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -11159,81 +11159,81 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
           "urlKo": "https://www.yuduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "yuduni114.co.kr",
           "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란 힐러 250,000원 139,000원 첫방문) 리쥬란힐러 2cc 1회 체험가"
         },
         "shrink-300": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
           "urlKo": "https://www.yuduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "yuduni114.co.kr",
           "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트_리프팅 100,000원 60,000원 슈링크 유니버스 300샷 1회 체험가"
         },
         "potenza": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
           "urlKo": "https://www.yuduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "yuduni114.co.kr",
           "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "해피아워 이벤트_여드름.모공 180,000원 99,000원 포텐자 1회"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
           "urlKo": "https://www.yuduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "yuduni114.co.kr",
           "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트_쁘띠 12,000원 7,900원 턱보톡스 (국산) 1회 체험가"
         },
         "aquapeel": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
+          "urlKo": "https://www.yuduni114.co.kr/event/",
+          "domainJa": "yuduni114.co.kr",
+          "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "inmode-fx": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
+          "urlKo": "https://www.yuduni114.co.kr/event/",
+          "domainJa": "yuduni114.co.kr",
+          "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리프팅 18,000원 9,900원 첫방문고객) 인모드 FX 1부위 1회 체험가"
         },
         "juvelook-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
           "urlKo": "https://www.yuduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "yuduni114.co.kr",
           "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "쥬베룩 스킨 200,000원 130,000원 쥬베룩 스킨 2cc"
         },
         "lalapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
           "urlKo": "https://www.yuduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "yuduni114.co.kr",
           "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트_스킨케어 30,000원 19,000원 라라필 1회 체험가"
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.yuduni114.co.kr/event/",
           "urlKo": "https://www.yuduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "yuduni114.co.kr",
           "domainKo": "yuduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -11335,81 +11335,81 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.chuni114.co.kr/event/",
           "urlKo": "https://www.chuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "chuni114.co.kr",
           "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란 힐러 350,000원 185,000원 리쥬란 힐러 2cc 1회"
         },
         "shrink-300": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.chuni114.co.kr/event/",
           "urlKo": "https://www.chuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "chuni114.co.kr",
           "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트_레이저 리프팅 130,000원 69,000원 슈링크 유니버스 300샷 1회"
         },
         "potenza": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.chuni114.co.kr/event/",
           "urlKo": "https://www.chuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "chuni114.co.kr",
           "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "포텐자 베이직 300,000원 159,000원 포텐자 베이직 모공 레이저 1회"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.chuni114.co.kr/event/",
           "urlKo": "https://www.chuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "chuni114.co.kr",
           "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트_쁘띠 15,000원 7,900원 턱보톡스 50U (국산)"
         },
         "aquapeel": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.chuni114.co.kr/event/",
+          "urlKo": "https://www.chuni114.co.kr/event/",
+          "domainJa": "chuni114.co.kr",
+          "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "inmode-fx": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.chuni114.co.kr/event/",
+          "urlKo": "https://www.chuni114.co.kr/event/",
+          "domainJa": "chuni114.co.kr",
+          "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리프팅 18,000원 9,900원 첫방문고객) 인모드 FX 1부위 1회 체험가"
         },
         "juvelook-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.chuni114.co.kr/event/",
           "urlKo": "https://www.chuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "chuni114.co.kr",
           "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "쥬베룩 스킨 280,000원 150,000원 쥬베룩 스킨 2cc 1회"
         },
         "lalapeel": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.chuni114.co.kr/event/",
+          "urlKo": "https://www.chuni114.co.kr/event/",
+          "domainJa": "chuni114.co.kr",
+          "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 55,000원 29,000원 첫방문고객) 라라필 1회 체험가"
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.chuni114.co.kr/event/",
           "urlKo": "https://www.chuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "chuni114.co.kr",
           "domainKo": "chuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -11472,7 +11472,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.4,
+      "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -11501,63 +11501,63 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mokuni114.co.kr/event/",
           "urlKo": "https://www.mokuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mokuni114.co.kr",
           "domainKo": "mokuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨부스터 260,000원 145,000원 첫방문고객) 리쥬란힐러 2cc 1회 체험가"
         },
         "shrink-300": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mokuni114.co.kr/event/",
           "urlKo": "https://www.mokuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mokuni114.co.kr",
           "domainKo": "mokuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "슈링크 유니버스 100,000원 79,000원 슈링크 유니버스 300샷"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mokuni114.co.kr/event/",
           "urlKo": "https://www.mokuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mokuni114.co.kr",
           "domainKo": "mokuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "보톡스(국산) 14,000원 7,500원 첫방문고객) 턱보톡스 1회 체험가"
         },
         "aquapeel": {
-          "urlJa": "https://jp.uni114.com/",
-          "urlKo": "https://www.uni114.co.kr/",
-          "domainJa": "jp.uni114.com",
-          "domainKo": "uni114.co.kr",
+          "urlJa": "https://www.mokuni114.co.kr/event/",
+          "urlKo": "https://www.mokuni114.co.kr/event/",
+          "domainJa": "mokuni114.co.kr",
+          "domainKo": "mokuni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "inmode-fx": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mokuni114.co.kr/event/",
           "urlKo": "https://www.mokuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mokuni114.co.kr",
           "domainKo": "mokuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리프팅 17,000원 9,000원 첫방문고객) 인모드 FX 1부위 1회 체험가"
         },
         "lalapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mokuni114.co.kr/event/",
           "urlKo": "https://www.mokuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mokuni114.co.kr",
           "domainKo": "mokuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 57,000원 29,000원 첫방문고객) 라라필 1회 체험가"
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.mokuni114.co.kr/event/",
           "urlKo": "https://www.mokuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "mokuni114.co.kr",
           "domainKo": "mokuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -11630,7 +11630,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.2,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -11659,81 +11659,81 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "리쥬란힐러 200,000원 140,000원 리쥬란힐러 2cc 1회 체험가"
         },
         "shrink-300": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "슈링크 유니버스 150,000원 85,000원 슈링크 유니버스 300샷"
         },
         "potenza": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "포텐자 250,000원 150,000원 포텐자(RF 니들 프락셔널) + 진정관리 1회"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "턱보톡스 17,000원 11,000원 턱보톡스 1회 체험가"
         },
         "aquapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "아쿠아필 35,000원 19,000원 아쿠아필"
         },
         "inmode-fx": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "인모드 FX 1부위 인모드 110,000원 65,000원"
         },
         "juvelook-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "쥬베룩 스킨 290,000원 160,000원 쥬베룩 스킨 2cc"
         },
         "lalapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.cduni114.co.kr/event/",
           "urlKo": "https://www.cduni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "cduni114.co.kr",
           "domainKo": "cduni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -11801,7 +11801,7 @@
       "brandJa": "ユーアンドアイ医院 (You&I)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -11830,72 +11830,72 @@
       "centralChannel": false,
       "proofs": {
         "rejuran-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트 200,000원 140,000원 리쥬란힐러 2cc 1회 체험가"
         },
         "shrink-300": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "슈링크 유니버스 120,000원 85,000원 슈링크 유니버스 300샷"
         },
         "jaw-botox": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트 11,000원 7,900원 턱보톡스 1회 체험가"
         },
         "aquapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "스킨케어 24,000원 17,000원 아쿠아필"
         },
         "inmode-fx": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "첫방문 이벤트 9,700원 6,900원 인모드 FX 1부위 1회 체험가"
         },
         "juvelook-2cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
           "matchedText": "쥬베룩 스킨 2cc 쥬베룩 스킨 390,000원 279,000원"
         },
         "lalapeel": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
         },
         "re2o-5cc": {
-          "urlJa": "https://jp.uni114.com/",
+          "urlJa": "https://www.smuni114.co.kr/event/",
           "urlKo": "https://www.smuni114.co.kr/event/",
-          "domainJa": "jp.uni114.com",
+          "domainJa": "smuni114.co.kr",
           "domainKo": "smuni114.co.kr",
           "capturedDate": "2026-11-25",
           "hasScreenshot": true,
@@ -11953,7 +11953,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -12087,7 +12087,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -12221,7 +12221,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.4,
+      "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -12355,7 +12355,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -12489,7 +12489,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 3.9,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -12675,7 +12675,7 @@
           "matchedText": "♥️메가세일♥️슈링크 유니버스 리프팅(고강도 집속 초음파) 울트라F 300샷 29% 95,000원 135,000원"
         },
         "potenza": {
-          "urlJa": "https://www.velyb.kr/global/jp/",
+          "urlJa": "https://www.velyb.kr/jpn/",
           "urlKo": "https://www.velyb.kr/community/community01.php?tb=event_multi&act=list&etc5=%EC%B2%AD%EB%9F%89%EB%A6%AC%EC%A0%90&p=2",
           "domainJa": "velyb.kr",
           "domainKo": "velyb.kr",
@@ -12766,7 +12766,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 3.9,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -13016,7 +13016,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 3.9,
+      "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -13054,7 +13054,7 @@
           "matchedText": "리쥬란힐러(PN 프리미엄 스킨부스터) 2cc 체험가 46% 135,000원 250,000원"
         },
         "potenza": {
-          "urlJa": "https://www.velyb.kr/global/jp/",
+          "urlJa": "https://www.velyb.kr/jpn/",
           "urlKo": "https://www.velyb.kr/community/community01.php?tb=event_multi&act=list&etc5=%EB%AA%A9%EB%8F%99%EC%A0%90&p=2",
           "domainJa": "velyb.kr",
           "domainKo": "velyb.kr",
@@ -13164,7 +13164,7 @@
       "brandJa": "ブリービー医院 (VelyB)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -13302,7 +13302,7 @@
       "brandJa": "デイビュー医院 (Daybeau)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.6,
+      "aiRating": 4.5,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -13839,7 +13839,7 @@
       "brandJa": "ビューティーラウンジ (Beauty Lounge)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 3.7,
+      "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -14130,7 +14130,7 @@
       "brandJa": "ビューティーラウンジ (Beauty Lounge)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 3.8,
+      "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -14283,7 +14283,7 @@
       "brandJa": "ビューティーラウンジ (Beauty Lounge)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.5,
+      "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -14438,7 +14438,7 @@
       "brandJa": "ビューティーラウンジ (Beauty Lounge)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -14729,7 +14729,7 @@
       "brandJa": "ビューティーラウンジ (Beauty Lounge)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 3.7,
+      "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -14834,7 +14834,7 @@
       "lat": 37.556356,
       "lng": 126.922513,
       "japaneseSupport": true,
-      "sourceUrl": "https://doctorpetit.kr/",
+      "sourceUrl": "https://drpetithongdae.com/",
       "caveatJa": "弘大駅前・日本語対応可",
       "caveatKo": "홍대입구역 앞・일본어 가능",
       "prices": {
@@ -14997,7 +14997,7 @@
       "lat": 37.6542,
       "lng": 127.0614,
       "japaneseSupport": false,
-      "sourceUrl": "https://doctorpetit.kr/",
+      "sourceUrl": "https://nowon.doctorpetit.com/",
       "caveatJa": "盧原駅前・月間イベント確認",
       "caveatKo": "노원역 앞・월간 이벤트 확인",
       "prices": {
@@ -15313,7 +15313,7 @@
       "brandJa": "フォーエバー医院 (4ever)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4,
+      "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -15475,7 +15475,7 @@
       "brandJa": "フォーエバー医院 (4ever)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.2,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -15960,7 +15960,7 @@
       "lat": 37.563452,
       "lng": 126.98377,
       "japaneseSupport": true,
-      "sourceUrl": "https://www.reverseclinic.com/",
+      "sourceUrl": "https://md.reverseclinic.com/",
       "caveatJa": "ユネスコ会館内・日本語対応可",
       "caveatKo": "유네스코회관 내・일본어 가능",
       "prices": {
@@ -16045,9 +16045,9 @@
         },
         "re2o-5cc": {
           "urlJa": "https://md-jp.reverseclinic.com/",
-          "urlKo": "https://www.reverseclinic.com/?idx=c5db92aa9f4b23/c5db9301bf4b5a",
+          "urlKo": "https://md.reverseclinic.com/",
           "domainJa": "md-jp.reverseclinic.com",
-          "domainKo": "reverseclinic.com",
+          "domainKo": "md.reverseclinic.com",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
@@ -16066,7 +16066,7 @@
       "lat": 37.557195,
       "lng": 126.923763,
       "japaneseSupport": true,
-      "sourceUrl": "https://www.reverseclinic.com/",
+      "sourceUrl": "https://hd.reverseclinic.com/",
       "caveatJa": "弘大入口駅前・日本語相談可",
       "caveatKo": "홍대입구역 앞・일본어 가능",
       "prices": {
@@ -16089,7 +16089,7 @@
       "brandJa": "リバースクリニック (Reverse)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [
@@ -16158,7 +16158,7 @@
       "lat": 37.656002,
       "lng": 127.062771,
       "japaneseSupport": false,
-      "sourceUrl": "https://www.reverseclinic.com/",
+      "sourceUrl": "https://nw.reverseclinic.com/",
       "caveatJa": "公式サイト料金表公開・麻酔費確認",
       "caveatKo": "홈페이지 가격표 공개・마취비 확인",
       "prices": {
@@ -16263,10 +16263,10 @@
           "matchedText": null
         },
         "re2o-5cc": {
-          "urlJa": "https://www.reverseclinic.com/?idx=c5db92aa9f4b23/c5db9301bf4b5a",
-          "urlKo": "https://www.reverseclinic.com/?idx=c5db92aa9f4b23/c5db9301bf4b5a",
-          "domainJa": "reverseclinic.com",
-          "domainKo": "reverseclinic.com",
+          "urlJa": "https://nw.reverseclinic.com/",
+          "urlKo": "https://nw.reverseclinic.com/",
+          "domainJa": "nw.reverseclinic.com",
+          "domainKo": "nw.reverseclinic.com",
           "capturedDate": "2026-11-23",
           "hasScreenshot": false,
           "matchedText": null
@@ -16489,7 +16489,7 @@
       "brandJa": "セリン医院 (Cellin)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.3,
+      "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
       "channels": [
@@ -16955,7 +16955,7 @@
       "lat": 37.556728,
       "lng": 126.924183,
       "japaneseSupport": true,
-      "sourceUrl": "https://jfeelclinic.com/",
+      "sourceUrl": "https://hongdae.jfeelclinic.com/",
       "caveatJa": "日本語公式料金表・日本人人気上位",
       "caveatKo": "일본어 공식 가격표・일본인 인기 상위",
       "prices": {
@@ -17412,7 +17412,7 @@
       "brandJa": "スノー医院 (Snow)",
       "sourceType": "official_event",
       "vatExcluded": true,
-      "aiRating": 4.1,
+      "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
       "channels": [

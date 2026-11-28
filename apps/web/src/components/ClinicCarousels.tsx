@@ -1,6 +1,7 @@
 import useEmblaCarousel from 'embla-carousel-react';
-import { ArrowUpRight, MapPin } from 'lucide-react';
+import { ArrowUpRight, MapPin, MessageSquareQuote } from 'lucide-react';
 import type { Lang, MenuItem, PlaceItem } from '@/types.ts';
+import type { ResolvedClinicReview } from '@/data/brand-reviews.ts';
 import type { ResolvedExternalReviewPost } from '@/data/external-review-posts.ts';
 import { formatJpy, krwToJpy } from '@/lib/calc.ts';
 import { triggerHaptic } from '@/lib/fluid.ts';
@@ -8,55 +9,82 @@ import { triggerHaptic } from '@/lib/fluid.ts';
 interface ExternalReviewsCarouselProps {
   posts: ResolvedExternalReviewPost[];
   isJa: boolean;
+  brandRev?: ResolvedClinicReview;
 }
 
-export function ExternalReviewsCarousel({ posts, isJa }: ExternalReviewsCarouselProps) {
-  const [emblaRef] = useEmblaCarousel({
-    align: 'start',
-    containScroll: 'trimSnaps',
-    dragFree: true
-  });
-
-  if (posts.length === 0) return null;
-
-  const isSingle = posts.length === 1;
+export function ExternalReviewsCarousel({ posts, isJa, brandRev }: ExternalReviewsCarouselProps) {
+  if (posts.length === 0) {
+    if (!brandRev) return null;
+    return (
+      <div className="cp2-rev-section">
+        <div className="cp2-rev-head">
+          <h3>
+            <MessageSquareQuote size={15} strokeWidth={2.3} />
+            <span>{isJa ? '店舗の口コミ傾向' : '이 지점 후기 요약'}</span>
+          </h3>
+          <span className="cp2-rev-count-pill">
+            {isJa ? brandRev.scopeLabelJa : brandRev.scopeLabelKo}
+          </span>
+        </div>
+        <div className="cp2-rev-digest">
+          <p className="cp2-rev-digest-main">
+            {isJa ? brandRev.shortTagJa : brandRev.shortTagKo}
+          </p>
+          <p className="cp2-rev-digest-src">
+            {isJa ? brandRev.sourcesLabelJa : brandRev.sourcesLabelKo}
+          </p>
+          <p className="cp2-rev-digest-note">
+            {isJa
+              ? 'この店舗の個別ブログ抜粋は随時追加中です。下のメリット・注意点もあわせてご確認ください。'
+              : '이 지점의 개별 실방문 발췌 후기는 순차 추가 중입니다. 아래 자주 꼽는 장점과 방문 전 참고할 점을 함께 확인해 주세요.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="cp2-carousel-block">
-      <div className="cp2-carousel-head">
-        <h3>{isJa ? '店舗検証済みの外部実口コミ' : '이 지점 검증 외부 실후기'}</h3>
-        {!isSingle && (
-          <span className="cp2-swipe-hint">
-            {isJa ? 'スワイプ →' : '옆으로 밀기 →'}
-          </span>
-        )}
+    <div className="cp2-rev-section">
+      <div className="cp2-rev-head">
+        <h3>
+          <MessageSquareQuote size={15} strokeWidth={2.3} />
+          <span>{isJa ? 'この店舗の外部口コミ抜粋' : '이 지점 외부 후기 요약'}</span>
+        </h3>
+        <span className="cp2-rev-count-pill num">
+          {isJa ? `${posts.length}件` : `${posts.length}건`}
+        </span>
       </div>
-      <div className="cp2-embla" ref={emblaRef}>
-        <div className="cp2-embla-track">
-          {posts.map((post) => (
-            <a
-              key={post.id}
-              href={post.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`cp2-rev-slide is-${post.platform} ${isSingle ? 'is-single' : ''}`}
-            >
-              <div className="cp2-rev-slide-top">
-                <span className="cp2-rev-platform">
+      <p className="cp2-rev-disclaimer">
+        {isJa
+          ? '※ 外部ブログ・SNSの公開投稿を要約した参考口コミです。実際の来院やPR有無は確定できないため、元記事もあわせてご確認ください。'
+          : '※ 외부 블로그·SNS 공개 글을 요약한 참고용 후기예요. 실제 방문 여부나 광고 포함 여부는 정확히 알 수 없으니 원문에서 함께 확인해 주세요.'}
+      </p>
+      <div className="cp2-rev-list">
+        {posts.map((post) => (
+          <a
+            key={post.id}
+            href={post.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`cp2-rev-card is-${post.platform}`}
+          >
+            <div className="cp2-rev-slide-top">
+              <div className="cp2-rev-meta-left">
+                <span className={`cp2-rev-platform is-${post.platform}`}>
                   {isJa ? post.platformLabelJa : post.platformLabelKo}
                 </span>
-                <span className="cp2-rev-date num">{post.dateLabel}</span>
               </div>
-              <p className="cp2-rev-summary">
-                {isJa ? post.summaryJa : post.summaryKo}
-              </p>
-              <span className="cp2-rev-link">
-                <span>{isJa ? '元の投稿を読む' : '원문 보기'}</span>
-                <ArrowUpRight size={13} strokeWidth={2.2} />
-              </span>
-            </a>
-          ))}
-        </div>
+              <span className="cp2-rev-date num">{post.dateLabel}</span>
+            </div>
+            <p className="cp2-rev-summary">
+              {isJa ? post.summaryJa : post.summaryKo}
+            </p>
+            <span className="cp2-rev-link">
+              <span>{isJa ? '元の体験レポを読む' : '원문 후기 읽기'}</span>
+              <ArrowUpRight size={13} strokeWidth={2.3} />
+            </span>
+          </a>
+        ))}
       </div>
     </div>
   );

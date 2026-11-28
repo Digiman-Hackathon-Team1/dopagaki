@@ -17,6 +17,7 @@ from api.agent.schemas import (
     ExcludeReason,
     ExclusionData,
     JpClinicSavings,
+    LocationCardData,
     PriceProof,
     RecommendationCardData,
 )
@@ -25,6 +26,7 @@ from api.agent.tools.match_jp_treatment import (
     jp_clinic_price,
     product_note_line,
 )
+from api.agent.tools.resolve_location import location_card, location_label
 from api.domain.calc import (
     PriceRow,
     SortId,
@@ -35,7 +37,7 @@ from api.domain.calc import (
 from api.domain.catalog import AreaId, Fx, JpBenchmark, Menu, Place, get_catalog
 from api.domain.fx import FxProvider
 from api.domain.jp_names import find_jp_clinic
-from api.domain.locations import get_locations
+from api.domain.locations import Location, get_locations
 from api.domain.price_tags import price_tags
 
 MenuId = Literal[
@@ -99,13 +101,24 @@ class SearchClinicsInput(BaseModel):
     area: AreaId | None = Field(
         default=None, description="이 지역 병원만. 사용자가 지역을 정했을 때만"
     )
+    location: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=50,
+        description=(
+            "거리 계산 기준 위치(숙소·사는 곳·역)로 사용자가 말한 장소 표현 그대로 또는 그 안의 장소 이름. "
+            "예: '홍대 숙소', '江南駅'. 도구가 위치를 찾아 거리를 계산하므로 resolve_location을 따로 부르지 "
+            "않는다. 가타카나 읽기(ホンデ 등)는 한국어나 한자 이름으로 바꿔 넣는다. 장소가 여러 곳이면 "
+            "한 곳씩 따로 부른다. 이미 location_id를 알면 origin_id를 쓰고 이 칸은 null"
+        ),
+    )
     origin_id: str | None = Field(
         default=None,
         max_length=40,
         description=(
-            "거리 계산 기준 위치(숙소 등)의 위치 ID. resolve_location 결과의 location_id를 그대로 "
-            "넣는다(예: area:hongdae, station:홍대입구). ID를 지어내지 않는다. 사용자가 위치를 말하지 "
-            "않았거나 resolve_location이 찾지 못했으면 null. null이면 거리는 표시되지 않는다"
+            "거리 계산 기준 위치의 위치 ID. 앞 결과(resolve_location, search_clinics 등)의 location_id를 "
+            "그대로 넣는다(예: area:hongdae, station:홍대입구). ID를 지어내지 않는다. 처음 말한 장소는 "
+            "location에 넣는다. 둘 다 null이면 거리는 표시되지 않는다"
         ),
     )
     clinic_name: str | None = Field(
@@ -176,6 +189,8 @@ class SearchClinicsArtifact(BaseModel):
     target: SearchTarget = Field(default_factory=SearchTarget)
     cards: list[RecommendationCardData]
     exclusions: list[ExclusionData]
+    # location 입력으로 찾은 기준 위치(사용자 표현 포함). resolve_location 결과와 같이 위치 카드·기억에 쓴다.
+    location: LocationCardData | None = None
 
 
 def _artifact(
@@ -183,6 +198,7 @@ def _artifact(
     target: SearchTarget,
     cards: list[RecommendationCardData],
     excluded: Counter[ExcludeReason],
+    location: LocationCardData | None = None,
 ) -> dict:
     # 대화 기억(체크포인터)에 저장되므로 일반 데이터로 둔다.
     # 빠진 병원이 없는 사유는 내보내지 않는다.
@@ -192,7 +208,11 @@ def _artifact(
         if count > 0
     ]
     return SearchClinicsArtifact(
-        menu_id=menu_id, target=target, cards=cards, exclusions=exclusions
+        menu_id=menu_id,
+        target=target,
+        cards=cards,
+        exclusions=exclusions,
+        location=location,
     ).model_dump()
 
 
@@ -210,7 +230,8 @@ DESCRIPTION = f"""\
 필수 입력: menu_id. 기본값: 절약액 순, 상위 3곳, 예산·회복 기간·지역·일본어 상담 제한 없음.
 일본어 상담 가능 여부는 병원마다 결과에 표시되므로 거르지 않고 보여 준다. 사용자가 일본어 상담이 되는 곳만
 원한다고 했을 때만 japanese_only=true.
-사용자가 숙소·사는 곳·역을 말했으면 먼저 resolve_location을 부르고, 결과의 location_id를 origin_id에 넣는다.
+사용자가 숙소·사는 곳·역을 말했으면 그 장소 표현을 location에 넣는다. resolve_location을 먼저 부르지 않는다.
+결과 문장이 위치를 찾았는지 알려 준다. 못 찾았거나 여러 곳이면 그 문장의 안내대로 사용자에게 묻는다.
 결과의 병원은 모두 카드로 화면에 나간다. card_reasons에 card_id마다 추천 이유 한 줄을 쓴다.
 같은 턴에 같은 시술을 범위만 좁히거나 넓혀 다시 부르면 마지막 결과의 카드만 나간다. 지역·기준 위치·
 지점(clinic_name)이 서로 다른 대상을 부르면 비교로 보고 모두 나간다. 비교할 때는 대상마다 한 번씩 부른다.
@@ -355,6 +376,7 @@ def search_clinics(
     avoid_needle: bool = False,
     japanese_only: bool = False,
     area: AreaId | None = None,
+    location: str | None = None,
     origin_id: str | None = None,
     clinic_name: str | None = None,
     jp_clinic: str | None = None,
@@ -364,18 +386,23 @@ def search_clinics(
     fx = get_fx_provider().current()
     menu = catalog.menu(menu_id)
     name = f"{menu.name_ko} / {menu.name_ja}"
-    location = get_locations().get(origin_id) if origin_id else None
-    if origin_id and location is None:
+    base = get_locations().get(origin_id) if origin_id else None
+    if origin_id and base is None:
         raise ValueError(
-            f"Unknown origin_id {origin_id!r}. Use the location_id from a resolve_location "
-            "result as is. If resolve_location did not find the place, search with origin_id=null."
+            f"Unknown origin_id {origin_id!r}. Use a location_id from an earlier result as is, "
+            "or pass the place the user gave as location."
         )
-    origin = location.point if location else None
+    found: LocationCardData | None = None
+    location_note = ""
+    if base is None and location and location.strip():
+        base, location_note = _resolve_base(location)
+        found = location_card(base, location) if base else None
+    origin = base.point if base else None
     has_origin = origin is not None
     tokens = (clinic_name or "").strip().lower().split()
     target = SearchTarget(
         area=area,
-        origin_id=origin_id if location else None,
+        origin_id=base.id if base else None,
         clinic_tokens=tokens,
         clinic_ids=sorted(p.id for p in catalog.places if matches_place(p, tokens))
         if tokens
@@ -398,7 +425,9 @@ def search_clinics(
         count = offered()
         if count == 0 and tokens:
             message += " " + _no_clinic_note(clinic_name or "", tokens, menu_id)
-        return message, _artifact(menu_id, target, [], Counter({reason: count}))
+        if location_note:
+            message += " " + location_note
+        return message, _artifact(menu_id, target, [], Counter({reason: count}), found)
 
     if avoid_needle and menu.uses_needle:
         return early(
@@ -412,9 +441,10 @@ def search_clinics(
         )
     if sort == "distance" and not has_origin:
         raise ValueError(
-            "sort=distance needs origin_id. Call resolve_location with the place the user "
-            "gave (hotel, home area or station) and pass its location_id. If the user has not "
-            "given a place, ask for it once and search with sort=savings meanwhile."
+            "sort=distance needs a base location. Pass the place the user gave (hotel, home "
+            "area or station) as location. If the user has not given a place, or it was not "
+            "found, ask for it once and search with sort=savings meanwhile. "
+            + location_note
         )
 
     # 병원 단위 거르기. 정렬된 순서를 유지하며 처음 걸린 이유를 센다.
@@ -460,12 +490,9 @@ def search_clinics(
     lines = [
         f"search_clinics: {name}, sort={sort}"
         + (f", clinic_name={clinic_name!r}" if tokens else "")
-        + (
-            f", distances from {location.name_ko} / {location.name_ja}"
-            if location
-            else ""
-        )
+        + (f", distances from {base.name_ko} / {base.name_ja}" if base else "")
         + ".",
+        *([location_note] if location_note else []),
         benchmark,
         f"FX: ₩{fx.krw_per_100_jpy} per ¥100 ({fx.bank_ko}, {fx.date_label}).",
         matched + ".",
@@ -480,7 +507,34 @@ def search_clinics(
             _summary_line(i, card, row.place)
             for i, (card, row) in enumerate(zip(cards, top, strict=True), start=1)
         ]
-    return "\n".join(lines), _artifact(menu_id, target, cards, excluded)
+    return "\n".join(lines), _artifact(menu_id, target, cards, excluded, found)
+
+
+def _resolve_base(query: str) -> tuple[Location | None, str]:
+    """location 입력을 기준 위치로 바꾼다. 규칙은 resolve_location과 같다(ADR 0011, 이슈 #72).
+
+    찾으면 그 위치로 거리를 계산하고, 못 찾았거나 여러 곳이면 거리 없이 검색하고 LLM이 물을 수 있게 알린다.
+    """
+    result = get_locations().resolve(query)
+    head = f"Location {query!r}"
+    if result.status == "found":
+        found = result.locations[0]
+        return found, (
+            f"{head} → found {location_label(found)}. Distances are straight-line distances "
+            "from this point. Use this location_id as origin_id when you search again from it."
+        )
+    if result.status == "ambiguous":
+        listed = "; ".join(location_label(loc) for loc in result.locations)
+        return None, (
+            f"{head} names several places: {listed}. Searched without distances. If the user is "
+            "comparing them, call search_clinics once per place with its location_id as "
+            "origin_id. Otherwise ask which one is their base."
+        )
+    return None, (
+        f"{head} → unknown. No area or station in the data matches; searched without "
+        "distances. Do not guess a location. Ask the user once for the nearest subway station "
+        "or one of the areas listed in resolve_location."
+    )
 
 
 def _jp_reference(menu: Menu, jp_clinic: str | None) -> tuple[JpBenchmark | None, str]:

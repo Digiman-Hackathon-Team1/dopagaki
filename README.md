@@ -8,7 +8,6 @@ Python 백엔드와 TypeScript 프론트엔드를 하나의 레포에서 관리�
 | --- | --- | --- |
 | `apps/api` | 백엔드 API | Python 3.12, FastAPI, uv |
 | `apps/web` | 웹 프론트엔드 | TypeScript, React, Vite |
-| `apps/worker` | 컨시어지 AI 중계 서버 | TypeScript, Cloudflare Workers |
 | `packages/api-client` | API 타입과 클라이언트 | OpenAPI에서 생성 |
 
 JavaScript 의존성은 pnpm workspace, Python 의존성은 uv로 관리하고, 전체 작업은 Turborepo로 실행합니다.
@@ -36,7 +35,7 @@ pnpm dev
 | `pnpm --filter @repo/web fx:update` | 네이버 환율 스냅샷 갱신 (`pnpm build` 때도 실행) |
 | `pnpm generate` | API 변경 후 TypeScript 타입 재생성 |
 
-web 환경변수는 `apps/web/.env.example`, Worker 설정은 `apps/worker/README.md`를 참고합니다. Worker 없이도 web은 규칙 기반으로 동작합니다.
+web 환경변수는 `apps/web/.env.example`을 참고합니다. web의 AI 상담 탭은 api의 `/api/agent/chat`으로 상담하고, api가 답하지 못하면(키 없음·오류·연결 실패) 시세표로 안내합니다.
 
 병원 가격표 이미지(약 150MB)는 Git에서 제외합니다. 이미지가 필요하면 받아 옵니다. 없으면 가격표 이미지가 보이지 않고 이미지 파일 검사는 건너뜁니다.
 
@@ -82,7 +81,7 @@ Railway 프로젝트 `dopagaki`에 서비스 두 개가 있다.
 - 두 서비스 모두 Root Directory는 레포 루트다. Watch Paths로 해당 앱이 바뀔 때만 배포한다.
 - web은 `/api` 요청을 내부 네트워크로 api 서비스에 넘긴다. 브라우저는 web 주소 하나만 쓰므로 CORS 설정이 필요 없다.
 - web 빌드는 병원 가격표 이미지를 원본 레포에서 받아 포함한다.
-- 선택 변수: web의 `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, `VITE_CONCIERGE_API`, `VITE_AGENT_DEV` (빌드 때 들어간다).
+- 선택 변수: web의 `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, `VITE_AGENT_DEV` (빌드 때 들어간다).
 - `VITE_AGENT_DEV=true`(소문자)로 web을 빌드하면 배포 사이트의 `/agent-dev`에서 개발용 상담 화면이 열린다. 이 값은 화면만 켜고 끈다. `/api/agent/chat`은 이 값과 상관없이 공개되어 있고 api의 `ANTHROPIC_API_KEY`로 Claude를 부르므로, 지출 한도를 건 별도 키를 쓴다. Claude 호출을 멈추려면 api의 `ANTHROPIC_API_KEY`를 지운다.
 
 로컬에서 배포 이미지를 확인하려면:

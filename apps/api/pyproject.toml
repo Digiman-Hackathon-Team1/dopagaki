@@ -3,12 +3,15 @@ name = "api"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.13",
     "anthropic>=2.14.0",
     "fastapi[standard]>=0.165.0",
     "httpx>=0.28.1",
     "langchain-anthropic>=1.7.13",
     "langgraph>=1.2.24",
+    "psycopg[binary]>=3.2",
     "pydantic-settings>=2.16.3",
+    "sqlalchemy>=2.0",
 ]
 
 [build-system]
@@ -17,6 +20,53 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "import-linter>=2.17",
     "pytest>=9.2.0",
     "ruff>=0.17.6",
 ]
+
+# 백엔드 구조 규칙(AGENTS.md "백엔드 구조 규칙")을 import 관계로 강제한다. `uv run lint-imports`
+[tool.importlinter]
+root_package = "api"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "agent 계층은 router → service → graph → tools 방향으로만 부른다"
+type = "layers"
+layers = [
+    "api.agent.router",
+    "api.agent.service",
+    "api.agent.graph",
+    "api.agent.tools",
+]
+
+[[tool.importlinter.contracts]]
+name = "router는 서비스만 부른다(graph·tools·domain 직접 호출 금지)"
+type = "forbidden"
+source_modules = ["api.agent.router"]
+forbidden_modules = ["api.agent.graph", "api.agent.tools", "api.domain"]
+# router가 쓰는 schemas가 domain 타입을 import하는 것은 허용한다.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "domain은 웹·LLM·에이전트를 모른다"
+type = "forbidden"
+source_modules = ["api.domain"]
+forbidden_modules = [
+    "api.agent",
+    "api.main",
+    "fastapi",
+    "starlette",
+    "anthropic",
+    "langchain_core",
+    "langchain_anthropic",
+    "langgraph",
+]
+
+[tool.ruff.lint]
+extend-select = ["TID251"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"fastapi.responses.StreamingResponse".msg = "SSE는 직접 구현하지 않는다. fastapi.sse.EventSourceResponse를 쓴다(AGENTS.md 응답 스트리밍)"
+"starlette.responses.StreamingResponse".msg = "SSE는 직접 구현하지 않는다. fastapi.sse.EventSourceResponse를 쓴다(AGENTS.md 응답 스트리밍)"
+"sse_starlette".msg = "SSE는 fastapi.sse.EventSourceResponse를 쓴다(AGENTS.md 응답 스트리밍)"

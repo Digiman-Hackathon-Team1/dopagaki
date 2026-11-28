@@ -21,6 +21,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/chat/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stream Agent Chat
+         * @description `/chat`과 같은 처리를 SSE로 보낸다. start → delta(답변 글, 0개 이상) → done(응답 전체).
+         */
+        post: operations["streamAgentChat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/users/{userId}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Agent User Profile
+         * @description 저장된 사용자 기억. 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다.
+         */
+        get: operations["getAgentUserProfile"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Agent User Profile
+         * @description 사용자 기억을 모두 지운다. 저장된 게 없어도 204다.
+         */
+        delete: operations["deleteAgentUserProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Fx */
+        get: operations["getFx"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/menus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Menus */
+        get: operations["listMenus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clinics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Clinic Prices */
+        get: operations["listClinicPrices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/clinics/{clinic_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Clinic */
+        get: operations["getClinic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -144,6 +256,181 @@ export interface components {
             /** Urlko */
             urlKo: string;
         };
+        /** BundleCard */
+        BundleCard: {
+            /**
+             * Cardid
+             * @description <place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣을 수 있다
+             */
+            cardId: string;
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /**
+             * Items
+             * @description 묶음 시술. 사용자가 말한 순서
+             */
+            items: components["schemas"]["BundleItem"][];
+            /**
+             * Totalkrw
+             * @description 시술 합계(부가세 포함, 원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 시술별 엔화 환산의 합
+             */
+            totalJpy: number;
+            /**
+             * Jptotaljpy
+             * @description 시술별 일본 평균의 합
+             */
+            jpTotalJpy: number;
+            /**
+             * Savingsjpy
+             * @description 일본 평균 합계 대비 절약액(엔). 음수면 일본보다 비쌈
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            /**
+             * Separatetotalkrw
+             * @description 같은 조건(지역·일본어)에서 시술마다 가장 싼 병원에서 따로 받을 때의 합계(원). 병원을 여러 곳 가야 할 수 있다
+             */
+            separateTotalKrw: number;
+            /** Separatetotaljpy */
+            separateTotalJpy: number;
+            /**
+             * Separatecliniccount
+             * @description 따로 받을 때 가야 하는 병원 수. 1이면 한 병원이 모든 시술의 최저가다
+             */
+            separateClinicCount: number;
+            /**
+             * Separatepicks
+             * @description 따로 받을 때 시술마다 가는 병원. 예산은 보지 않는다
+             */
+            separatePicks: components["schemas"]["SeparatePick"][];
+            /**
+             * Extravsseparatekrw
+             * @description 이 병원 묶음 합계 - 따로 받을 때 합계(원). 0이면 따로 받는 것과 같다
+             */
+            extraVsSeparateKrw: number;
+            /** Extravsseparatejpy */
+            extraVsSeparateJpy: number;
+            /**
+             * Krwper100Jpy
+             * @description 엔화 환산에 쓴 환율(100엔당 원)
+             */
+            krwPer100Jpy: number;
+            /**
+             * Fxdatelabel
+             * @description 환율 기준일
+             */
+            fxDateLabel: string;
+            /**
+             * Distancemeters
+             * @description 기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null
+             */
+            distanceMeters: number | null;
+            /** Walkminutes */
+            walkMinutes: number | null;
+            /** Rating */
+            rating: number;
+            /**
+             * Ratingscope
+             * @enum {string}
+             */
+            ratingScope: "branch" | "brand";
+            /**
+             * Ratingtier
+             * @enum {string}
+             */
+            ratingTier: "jp_kr_verified" | "kr_verified" | "limited";
+            /** Bookingchannels */
+            bookingChannels: components["schemas"]["BookingChannel"][];
+            /** Centralchannel */
+            centralChannel: boolean;
+            /** Priceconditionja */
+            priceConditionJa: string;
+            /** Priceconditionko */
+            priceConditionKo: string;
+            /** Sourceurl */
+            sourceUrl: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "bundle";
+            /**
+             * Searchid
+             * @description 어느 묶음 검색의 카드인지(이번 턴 묶음 검색 순서, 예: b1). 같은 시술 묶음을 지역끼리 비교하면 검색마다 값이 다르고, 같은 병원이 두 검색에 모두 나오면 카드도 두 장이다
+             */
+            searchId: string;
+            /**
+             * Reason
+             * @description LLM이 쓴 추천 이유 한 줄. LLM이 빠뜨리면 null
+             */
+            reason: string | null;
+        };
+        /**
+         * BundleItem
+         * @description 묶음 카드 안의 시술 하나. 금액은 같은 병원의 병원 추천 카드와 같은 계산이다.
+         */
+        BundleItem: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Basekrw
+             * @description 병원 게시가(원)
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 게시가에 더하는 부가세(원). 이미 포함이면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /**
+             * Jpaveragejpy
+             * @description 이 시술의 일본 주요 병원 평균(세금 포함)
+             */
+            jpAverageJpy: number;
+            /** Pricetags */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
+            /** Pricenoteja */
+            priceNoteJa: string;
+            /** Pricenoteko */
+            priceNoteKo: string;
+            /** @description 이 시술 가격의 가격표 증빙 링크 */
+            proof: components["schemas"]["PriceProof"];
+        };
         /** ChatRequest */
         ChatRequest: {
             /**
@@ -178,18 +465,18 @@ export interface components {
             threadId: string;
             /**
              * Fallback
-             * @description 에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 보여 준다. 정상 답변이면 null
+             * @description 에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도, busy는 같은 대화의 앞 요청이 대기 시간 안에 끝나지 않음, turn_limit은 한 대화 최대 턴 수를 넘음(새 대화를 열어야 함). 화면은 시세표로 가는 길을 보여 준다. 정상 답변이면 null
              */
-            fallback: ("error" | "daily_limit") | null;
+            fallback: ("error" | "daily_limit" | "busy" | "turn_limit") | null;
             /** Conditionsummary */
             conditionSummary: string;
             /** Answer */
             answer: string;
             /**
              * Cards
-             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), booking(예약 채널과 문의 문장) 순서로 온다
+             * @description kind로 종류를 구분한다. jp_match(일본 시술명 대응), location(이번 턴에 찾은 기준 위치), recommendation(병원 추천), bundle(한 병원 묶음), trip_plan(일정), booking(예약 채널과 문의 문장) 순서로 온다
              */
-            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"] | components["schemas"]["BookingCard"])[];
+            cards: (components["schemas"]["RecommendationCard"] | components["schemas"]["LocationCard"] | components["schemas"]["JpMatchCard"] | components["schemas"]["BundleCard"] | components["schemas"]["TripPlanCard"] | components["schemas"]["BookingCard"])[];
             /**
              * Exclusions
              * @description 이번 턴 검색에서 거르기로 빠진 병원 수. 없으면 빈 배열
@@ -203,6 +490,152 @@ export interface components {
             cautions: string[];
             /** Disclaimer */
             disclaimer: string;
+        };
+        /**
+         * ChatStreamDelta
+         * @description 답변(answer)에 이어 붙일 글. 화면은 받은 순서대로 이어 붙여 보여 준다.
+         */
+        ChatStreamDelta: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "delta";
+            /**
+             * Text
+             * @description 이번에 늘어난 답변 글. 도구 결과에 없는 금액이 든 문장은 보내지 않으므로, 문장이나 줄이 끝날 때 한꺼번에 온다
+             */
+            text: string;
+        };
+        /**
+         * ChatStreamDone
+         * @description 스트림 마지막 이벤트. `POST /api/agent/chat`과 같은 응답 전체.
+         */
+        ChatStreamDone: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "done";
+            /** @description 최종 응답. 화면은 delta로 이어 붙인 답변을 response.answer로 바꾼다. 시세표 안내(fallback)도 이 이벤트로 온다 */
+            response: components["schemas"]["ChatResponse"];
+        };
+        /**
+         * ChatStreamStart
+         * @description 스트림 첫 이벤트. 새 대화면 여기서 대화 ID를 알 수 있다.
+         */
+        ChatStreamStart: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "start";
+            /**
+             * Threadid
+             * Format: uuid
+             */
+            threadId: string;
+        };
+        /** ClinicChannel */
+        ClinicChannel: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "kakao" | "line" | "instagram" | "naver_booking" | "direct_reserve";
+            /** Labelja */
+            labelJa: string;
+            /** Labelko */
+            labelKo: string;
+            /** Urlja */
+            urlJa: string;
+            /** Urlko */
+            urlKo: string;
+        };
+        /** ClinicDetail */
+        ClinicDetail: {
+            clinic: components["schemas"]["ClinicSummary"];
+            /** Addressko */
+            addressKo: string;
+            /** Sourceurl */
+            sourceUrl: string;
+            /**
+             * Sourcetype
+             * @enum {string}
+             */
+            sourceType: "official_event" | "official_standard";
+            /** Vatexcluded */
+            vatExcluded: boolean;
+            /** Caveatja */
+            caveatJa: string;
+            /** Caveatko */
+            caveatKo: string;
+            /** Channels */
+            channels: components["schemas"]["ClinicChannel"][];
+            /** Centralchannel */
+            centralChannel: boolean;
+            fx: components["schemas"]["FxRate"];
+            /**
+             * Prices
+             * @description 이 병원에 가격이 있는 시술(시술 목록 순서)
+             */
+            prices: components["schemas"]["PriceComparison"][];
+        };
+        /**
+         * ClinicPrice
+         * @description 시술 하나의 병원 순위표 한 줄.
+         */
+        ClinicPrice: {
+            clinic: components["schemas"]["ClinicSummary"];
+            price: components["schemas"]["PriceComparison"];
+            /**
+             * Distancemeters
+             * @description 기준 위치(없으면 서울 시청)에서의 직선거리
+             */
+            distanceMeters: number;
+            /** Walkminutes */
+            walkMinutes: number;
+        };
+        /** ClinicPriceList */
+        ClinicPriceList: {
+            /** Menuid */
+            menuId: string;
+            /**
+             * Sort
+             * @enum {string}
+             */
+            sort: "savings" | "distance" | "rating";
+            fx: components["schemas"]["FxRate"];
+            /** Items */
+            items: components["schemas"]["ClinicPrice"][];
+        };
+        /** ClinicSummary */
+        ClinicSummary: {
+            /** Id */
+            id: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Brandja */
+            brandJa: string;
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /** Airating */
+            aiRating: number;
         };
         /** Exclusion */
         Exclusion: {
@@ -225,6 +658,22 @@ export interface components {
              */
             searchId: string;
         };
+        /**
+         * FxRate
+         * @description 가격 계산에 쓴 환율. 100엔당 원.
+         */
+        FxRate: {
+            /** Krwper100Jpy */
+            krwPer100Jpy: number;
+            /** Datelabel */
+            dateLabel: string;
+            /** Bankko */
+            bankKo: string;
+            /** Bankja */
+            bankJa: string;
+            /** Sourceurl */
+            sourceUrl: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -237,6 +686,24 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /**
+         * JpBenchmarkPrice
+         * @description 일본 비교 병원 한 곳의 세금 포함 공식가.
+         */
+        JpBenchmarkPrice: {
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Planja */
+            planJa: string;
+            /** Planko */
+            planKo: string;
+            /** Pricejpy */
+            priceJpy: number;
+            /** Url */
+            url: string;
         };
         /**
          * JpClinicPrice
@@ -380,6 +847,310 @@ export interface components {
              */
             kind: "location";
         };
+        /** MenuList */
+        MenuList: {
+            /** Items */
+            items: components["schemas"]["MenuSummary"][];
+        };
+        /** MenuSummary */
+        MenuSummary: {
+            /** Id */
+            id: string;
+            /** Category */
+            category: string;
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+            /** Shortja */
+            shortJa: string;
+            /** Shortko */
+            shortKo: string;
+            /**
+             * Jpbenchmarkjpy
+             * @description 일본 주요 병원 공식가 평균(절약액 기준)
+             */
+            jpBenchmarkJpy: number;
+            /** Jpbenchmarks */
+            jpBenchmarks: components["schemas"]["JpBenchmarkPrice"][];
+            /** Vatappliesinkorea */
+            vatAppliesInKorea: boolean;
+            /**
+             * Downtimemaxdays
+             * @description 겉으로 보이는 회복 기간(최대 일수)
+             */
+            downtimeMaxDays: number;
+            /** Usesneedle */
+            usesNeedle: boolean;
+            /**
+             * Cliniccount
+             * @description 이 시술 가격이 있는 병원 수
+             */
+            clinicCount: number;
+        };
+        /**
+         * PlanAlternative
+         * @description 같은 시술을 다른 방식으로 받을 때의 합계. 일정과 비교해 보여 준다.
+         */
+        PlanAlternative: {
+            /**
+             * Oneclinic
+             * @description true: 모든 시술을 한 병원에서 같이, false: 시술마다 가장 싼 병원에 따로
+             */
+            oneClinic: boolean;
+            /** Cliniccount */
+            clinicCount: number;
+            /**
+             * Placeid
+             * @description 한 병원이면 그 병원 ID, 아니면 null
+             */
+            placeId: string | null;
+            /** Clinicnameja */
+            clinicNameJa: string | null;
+            /** Clinicnameko */
+            clinicNameKo: string | null;
+            /** Totalkrw */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
+            /**
+             * Extrakrw
+             * @description 이 방식의 합계 - 일정 합계(원). 음수면 이 방식이 쌈
+             */
+            extraKrw: number;
+            /** Extrajpy */
+            extraJpy: number;
+        };
+        /** PlanBudget */
+        PlanBudget: {
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "JPY" | "KRW";
+            /** Amount */
+            amount: number;
+            /**
+             * Left
+             * @description 예산 - 일정 합계(예산 통화). 일정은 예산을 넘지 않는다
+             */
+            left: number;
+        };
+        /**
+         * PlanDeferred
+         * @description 이번 일정에 넣지 않은 시술과 그 이유.
+         */
+        PlanDeferred: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /** Downtimemaxdays */
+            downtimeMaxDays: number;
+            /**
+             * Reasons
+             * @description downtime 회복 기간 초과(여행자: 귀국 전에 회복되지 않음, 거주자: 약속 뒤로 미룸), budget 예산 초과(여행자: 이번 여행 예산, 거주자: 다음 달로 미룸), needle 바늘 시술 기피, far 기준 위치 6km 안에 병원 없음(거주자), no_clinic 조건에 맞는 병원 없음, one_clinic 한 병원에서 같이 받을 수 있는 곳이 없거나 시술 3개를 넘음
+             */
+            reasons: ("downtime" | "budget" | "needle" | "far" | "no_clinic" | "one_clinic")[];
+            /** @description 이 시술을 받는다면 가장 싼 병원. 병원이 없으면(far, no_clinic) null */
+            cheapest: components["schemas"]["PlanOption"] | null;
+        };
+        /**
+         * PlanItem
+         * @description 일정에 넣은 시술 하나. 금액은 병원 추천 카드와 같은 계산이다.
+         */
+        PlanItem: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /**
+             * Basekrw
+             * @description 병원 게시가(원)
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 게시가에 더하는 부가세(원). 이미 포함이면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /**
+             * Jpaveragejpy
+             * @description 이 시술의 일본 주요 병원 평균(세금 포함)
+             */
+            jpAverageJpy: number;
+            /** Pricetags */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
+            /** Pricenoteja */
+            priceNoteJa: string;
+            /** Pricenoteko */
+            priceNoteKo: string;
+            /** @description 이 시술 가격의 가격표 증빙 링크 */
+            proof: components["schemas"]["PriceProof"];
+            /**
+             * Downtimemaxdays
+             * @description 겉으로 보이는 회복 기간(최대 일수)
+             */
+            downtimeMaxDays: number;
+        };
+        /**
+         * PlanOption
+         * @description 일정에서 뺀 시술을 받는다면 가장 싼 병원(거르기 조건 안).
+         */
+        PlanOption: {
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
+            /** Distancemeters */
+            distanceMeters: number | null;
+        };
+        /**
+         * PlanVisit
+         * @description 병원 한 곳에 한 번 가는 일정. 같은 병원에서 받는 시술은 한 번 방문으로 묶는다.
+         */
+        PlanVisit: {
+            /**
+             * Cardid
+             * @description <place_id>:<menu_id>+<menu_id> 형식. get_booking_options에 그대로 넣으면 이 방문의 시술이 모두 문의 문장에 들어간다
+             */
+            cardId: string;
+            /**
+             * Day
+             * @description 여행자: 몇째 날에 가는지(1 = 병원에 갈 수 있는 첫날, tripDays = 귀국일). 거주자는 null(약속 전 언제든, 회복이 긴 방문부터 순서대로)
+             */
+            day: number | null;
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Area
+             * @enum {string}
+             */
+            area: "sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak";
+            /** Stationja */
+            stationJa: string;
+            /** Stationko */
+            stationKo: string;
+            /** Japanesesupport */
+            japaneseSupport: boolean;
+            /** Items */
+            items: components["schemas"]["PlanItem"][];
+            /**
+             * Totalkrw
+             * @description 이 방문의 시술 합계(부가세 포함, 원)
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 시술별 엔화 환산의 합
+             */
+            totalJpy: number;
+            /**
+             * Downtimemaxdays
+             * @description 이 방문 시술 중 가장 긴 회복 기간
+             */
+            downtimeMaxDays: number;
+            /**
+             * Distancemeters
+             * @description 기준 위치에서 병원까지 직선거리(m). 기준 위치가 없으면 null
+             */
+            distanceMeters: number | null;
+            /** Walkminutes */
+            walkMinutes: number | null;
+            /** Rating */
+            rating: number;
+            /**
+             * Ratingscope
+             * @enum {string}
+             */
+            ratingScope: "branch" | "brand";
+            /**
+             * Ratingtier
+             * @enum {string}
+             */
+            ratingTier: "jp_kr_verified" | "kr_verified" | "limited";
+            /** Bookingchannels */
+            bookingChannels: components["schemas"]["BookingChannel"][];
+            /** Centralchannel */
+            centralChannel: boolean;
+            /** Priceconditionja */
+            priceConditionJa: string;
+            /** Priceconditionko */
+            priceConditionKo: string;
+        };
+        /**
+         * PriceComparison
+         * @description 병원 한 곳 × 시술 하나의 가격 비교.
+         */
+        PriceComparison: {
+            /** Menuid */
+            menuId: string;
+            /**
+             * Basekrw
+             * @description 병원 표시 가격
+             */
+            baseKrw: number;
+            /**
+             * Vatkrw
+             * @description 부가세 별도 병원이면 더한 부가세, 아니면 0
+             */
+            vatKrw: number;
+            /**
+             * Totalkrw
+             * @description 부가세 포함 가격
+             */
+            totalKrw: number;
+            /**
+             * Totaljpy
+             * @description 부가세 포함 가격의 엔화 환산
+             */
+            totalJpy: number;
+            /** Jpbenchmarkjpy */
+            jpBenchmarkJpy: number;
+            /**
+             * Savingsjpy
+             * @description 일본 평균 대비 절약액(엔). 음수면 일본이 더 싸다
+             */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            /** Noteja */
+            noteJa: string;
+            /** Noteko */
+            noteKo: string;
+            /**
+             * Pricetags
+             * @description 가격 조건 태그(첫 방문가, 이벤트가 등)
+             */
+            priceTags: ("first_visit" | "event" | "day_limited" | "app_benefit" | "anesthesia" | "extra_fee")[];
+        };
         /**
          * PriceProof
          * @description 가격표 증빙. web 병원 화면의 공식 가격 링크와 같다(설계 문서 4.7).
@@ -414,6 +1185,33 @@ export interface components {
              * @description 스크린샷에서 찾은 가격 문구(한국어). verified가 false면 null
              */
             matchedText: string | null;
+        };
+        /** ProfileBudgetResponse */
+        ProfileBudgetResponse: {
+            /** Amount */
+            amount: number;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "JPY" | "KRW";
+            /**
+             * Scope
+             * @description per_treatment 시술 1회 예산, total 일정 전체 예산. 사용자가 말하지 않았으면 null
+             */
+            scope: ("per_treatment" | "total") | null;
+        };
+        /** ProfileLocation */
+        ProfileLocation: {
+            /**
+             * Locationid
+             * @description 위치 ID. 예: area:hongdae, station:홍대입구
+             */
+            locationId: string;
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
         };
         /** Question */
         Question: {
@@ -583,6 +1381,138 @@ export interface components {
              */
             reason: string | null;
         };
+        /**
+         * SeparatePick
+         * @description 따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준).
+         */
+        SeparatePick: {
+            /** Menuid */
+            menuId: string;
+            /** Menunameja */
+            menuNameJa: string;
+            /** Menunameko */
+            menuNameKo: string;
+            /** Placeid */
+            placeId: string;
+            /** Clinicnameja */
+            clinicNameJa: string;
+            /** Clinicnameko */
+            clinicNameKo: string;
+            /**
+             * Totalkrw
+             * @description 이 병원의 부가세 포함 가격(원)
+             */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
+        };
+        /** TripPlanCard */
+        TripPlanCard: {
+            /**
+             * Visitor
+             * @enum {string}
+             */
+            visitor: "traveler" | "resident";
+            /**
+             * Tripdays
+             * @description 여행자: 병원에 갈 수 있는 첫날부터 귀국일까지 날 수(2박 3일이면 3). 거주자는 null
+             */
+            tripDays: number | null;
+            /**
+             * Daysuntilevent
+             * @description 거주자: 오늘부터 다음 약속(얼굴이 깨끗해야 하는 날)까지 날 수(내일이면 1). 모르면 null
+             */
+            daysUntilEvent: number | null;
+            /**
+             * Oneclinic
+             * @description 모든 시술을 한 병원에서 같이 받는 일정이면 true
+             */
+            oneClinic: boolean;
+            /**
+             * Radiusmeters
+             * @description 거주자: 기준 위치에서 이 거리 안의 병원만 골랐다(3km, 3km 안에 없는 시술이 있으면 6km). 기준 위치가 없거나 여행자면 null
+             */
+            radiusMeters: number | null;
+            /**
+             * Visits
+             * @description 이번에 받을 방문. 여행자는 날짜 순, 거주자는 회복이 긴 순
+             */
+            visits: components["schemas"]["PlanVisit"][];
+            /**
+             * Totalkrw
+             * @description 일정 합계(부가세 포함, 원)
+             */
+            totalKrw: number;
+            /** Totaljpy */
+            totalJpy: number;
+            /**
+             * Jptotaljpy
+             * @description 일정 시술의 일본 평균 합계
+             */
+            jpTotalJpy: number;
+            /** Savingsjpy */
+            savingsJpy: number;
+            /** Savingspct */
+            savingsPct: number;
+            budget: components["schemas"]["PlanBudget"] | null;
+            /** @description 같은 시술을 다른 방식(한 병원 또는 따로)으로 받을 때의 합계. 비교할 것이 없으면 null */
+            alternative: components["schemas"]["PlanAlternative"] | null;
+            /** Deferred */
+            deferred: components["schemas"]["PlanDeferred"][];
+            /** Krwper100Jpy */
+            krwPer100Jpy: number;
+            /** Fxdatelabel */
+            fxDateLabel: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "trip_plan";
+        };
+        /**
+         * UserProfileResponse
+         * @description 저장된 사용자 기억(설계 문서 8장, 10장). 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다.
+         */
+        UserProfileResponse: {
+            /**
+             * Visitor
+             * @description traveler 여행자, resident 서울 거주자
+             */
+            visitor: ("traveler" | "resident") | null;
+            budget: components["schemas"]["ProfileBudgetResponse"] | null;
+            /**
+             * Arrivaldate
+             * @description 서울 도착일
+             */
+            arrivalDate: string | null;
+            /**
+             * Returndate
+             * @description 귀국일
+             */
+            returnDate: string | null;
+            /** @description 숙소나 사는 곳 */
+            location: components["schemas"]["ProfileLocation"] | null;
+            /**
+             * Concerns
+             * @description 고민 분류
+             */
+            concerns: ("pores" | "glow" | "lift" | "dry" | "jaw" | "skinbase")[];
+            /**
+             * Avoidneedle
+             * @description 바늘 시술을 피하면 true
+             */
+            avoidNeedle: boolean | null;
+            /**
+             * Jptreatments
+             * @description 일본에서 받은 시술(사용자 표현 그대로)
+             */
+            jpTreatments: string[];
+            /**
+             * Updatedat
+             * @description 마지막으로 저장한 시각
+             */
+            updatedAt: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -626,6 +1556,228 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ChatResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    streamAgentChat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getAgentUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 브라우저가 만든 익명 사용자 ID */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteAgentUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 브라우저가 만든 익명 사용자 ID */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getFx: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FxRate"];
+                };
+            };
+        };
+    };
+    listMenus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MenuList"];
+                };
+            };
+        };
+    };
+    listClinicPrices: {
+        parameters: {
+            query: {
+                /** @description 시술 ID */
+                menuId: string;
+                /** @description 정렬 기준 */
+                sort?: "savings" | "distance" | "rating";
+                /** @description 이 지역 병원만 */
+                area?: ("sinchon" | "hongdae" | "myeongdong" | "yongsan" | "gangnam" | "jamsil" | "seongsu" | "yeouido" | "magok" | "nowon" | "cheonho" | "gwanak") | null;
+                /** @description 일본어 상담 가능 병원만 */
+                japaneseOnly?: boolean;
+                /** @description 병원 이름·브랜드·주소·역 검색어 */
+                q?: string | null;
+                lat?: number | null;
+                lng?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicPriceList"];
+                };
+            };
+            /** @description 없는 시술 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getClinic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clinic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClinicDetail"];
+                };
+            };
+            /** @description 없는 병원 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

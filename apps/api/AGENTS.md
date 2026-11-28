@@ -43,6 +43,11 @@ OpenAPI 타입은 컴파일 시점 검사다. 요청 검증은 서버의 Pydanti
 - 새 endpoint에는 `tests/`에 정상·오류 응답 테스트를 추가한다.
 - 의존성은 `uv add <package>`로 추가하고 `uv.lock`을 함께 커밋한다.
 - 개발 서버의 API 문서(Swagger UI): http://localhost:8000/docs
+- 구조 규칙은 문서보다 검사가 먼저다. `pnpm check`가 다음을 막으니, 실패하면 검사를 끄지 말고 코드를 고친다. 규칙을 바꿀 때는 검사도 같은 PR에서 바꾼다.
+  - 계층 방향(router → service → graph → tools), router의 graph·tools·domain 직접 호출, domain의 FastAPI·LLM 의존: `uv run lint-imports`(`pyproject.toml`의 `tool.importlinter`)
+  - SSE 직접 구현(`StreamingResponse`, `sse_starlette`): ruff `TID251`
+  - 서비스의 HTTP import(`Depends` 외), `get_fx_provider()`를 거치지 않는 `FxProvider`, `alembic.ini`의 ASCII 아닌 문자: `tests/test_architecture.py`
+  - 스트림 금액 검증: `tests/test_agent_stream.py`
 
 ## 에이전트 작업 규칙
 
@@ -88,3 +93,28 @@ OpenAPI 타입은 컴파일 시점 검사다. 요청 검증은 서버의 Pydanti
 
 - 결정 기록: `docs/adr/`
 - 작업 시작: `/todo-task` 스킬 (`.agents/skills/todo-task/SKILL.md`)
+
+## 백엔드 구조 규칙
+
+`apps/api` 전체(에이전트, 가격 조회, DB)에 적용한다.
+
+### 계층
+
+- 라우터(`router.py`)는 요청을 받아 서비스를 부르고 응답을 돌려주기만 한다. 대화 흐름, 데이터 조회, 응답 변환은 같은 폴더의 `service.py`에 둔다. 예: `agent/service.py`의 `ChatService`, `pricing/service.py`의 `PricingService`.
+- 서비스는 `Depends(get_<이름>_service)`로 라우터에 넣는다. 테스트는 이 함수나 서비스가 쓰는 값을 바꿔 끼운다.
+- 금액·거리 계산은 `api/domain`에 둔다(`calc.py`는 web `calc.ts`와 같은 식). 서비스와 도구는 계산식을 새로 쓰지 않고 domain 함수를 부른다.
+- 서비스는 HTTP를 모른다. 없는 대상은 서비스 고유 예외로 알리고, 라우터가 HTTP 상태(404 등)로 바꾼다.
+
+### 응답 스트리밍
+
+- SSE는 직접 구현하지 않는다. FastAPI 내장 `fastapi.sse.EventSourceResponse`(`response_class`)를 쓰고, LLM 토큰은 LangGraph `stream(stream_mode="messages")`로 받는다.
+- 이벤트는 `type`으로 구분하는 Pydantic 모델이다(`start` → `delta` 0개 이상 → `done`). `done`에는 일반 응답과 같은 모델을 담는다. 실패는 HTTP 오류가 아니라 `done`의 시세표 안내(fallback)로 보낸다.
+- 금액 검증은 스트림에도 적용한다. 도구 결과에 없는 금액이 든 문장은 `delta`로 나가지 않는다.
+
+### 병원·가격 데이터
+
+- 병원·가격 데이터는 `get_catalog()`로만 읽는다. 도구와 서비스는 `Catalog`를 받고 DB나 JSON 파일을 직접 읽지 않는다(ADR 0001).
+- 데이터 출처는 `CATALOG_SOURCE`로 고른다. `snapshot`(기본)은 web 스냅샷 JSON, `db`는 `DATABASE_URL`의 DB다. DB로 쓰기 전에 `uv run python -m api.db.seed`로 마이그레이션과 데이터를 넣는다. 크롤링하지 않는다.
+- 테이블을 바꾸면 Alembic 마이그레이션을 같은 PR에 추가한다(`uv run alembic revision --autogenerate -m "<설명>"`). `tests/test_db_models.py`의 모델·마이그레이션 비교가 통과해야 한다.
+- `alembic.ini`에는 ASCII만 쓴다. Windows에서 Alembic이 OS 인코딩(cp949)으로 읽어 한글이 있으면 깨진다.
+- 환율은 `get_fx_provider()` 하나로 읽는다. 에이전트 답변과 가격 조회 API의 금액이 같아야 한다.

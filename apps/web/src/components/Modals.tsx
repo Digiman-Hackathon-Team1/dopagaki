@@ -18,7 +18,13 @@ import {
 } from '@/lib/calc.ts';
 import { getCopy } from '@/lib/i18n.ts';
 import { getOfficialMenuProof } from '@/data/official-proofs.ts';
-import { getBrandReview, getClinicSafetyAudit, type ClinicTrait } from '@/data/brand-reviews.ts';
+import {
+  buildPrimaryReviewUrl,
+  getBrandReview,
+  getClinicSafetyAudit,
+  type ClinicTrait
+} from '@/data/brand-reviews.ts';
+import { getExternalReviewPosts } from '@/data/external-review-posts.ts';
 import { getClinicAiRating } from '@/lib/ai-rating.ts';
 import { renderBookingChannelsHtml } from '@/lib/clinic-trust-ui.ts';
 import { buildTransitUrl } from '@/lib/clinic-helpers.ts';
@@ -205,6 +211,8 @@ export function DetailDrawerModal({
       : `-${formatJpy(Math.abs(activeRow.savingsJpy))}`;
   const drawerDist = formatDistance(activeRow.distanceMeters, lang, isPointInSouthKorea(userLocation));
   const drawerRev = getBrandReview(place);
+  const drawerPosts = getExternalReviewPosts(place, lang);
+  const drawerPrimaryReviewUrl = buildPrimaryReviewUrl(place, lang);
   const drawerSafety = getClinicSafetyAudit(place);
   const drawerAi = getClinicAiRating(place, allPlaces);
   const drawerVibe = lang === 'ja' ? drawerRev.vibeJa : drawerRev.vibeKo;
@@ -338,16 +346,54 @@ export function DetailDrawerModal({
               <span className="tg-jp-lbl">{copy.jpSupportTag}</span>
             </span>
           )}
-          <span className={`ai-pill is-${drawerAi.grade} num`}>
-            <SvgIcon name="star" />
-            <span>AI {drawerAi.formatted} / 5.0</span>
-          </span>
+          {drawerAi.isNewClinic ? (
+            <span className="ai-pill is-new">
+              <span>NEW · {lang === 'ja' ? '新規開院' : '신규 개원'}</span>
+            </span>
+          ) : (
+            <span className={`ai-pill is-${drawerAi.grade} num`}>
+              <SvgIcon name="star" />
+              <span>AI {drawerAi.formatted} / 5.0</span>
+            </span>
+          )}
           <span className={`char-vibe ${drawerRev.reviewScope === 'branch' ? 'is-branch' : ''}`}>
             {drawerVibe}
           </span>
           {drawerRev.traits.map((t) => (
             <TraitChip key={t.id} trait={t} lang={lang} />
           ))}
+        </div>
+
+        <div className="dd-rev-box">
+          <div className="dd-rev-top">
+            <span className="dd-rev-badge">
+              {drawerPosts.length > 0
+                ? lang === 'ja'
+                  ? `外部口コミ抜粋 ${drawerPosts.length}件`
+                  : `외부 후기 요약 ${drawerPosts.length}건`
+                : lang === 'ja'
+                  ? drawerRev.scopeLabelJa
+                  : drawerRev.scopeLabelKo}
+            </span>
+            <a
+              className="dd-rev-ext"
+              href={drawerPrimaryReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>{lang === 'ja' ? 'Google口コミ(登録不要)' : '네이버 실후기(무로그인)'}</span>
+              <SvgIcon name="external" />
+            </a>
+          </div>
+          <p className="dd-rev-text">
+            {drawerPosts.length > 0
+              ? lang === 'ja'
+                ? drawerPosts[0].summaryJa
+                : drawerPosts[0].summaryKo
+              : lang === 'ja'
+                ? drawerRev.shortTagJa
+                : drawerRev.shortTagKo}
+          </p>
         </div>
 
         {drawerSafety.alerts.map((al) => (

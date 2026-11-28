@@ -3,6 +3,7 @@ import type { ComputedRow, Lang, SortId } from '../types';
 import { formatDistance, formatJpy } from '../lib/calc';
 import { formatCompactKrw } from './Modals';
 import { branchLabel, groupRowsByBrand, type BrandGroup } from '../lib/brand-groups';
+import { isNewClinic } from '../data/brand-reviews';
 import { SvgIcon } from './SvgIcon';
 import { PctFlow, RatingFlow, YenFlow } from './ui/number-flow';
 import { MedalEmoji } from './emoji';
@@ -143,6 +144,7 @@ export const BrandGroupList = memo(function BrandGroupList({
               item={item}
               groupKey={groupKey}
               rank={idx + 1}
+              sort={sort}
               lang={lang}
               inKoreaLoc={inKoreaLoc}
               jpSupportLabel={jpSupportLabel}
@@ -181,6 +183,7 @@ type SlotRowProps = {
   item: SlotItem;
   groupKey: string;
   rank: number;
+  sort: SortId;
   lang: Lang;
   inKoreaLoc: boolean;
   jpSupportLabel: string;
@@ -202,6 +205,7 @@ const RankSlotRow = memo(function RankSlotRow({
   item,
   groupKey,
   rank,
+  sort,
   lang,
   inKoreaLoc,
   jpSupportLabel,
@@ -265,6 +269,20 @@ const RankSlotRow = memo(function RankSlotRow({
   const isTop3 = rank <= 3;
   const shouldRoll = rank <= 12;
   const rankClass = isTop3 ? `is-top3 is-rank-${rank}` : '';
+  const rank1Badge =
+    rank === 1
+      ? sort === 'distance'
+        ? isJa
+          ? 'いちばん近い 1位'
+          : '가장 가까운 1위'
+        : sort === 'rating'
+          ? isJa
+            ? 'AI評価 1位'
+            : 'AI 평점 1위'
+          : isJa
+            ? '最安 1位'
+            : '최저가 1위'
+      : '';
 
   return (
     <li
@@ -295,21 +313,36 @@ const RankSlotRow = memo(function RankSlotRow({
         )}
 
         <span className="who">
+          {rank1Badge && (
+            <span className="bg-rank1-pill">
+              <span className="bg-rank1-spark" aria-hidden="true">✦</span>
+              <span>{rank1Badge}</span>
+            </span>
+          )}
           <span className="nm-wrap">
             <span className="nm">{displayName}</span>
           </span>
           <span className="bg-meta">
-            <span
-              className={`ai-pill is-${aiGrade(aiScore)} num`}
-              aria-label={
-                isJa
-                  ? `AI評価 5点満点中 ${aiScore.toFixed(1)}点`
-                  : `AI 평점 5점 만점 중 ${aiScore.toFixed(1)}점`
-              }
-            >
-              <SvgIcon name="star" />
-              {shouldRoll ? <RatingFlow value={aiScore} /> : <span>{aiScore.toFixed(1)}</span>}
-            </span>
+            {single && isNewClinic(cheapest.place.id) ? (
+              <span
+                className="ai-pill is-new"
+                aria-label={isJa ? '新規開院・評価集計中' : '신규 개원 · 평점 집계 중'}
+              >
+                <span>NEW</span>
+              </span>
+            ) : (
+              <span
+                className={`ai-pill is-${aiGrade(aiScore)} num`}
+                aria-label={
+                  isJa
+                    ? `AI評価 5点満点中 ${aiScore.toFixed(1)}点`
+                    : `AI 평점 5점 만점 중 ${aiScore.toFixed(1)}점`
+                }
+              >
+                <SvgIcon name="star" />
+                {shouldRoll ? <RatingFlow value={aiScore} /> : <span>{aiScore.toFixed(1)}</span>}
+              </span>
+            )}
             {!single && group && (
               <span className="bg-branches num">
                 {isJa ? `${group.rows.length}院` : `${group.rows.length}개 지점`}
@@ -371,10 +404,16 @@ const RankSlotRow = memo(function RankSlotRow({
                       <span className="bg-branch-who">
                         <span className="bg-branch-nm">
                           <span>{branchLabel(row.place, lang)}</span>
-                          <span className={`ai-pill is-${aiGrade(row.aiRating)} num`}>
-                            <SvgIcon name="star" />
-                            <span>{row.aiRating.toFixed(1)}</span>
-                          </span>
+                          {isNewClinic(row.place.id) ? (
+                            <span className="ai-pill is-new">
+                              <span>NEW</span>
+                            </span>
+                          ) : (
+                            <span className={`ai-pill is-${aiGrade(row.aiRating)} num`}>
+                              <SvgIcon name="star" />
+                              <span>{row.aiRating.toFixed(1)}</span>
+                            </span>
+                          )}
                           {row.place.japaneseSupport && (
                             <span className="tg-jp-badge">
                               <span className="tg-jp-code">JP</span>

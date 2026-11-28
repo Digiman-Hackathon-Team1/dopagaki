@@ -46,7 +46,7 @@ def test_snapshot_matches_web_prices_json() -> None:
 
 @pytest.mark.skipif(not WEB_PRICES.exists(), reason="web 데이터가 없는 환경")
 def test_snapshot_sources_are_unchanged() -> None:
-    """회복 기간·바늘(concierge.ts), 후기 평점(ai-rating.ts·후기 데이터), calc.ts,
+    """회복 기간·바늘(treatment-rules.ts), 후기 평점(ai-rating.ts·후기 데이터), calc.ts,
     예약 채널(clinic-channels.ts), 가격표 증빙(official-proofs.ts), 문의 문장(clinic-helpers.ts),
     내보내기 스크립트가 바뀌면 실패한다.
 
@@ -76,7 +76,7 @@ def test_catalog_loads_every_menu_and_place() -> None:
 
 
 def test_concern_table_has_six_concerns_with_known_menus() -> None:
-    """고민별 시술표(설계 문서 9장)는 web concierge.ts의 CONCERN_MENUS와 같다."""
+    """고민별 시술표(설계 문서 9장)는 web treatment-rules.ts의 CONCERN_MENUS와 같다."""
     catalog = get_catalog()
     menu_ids = {m.id for m in catalog.menus}
 

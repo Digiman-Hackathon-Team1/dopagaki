@@ -6,17 +6,22 @@ API 키가 있고 `AGENT_LIVE_TESTS=1`일 때만 실행한다. 키가 `.env`에 
 
 import json
 import os
+import re
+from datetime import timedelta
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage, HumanMessage
 
 from api.agent.config import AgentSettings, get_settings
 from api.agent.graph import AMOUNT_CAUTION
 from api.agent.safety import mentions_health
+from api.agent.service import get_agent
 from api.domain.calc import rank_rows
 from api.domain.catalog import get_catalog
 from api.domain.locations import get_locations
+from api.domain.profile import seoul_today
 from api.main import app
 
 key = get_settings().anthropic_api_key
@@ -434,3 +439,108 @@ def test_live_safety_stop_is_lifted_when_user_says_it_was_only_a_question() -> N
     )
 
     assert clinic_cards(second), second["answer"]
+
+
+def test_live_prompt_cache_reads_within_and_across_turns() -> None:
+    """한 턴 안 두 번째 LLM 호출과 다음 턴 첫 호출이 앞부분을 캐시에서 읽는다(이슈 #59)."""
+    settings = get_settings()
+    assert settings.agent_prompt_cache
+    agent = get_agent(settings)
+    client = TestClient(app)
+    user_id = str(uuid4())
+    thread_id = None
+    for message in (
+        "리쥬란 받고 싶은데 서울에서 일본보다 싼 곳 알려 줘",
+        "귀국은 모레예요",
+    ):
+        response = client.post(
+            "/api/agent/chat",
+            json={
+                "userId": user_id,
+                "threadId": thread_id,
+                "message": message,
+                "lang": "ko",
+            },
+        )
+        assert response.status_code == 200, response.text
+        thread_id = response.json()["threadId"]
+
+    messages = agent.get_state(
+        {"configurable": {"thread_id": f"{user_id}:{thread_id}"}}
+    ).values["messages"]
+    second_turn = max(i for i, m in enumerate(messages) if isinstance(m, HumanMessage))
+    first_turn_ai = [m for m in messages[:second_turn] if isinstance(m, AIMessage)]
+    second_turn_ai = [m for m in messages[second_turn:] if isinstance(m, AIMessage)]
+
+    def cache_read(m: AIMessage) -> int:
+        return (m.usage_metadata or {}).get("input_token_details", {}).get(
+            "cache_read"
+        ) or 0
+
+    # 1턴은 search_clinics를 부른 뒤 답하므로 LLM을 두 번 이상 부른다.
+    assert len(first_turn_ai) >= 2, [m.tool_calls for m in first_turn_ai]
+    assert all(cache_read(m) > 0 for m in first_turn_ai[1:])
+    assert cache_read(second_turn_ai[0]) > 0
+
+
+def test_live_new_thread_uses_saved_budget_and_return_date() -> None:
+    """앞 대화에서 말한 예산·귀국일을 새 대화에서 다시 묻지 않는다(FR-12, 11.3, ADR 0019).
+
+    첫 대화의 응답 칸 remember로 저장되고, 새 대화 첫 턴에 기억 안내가 붙는다. 기록용으로 요청·응답 요지를 출력한다.
+    """
+    client = TestClient(app)
+    user_id = str(uuid4())
+
+    def post(message: str) -> dict:
+        response = client.post(
+            "/api/agent/chat",
+            json={"userId": user_id, "message": message, "lang": "ko"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        print(
+            json.dumps(
+                {
+                    "message": message,
+                    **{
+                        k: body[k]
+                        for k in (
+                            "fallback",
+                            "conditionSummary",
+                            "answer",
+                            "questions",
+                            "cautions",
+                        )
+                    },
+                },
+                ensure_ascii=False,
+                indent=1,
+            )
+        )
+        return body
+
+    first = post("리쥬란 받고 싶어요. 1회 예산은 3만 엔이고 모레 귀국해요.")
+    assert first["fallback"] is None
+
+    saved = client.get(f"/api/agent/users/{user_id}/profile").json()
+    print("saved:", json.dumps(saved, ensure_ascii=False))
+    assert saved["budget"]["amount"] == 30000
+    assert saved["budget"]["currency"] == "JPY"
+    assert saved["returnDate"] == (seoul_today() + timedelta(days=2)).isoformat()
+
+    second = post("리쥬란 싼 곳 알려 줘")  # 새 대화
+    assert second["fallback"] is None
+    assert second["questions"] == []
+    summary = second["conditionSummary"].replace(",", "")
+    assert any(s in summary for s in ("3만", "30000")), summary
+    # 저장된 값을 다시 묻는 표현만 본다. "귀국을 하루 늦출 수 있을까요?"처럼 저장값을 쓰고 묻는 말은 괜찮다.
+    sentences = re.split(r"(?<=[.!?。？！])\s+", second["answer"])
+    asked_again = [
+        s
+        for s in sentences
+        if re.search(
+            r"언제 귀국|귀국(?:일|하는 날|날짜)[을이은]? ?(?:알려|언제|며칠)|예산[은이을]? ?(?:얼마|알려)",
+            s,
+        )
+    ]
+    assert asked_again == [], asked_again

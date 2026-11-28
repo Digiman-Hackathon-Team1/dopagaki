@@ -1,0 +1,4 @@
+병원·가격 DB 마이그레이션(Alembic). 모델은 `../models.py`에 있다.
+
+- 적용: `uv run alembic upgrade head`
+- 모델을 바꾼 뒤: `uv run alembic revision --autogenerate -m "<변경>"`

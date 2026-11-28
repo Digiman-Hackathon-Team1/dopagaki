@@ -17,10 +17,10 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
-from api.agent import router as agent_router
+from api.agent import service as agent_service
 from api.agent.config import AgentSettings, get_settings
 from api.agent.graph import build_graph
-from api.agent.router import FALLBACK_ANSWER, DailyUsage, get_agent
+from api.agent.service import FALLBACK_ANSWER, DailyUsage, get_agent
 from api.agent.tools import TOOLS
 from api.domain.calc import rank_rows
 from api.domain.catalog import get_catalog
@@ -32,7 +32,7 @@ USER_ID = str(uuid4())
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     # 하루 한도는 서버 메모리에 쌓이므로 테스트마다 새로 센다.
-    monkeypatch.setattr(agent_router, "daily_usage", DailyUsage())
+    monkeypatch.setattr(agent_service, "daily_usage", DailyUsage())
     yield TestClient(app)
     app.dependency_overrides.clear()
 

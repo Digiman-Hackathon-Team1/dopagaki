@@ -1,7 +1,7 @@
 """recommend_treatments: 고민으로 맞는 시술 후보와 제외 이유를 돌려준다(설계 문서 4.5, 9장).
 
 사용자 표현을 고민 분류로 바꾸는 일은 LLM이 하고, 고민을 시술로 잇는 일은 고민별 시술표
-(web concierge.ts의 CONCERN_MENUS)가 한다. 회복 기간·바늘 거르기는 search_clinics와 같은 값
+(web treatment-rules.ts의 CONCERN_MENUS)가 한다. 회복 기간·바늘 거르기는 search_clinics와 같은 값
 (`downtime_max_days`, `uses_needle`)과 같은 비교를 써서 두 도구의 제외 판단이 어긋나지 않게 한다.
 출력은 텍스트다(설계 문서 9장). 카드는 다음에 부르는 search_clinics가 만든다.
 """
@@ -17,7 +17,7 @@ TOOL_NAME = "recommend_treatments"
 
 UNSUPPORTED = "unsupported"
 
-# LLM이 사용자 표현을 분류할 때 보는 설명. 예시 표현은 web concierge-parse.ts의 고민 규칙에서 가져왔다.
+# LLM이 사용자 표현을 분류할 때 보는 설명과 일본어·한국어 예시 표현.
 CONCERN_GUIDE: dict[ConcernId, str] = {
     "pores": "pores, blackheads, acne scars (毛穴, 黒ずみ, ニキビ跡 / 모공, 블랙헤드, 여드름 흉터)",
     "glow": "dullness, lack of glow (ツヤ, 透明感, くすみ / 윤기, 광채, 칙칙함)",
