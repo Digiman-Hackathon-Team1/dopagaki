@@ -128,9 +128,14 @@ def test_request_prefix_stays_stable_across_tool_loop_and_turns() -> None:
 
 
 def test_settings_switch_prompt_cache() -> None:
-    on = AgentSettings(anthropic_api_key="dummy", agent_prompt_cache=True)
-    off = AgentSettings(anthropic_api_key="dummy", agent_prompt_cache=False)
+    # 개발자 .env의 값에 흔들리지 않게 .env를 읽지 않는다.
+    on = AgentSettings(
+        _env_file=None, anthropic_api_key="dummy", agent_prompt_cache=True
+    )
+    off = AgentSettings(
+        _env_file=None, anthropic_api_key="dummy", agent_prompt_cache=False
+    )
 
-    assert AgentSettings(anthropic_api_key="dummy").agent_prompt_cache is True
+    assert AgentSettings(_env_file=None, anthropic_api_key="dummy").agent_prompt_cache
     assert get_agent(on) is not get_agent(off)
     assert get_agent(on) is get_agent(on)
