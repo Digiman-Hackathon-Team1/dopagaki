@@ -212,6 +212,67 @@
         }
       }
     },
+    "/api/agent/users/{userId}/threads/{threadId}": {
+      "get": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Get Agent Thread",
+        "description": "지난 대화의 턴. 보관 기한이 지났거나, 서버를 재시작했거나, 다른 사용자의 대화 ID면 404다.",
+        "operationId": "getAgentThread",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "브라우저가 만든 익명 사용자 ID",
+              "title": "Userid"
+            },
+            "description": "브라우저가 만든 익명 사용자 ID"
+          },
+          {
+            "name": "threadId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "대화 ID",
+              "title": "Threadid"
+            },
+            "description": "대화 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadHistory"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "보관된 대화가 없음"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/fx": {
       "get": {
         "tags": [
@@ -3073,6 +3134,51 @@
         ],
         "title": "SeparatePick",
         "description": "따로 받을 때 이 시술을 가장 싸게 받는 병원(search_clinics 절약액 1위와 같은 기준)."
+      },
+      "ThreadHistory": {
+        "properties": {
+          "threadId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Threadid"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/ThreadTurn"
+            },
+            "type": "array",
+            "title": "Turns",
+            "description": "오래된 턴부터"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "threadId",
+          "turns"
+        ],
+        "title": "ThreadHistory"
+      },
+      "ThreadTurn": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "사용자가 보낸 메시지"
+          },
+          "response": {
+            "$ref": "#/components/schemas/ChatResponse",
+            "description": "그 턴에 돌려준 응답 그대로"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message",
+          "response"
+        ],
+        "title": "ThreadTurn",
+        "description": "지난 대화의 한 턴. 화면은 이 값으로 그 턴을 다시 그린다."
       },
       "TripPlanCard": {
         "properties": {

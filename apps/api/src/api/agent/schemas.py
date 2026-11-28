@@ -801,3 +801,15 @@ class UserProfileResponse(ResponseModel):
         description="일본에서 받은 시술(사용자 표현 그대로)"
     )
     updated_at: AwareDatetime | None = Field(description="마지막으로 저장한 시각")
+
+
+class ThreadTurn(ResponseModel):
+    """지난 대화의 한 턴. 화면은 이 값으로 그 턴을 다시 그린다."""
+
+    message: str = Field(description="사용자가 보낸 메시지")
+    response: ChatResponse = Field(description="그 턴에 돌려준 응답 그대로")
+
+
+class ThreadHistory(ResponseModel):
+    thread_id: UUID
+    turns: list[ThreadTurn] = Field(description="오래된 턴부터")

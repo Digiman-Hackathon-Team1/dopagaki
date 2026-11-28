@@ -53,8 +53,10 @@ from api.agent.schemas import (
     Lang,
     ProfileBudgetResponse,
     ProfileLocation,
+    ThreadHistory,
     UserProfileResponse,
 )
+from api.agent.threads import ThreadStore, get_thread_store, thread_key
 from api.agent.tools import TOOLS
 from api.domain.locations import get_locations
 from api.domain.profile import ProfileStore
@@ -424,7 +426,7 @@ class ChatService:
         """대화 ID, 대화 기억 키, 그래프 설정을 정한다."""
         thread_id = body.thread_id or uuid4()
         # 다른 사용자의 대화 ID로 대화를 이어 읽지 못하도록 사용자 ID와 묶어 저장한다.
-        key = f"{body.user_id}:{thread_id}"
+        key = thread_key(body.user_id, thread_id)
         config = {
             # 사용자 ID는 사용자 기억을 읽고 쓸 때 그래프가 쓴다. LLM에는 넘기지 않는다(ADR 0019).
             "configurable": {"thread_id": key, "user_id": str(body.user_id)},
@@ -718,3 +720,24 @@ class ProfileService:
 
 def get_profile_service() -> ProfileService:
     return ProfileService(get_profile_store())
+
+
+class UnknownThreadError(Exception):
+    """보관된 대화가 없다. 보관 기한이 지났거나, 서버를 재시작했거나, 다른 사용자의 대화 ID다."""
+
+
+class ThreadService:
+    """지난 대화 턴 조회(설계 문서 10장 대화 기록 불러오기)."""
+
+    def __init__(self, store: ThreadStore) -> None:
+        self._store = store
+
+    def get(self, user_id: UUID, thread_id: UUID) -> ThreadHistory:
+        turns = self._store.get(thread_key(user_id, thread_id))
+        if turns is None:
+            raise UnknownThreadError(str(thread_id))
+        return ThreadHistory(thread_id=thread_id, turns=turns)
+
+
+def get_thread_service() -> ThreadService:
+    return ThreadService(get_thread_store())
