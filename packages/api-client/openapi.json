@@ -544,6 +544,29 @@
   },
   "components": {
     "schemas": {
+      "AnsweredQuestion": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Question",
+            "description": "에이전트가 물은 질문"
+          },
+          "answer": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Answer",
+            "description": "사용자가 고르거나 쓴 답. 여러 개를 골랐으면 쉼표로 이은 글"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "AnsweredQuestion",
+        "description": "질문 묶음의 질문 하나와 사용자가 고르거나 쓴 답. 화면이 지난 대화를 다시 그릴 때 쓴다(#94)."
+      },
       "BookingCard": {
         "properties": {
           "placeId": {
@@ -1084,6 +1107,15 @@
             ],
             "title": "Lang",
             "description": "화면 언어. 응답 언어는 메시지에서 판별하고, 판별하지 못할 때(이름·숫자·영어만 쓴 메시지 등) 직전 턴 응답 언어, 첫 턴이면 이 값을 쓴다"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/AnsweredQuestion"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Answers",
+            "description": "질문 묶음에 답해 보낸 메시지면 질문과 답의 짝. 지난 대화를 다시 그릴 때 \"질문: 답\"으로 보여 주려고 턴과 함께 보관만 하고, 에이전트에는 넘기지 않는다(답은 message에 이미 있다). 아니면 빈 배열"
           }
         },
         "type": "object",
@@ -3165,6 +3197,14 @@
             "type": "string",
             "title": "Message",
             "description": "사용자가 보낸 메시지"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/AnsweredQuestion"
+            },
+            "type": "array",
+            "title": "Answers",
+            "description": "질문 묶음에 답해 보낸 턴이면 질문과 답의 짝(요청의 answers 그대로). 아니면 빈 배열"
           },
           "response": {
             "$ref": "#/components/schemas/ChatResponse",

@@ -141,6 +141,17 @@ class CamelModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, validate_by_name=True)
 
 
+class AnsweredQuestion(CamelModel):
+    """질문 묶음의 질문 하나와 사용자가 고르거나 쓴 답. 화면이 지난 대화를 다시 그릴 때 쓴다(#94)."""
+
+    question: Annotated[str, StringConstraints(max_length=300)] = Field(
+        description="에이전트가 물은 질문"
+    )
+    answer: Annotated[str, StringConstraints(max_length=2000)] = Field(
+        description="사용자가 고르거나 쓴 답. 여러 개를 골랐으면 쉼표로 이은 글"
+    )
+
+
 class ChatRequest(CamelModel):
     user_id: UUID = Field(description="브라우저가 만든 익명 사용자 ID")
     thread_id: UUID | None = Field(
@@ -154,6 +165,14 @@ class ChatRequest(CamelModel):
             "화면 언어. 응답 언어는 메시지에서 판별하고, 판별하지 못할 때(이름·숫자·영어만 쓴 메시지 등) "
             "직전 턴 응답 언어, 첫 턴이면 이 값을 쓴다"
         )
+    )
+    answers: list[AnsweredQuestion] = Field(
+        default_factory=list,
+        max_length=5,
+        description=(
+            '질문 묶음에 답해 보낸 메시지면 질문과 답의 짝. 지난 대화를 다시 그릴 때 "질문: 답"으로 보여 주려고 '
+            "턴과 함께 보관만 하고, 에이전트에는 넘기지 않는다(답은 message에 이미 있다). 아니면 빈 배열"
+        ),
     )
 
 
@@ -807,6 +826,10 @@ class ThreadTurn(ResponseModel):
     """지난 대화의 한 턴. 화면은 이 값으로 그 턴을 다시 그린다."""
 
     message: str = Field(description="사용자가 보낸 메시지")
+    answers: list[AnsweredQuestion] = Field(
+        default_factory=list,
+        description="질문 묶음에 답해 보낸 턴이면 질문과 답의 짝(요청의 answers 그대로). 아니면 빈 배열",
+    )
     response: ChatResponse = Field(description="그 턴에 돌려준 응답 그대로")
 
 

@@ -146,3 +146,50 @@ def test_thread_expired_from_memory_is_removed_from_store(
     assert saver.get_tuple({"configurable": {"thread_id": f"{USER_ID}:{old}"}}) is None
     assert get_thread(client, old).status_code == 404
     assert get_thread(client, new).status_code == 200
+
+
+ANSWERS = [
+    {"question": "귀국일이 언제예요?", "answer": "모레"},
+    {"question": "숙소는 어디예요?", "answer": "홍대"},
+]
+
+
+def test_question_answers_are_restored_with_the_turn(client: TestClient) -> None:
+    # 질문 묶음에 답해 보낸 턴은 다시 그릴 때 "질문: 답"으로 보이도록 짝을 같이 보관한다.
+    saver = use_agent("찾았어요")
+    thread_id = str(uuid4())
+    response = client.post(
+        "/api/agent/chat",
+        json={
+            **body("귀국일이 언제예요? 모레\n숙소는 어디예요? 홍대", thread_id),
+            "answers": ANSWERS,
+        },
+    )
+    assert response.status_code == 200
+
+    [turn] = get_thread(client, thread_id).json()["turns"]
+    assert turn["answers"] == ANSWERS
+    # 에이전트에는 메시지만 넘긴다(답은 메시지에 이미 있다).
+    config = {"configurable": {"thread_id": f"{USER_ID}:{thread_id}"}}
+    human = saver.get_tuple(config).checkpoint["channel_values"]["messages"][0]
+    assert "answers" not in str(human.content) and "숙소는 어디예요? 홍대" in str(
+        human.content
+    )
+
+
+def test_turn_without_answers_has_empty_answers(client: TestClient) -> None:
+    use_agent("답")
+    thread_id = str(uuid4())
+    post_chat(client, "리쥬란 싼 곳", thread_id)
+
+    [turn] = get_thread(client, thread_id).json()["turns"]
+    assert turn["answers"] == []
+
+
+def test_too_many_answers_are_rejected(client: TestClient) -> None:
+    use_agent("답")
+    answers = [{"question": f"질문 {i}", "answer": "답"} for i in range(6)]
+    response = client.post(
+        "/api/agent/chat", json={**body("답", str(uuid4())), "answers": answers}
+    )
+    assert response.status_code == 422

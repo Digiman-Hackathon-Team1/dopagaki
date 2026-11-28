@@ -34,6 +34,7 @@ function restoredTurns(history: Schemas['ThreadTurn'][], firstId: number): Turn[
   return history.map((turn, index) => ({
     id: firstId + index,
     message: turn.message,
+    answers: turn.answers?.length ? turn.answers : undefined,
     reply: index === history.length - 1 ? turn.response : { ...turn.response, questions: [] },
     status: null
   }));
@@ -147,7 +148,8 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
         const { data, response } = await api.POST('/api/agent/chat/stream', {
           signal,
           parseAs: 'stream',
-          body: { userId: userId.current, threadId: thread.current, message, lang }
+          // 질문·답 짝은 지난 대화를 다시 그릴 때 "질문: 답"으로 보여 주려고 같이 보낸다(서버는 보관만 한다).
+          body: { userId: userId.current, threadId: thread.current, message, lang, answers: answers ?? [] }
         });
         if (!response.ok || !data) {
           result = { id, message, answers, status: response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status };

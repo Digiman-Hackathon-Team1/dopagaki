@@ -381,7 +381,7 @@ class ChatService:
             response = self._respond(state, turn.thread_id, turn.lang)
             return response
         finally:
-            self._end(turn, body.message, response)
+            self._end(turn, body, response)
 
     def stream(self, body: ChatRequest) -> Iterator[ChatStreamEvent]:
         gen = self._stream(body)
@@ -410,7 +410,7 @@ class ChatService:
                         sent = event.response
                     yield event
         finally:
-            self._end(turn, body.message, sent)
+            self._end(turn, body, sent)
 
     def _stream_turn(self, turn: _Turn, body: ChatRequest) -> Iterator[ChatStreamEvent]:
         if turn.early is not None:
@@ -532,7 +532,9 @@ class ChatService:
             return fallback_response(thread_id, lang, "daily_limit")
         return None
 
-    def _end(self, turn: _Turn, message: str, response: ChatResponse | None) -> None:
+    def _end(
+        self, turn: _Turn, body: ChatRequest, response: ChatResponse | None
+    ) -> None:
         """잠금을 풀고, 대화 기억에 남은 대화면 이번 턴을 보관소에도 넣는다(#94).
 
         대화 기억에 없는 요청(첫 턴부터 하루 한도로 거절 등)은 보관하지 않는다. 넣으면 대화 기억의 보관 기한·상한
@@ -550,7 +552,10 @@ class ChatService:
         if stored and response is not None:
             try:
                 self._threads.append(
-                    turn.key, ThreadTurn(message=message, response=response)
+                    turn.key,
+                    ThreadTurn(
+                        message=body.message, answers=body.answers, response=response
+                    ),
                 )
             except Exception:
                 # 보관에 실패해도 이번 응답은 그대로 나간다. 새로고침 때 그 턴만 빠진다.
