@@ -191,20 +191,25 @@ function TripPlanCard({ card, lang, send }: { lang: Lang; card: Schemas['TripPla
   </article>;
 }
 
-export function Reply({ reply, send, lang }: { lang: Lang; reply: Schemas['ChatResponse']; send: Send }) {
+/** 답변 본문(마크다운). 스트리밍 중 이어 붙인 글도 같은 모양으로 그린다. */
+export function AnswerText({ text }: { text: string }) {
+  return <div className="agent-markdown"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
+    a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
+    img: ({ alt }) => <>{alt}</>
+  }}>{text}</Markdown></div>;
+}
+
+export function Reply({ reply, send, lang, onPriceTable }: { lang: Lang; reply: Schemas['ChatResponse']; send: Send; onPriceTable?: () => void }) {
   const searchIds = new Set([
     ...reply.cards.flatMap(card => card.kind === 'recommendation' ? [card.searchId] : []),
     ...reply.exclusions.map(item => item.searchId)
   ]);
   return <div className="agent-reply">
     {reply.conditionSummary && <p className="agent-summary">{reply.conditionSummary}</p>}
-    <div className="agent-markdown"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
-      a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
-      img: ({ alt }) => <>{alt}</>
-    }}>{reply.answer}</Markdown></div>
+    <AnswerText text={reply.answer} />
     {reply.fallback && <aside className="agent-fallback">
       <p>{reply.fallback === 'daily_limit' ? copy[lang].dailyLimit : copy[lang].fallbackError}</p>
-      <PriceTableLink lang={lang} />
+      <PriceTableLink lang={lang} onClick={onPriceTable} />
     </aside>}
     {reply.cards.map((card, index) => {
       switch (card.kind) {

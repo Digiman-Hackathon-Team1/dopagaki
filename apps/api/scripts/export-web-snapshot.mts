@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import type { AreaId, GeoPoint, NaverFxSnapshot, PriceDataset, SortId } from '../../web/src/types.ts';
 import { buildRankedRows } from '../../web/src/lib/calc.ts';
 import { getClinicAiRating } from '../../web/src/lib/ai-rating.ts';
-import { CONCERN_MENUS, DOWNTIME_MAX_DAYS, NEEDLE_MENUS } from '../../web/src/lib/concierge.ts';
+import { CONCERN_MENUS, DOWNTIME_MAX_DAYS, NEEDLE_MENUS } from '../../web/src/lib/treatment-rules.ts';
 import { getClinicChannels } from '../../web/src/data/clinic-channels.ts';
 import { getOfficialMenuProof } from '../../web/src/data/official-proofs.ts';
 import {
@@ -61,7 +61,7 @@ for (const [concern, ids] of Object.entries(CONCERN_MENUS)) {
 const SOURCE_FILES = [
   'apps/web/src/data/prices.json',
   'apps/web/src/lib/calc.ts',
-  'apps/web/src/lib/concierge.ts',
+  'apps/web/src/lib/treatment-rules.ts',
   'apps/web/src/lib/ai-rating.ts',
   'apps/web/src/data/brand-reviews.ts',
   'apps/web/src/data/branch-reviews.ts',

@@ -6,7 +6,6 @@ Python 백엔드와 TypeScript 프론트엔드로 구성된 모노레포다. 실
 
 - `apps/api`: FastAPI 백엔드. 의존성은 uv로 관리한다.
 - `apps/web`: React + Vite 프론트엔드. 의존성은 pnpm으로 관리한다.
-- `apps/worker`: web 컨시어지용 Cloudflare Worker. Claude API 키는 Worker secret에만 둔다.
 - `packages/api-client`: FastAPI의 OpenAPI 스키마에서 생성한 타입과 클라이언트.
 
 ## 브랜치와 머지

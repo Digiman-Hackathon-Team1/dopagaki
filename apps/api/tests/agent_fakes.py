@@ -15,12 +15,15 @@ class FakeChatModel(GenericFakeChatModel):
     """정해진 응답을 차례로 내고, 받은 메시지 목록을 기록하는 가짜 LLM."""
 
     calls: list[list[BaseMessage]] = Field(default_factory=list)
+    # 호출마다 받은 bind 인자(tools 제외). 캐시 표시처럼 요청 전체에 붙는 값을 확인할 때 쓴다.
+    call_kwargs: list[dict[str, Any]] = Field(default_factory=list)
 
     def bind_tools(self, tools: Sequence[Any], **kwargs: Any):
         return self.bind(tools=tools, **kwargs)
 
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
         self.calls.append(list(messages))
+        self.call_kwargs.append({k: v for k, v in kwargs.items() if k != "tools"})
         return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
 
     def _stream(self, messages, stop=None, run_manager=None, **kwargs):
@@ -75,8 +78,12 @@ def reply_message(
     condition_summary: str = "",
     cautions: Sequence[str] = (),
     suggestions: Sequence[str] = ("a", "b", "c"),
+    remember: dict | None = None,
 ) -> AIMessage:
-    """응답 칸 JSON을 내는 AI 메시지. card_reasons는 {card_id: 추천 이유}."""
+    """응답 칸 JSON을 내는 AI 메시지. card_reasons는 {card_id: 추천 이유}.
+
+    remember는 기억할 조건 칸에 넣을 값이다. 준 칸만 채우고 나머지는 비운다(null·빈 배열).
+    """
     reply = {
         "condition_summary": condition_summary,
         "answer": answer,
@@ -88,8 +95,23 @@ def reply_message(
         "suggestions": list(suggestions),
         "cautions": list(cautions),
         "safety_stop": safety_stop,
+        "remember": None if remember is None else {**EMPTY_REMEMBER, **remember},
     }
     return AIMessage(content=json.dumps(reply, ensure_ascii=False))
+
+
+EMPTY_REMEMBER = {
+    "visitor": None,
+    "budget": None,
+    "arrival_in_days": None,
+    "arrival_date": None,
+    "return_in_days": None,
+    "return_date": None,
+    "location_id": None,
+    "concerns": [],
+    "avoid_needle": None,
+    "jp_treatments": [],
+}
 
 
 def tool_call(name: str, args: dict, call_id: str = "c1") -> AIMessage:

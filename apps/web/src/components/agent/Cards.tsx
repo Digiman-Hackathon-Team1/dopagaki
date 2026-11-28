@@ -1,5 +1,16 @@
-import { useState, type ReactNode } from 'react';
+import { useId, useMemo, useState, type ReactNode } from 'react';
+import * as Tabs from '@radix-ui/react-tabs';
+import { motion } from 'motion/react';
+import { ArrowUpRight } from 'lucide-react';
 import type { Schemas } from '@repo/api-client';
+import {
+  AgentBilingualMessageBox,
+  AgentDateTimePicker,
+  applyInquiryQuickFill,
+  formatBookingDate,
+  type BookingTimeSlot,
+} from './AgentBookingControls';
+import './dopa-agent-ui.css';
 
 type Lang = Schemas['ChatRequest']['lang'];
 
@@ -16,20 +27,6 @@ export function Channels({ channels, central, lang }: {
     {channels.map((channel, i) => <ExternalLink key={channel.kind + ':' + i} url={ja ? channel.urlJa : channel.urlKo}>{ja ? channel.labelJa : channel.labelKo}</ExternalLink>)}
     {central && <small>{ja ? 'ブランド共通の窓口です。予約時に支店名をお伝えください。' : '브랜드 공통 창구입니다. 예약할 때 지점명을 알려 주세요.'}</small>}
   </div>;
-}
-
-function CopyText({ title, value, lang, textLang, open }: { title: string; value: string; lang: Lang; textLang: Lang; open?: boolean }) {
-  const [status, setStatus] = useState<'copied' | 'failed' | null>(null);
-  return <details open={open} className="agent-copy"><summary>{title}</summary>
-    <pre lang={textLang}>{value}</pre>
-    <button onClick={async () => {
-      try {
-        await navigator.clipboard.writeText(value);
-        setStatus('copied');
-      } catch { setStatus('failed'); }
-    }}>{title} · {lang === 'ja' ? 'コピー' : '복사'}</button>
-    <small role="status">{status === 'copied' ? (lang === 'ja' ? 'コピーしました。' : '복사했습니다.') : status === 'failed' ? (lang === 'ja' ? 'コピーできませんでした。上の文章を選択してコピーしてください。' : '복사하지 못했습니다. 위 문장을 선택해서 복사해 주세요.') : ''}</small>
-  </details>;
 }
 
 export function LocationCard({ card, lang }: { card: Schemas['LocationCard']; lang: Lang }) {
@@ -62,23 +59,201 @@ export function JpMatchCard({ card, lang }: { card: Schemas['JpMatchCard']; lang
 
 export function BookingCard({ card, lang }: { card: Schemas['BookingCard']; lang: Lang }) {
   const ja = lang === 'ja';
-  return <article className="agent-card agent-booking">
-    <small>{ja ? '予約のご案内' : '예약 안내'}</small>
-    <h3>{ja ? card.clinicNameJa : card.clinicNameKo}</h3>
-    <p>{ja ? '予約・決済はご自身で行ってください。' : '예약과 결제는 직접 진행해 주세요.'}</p>
-    {!card.japaneseSupport && <p>{ja ? '日本語対応は確認できていません。訪問前に韓国語の問い合わせ文をお送りください。' : '일본어 지원이 확인되지 않았습니다. 방문 전에 한국어 문의 문장을 보내 주세요.'}</p>}
-    <Channels channels={card.channels} central={card.centralChannel} lang={lang} />
-    {!card.channels.length && <p>{ja ? '登録された予約窓口がありません。公式サイトでご確認ください。' : '등록된 예약 채널이 없습니다. 공식 사이트에서 확인해 주세요.'}</p>}
-    <ExternalLink url={card.officialSiteUrl}>{ja ? '公式サイト' : '공식 사이트'}</ExternalLink>
-    <h4>{ja ? '訪問前：予約の問い合わせ' : '방문 전: 예약 문의'}</h4>
-    <CopyText title={ja ? '韓国語の問い合わせ文' : '한국어 문의 문장'} value={card.inquiryKo} lang={lang} textLang="ko" open />
-    <CopyText title={ja ? '日本語の問い合わせ文' : '일본어 문의 문장'} value={card.inquiryJa} lang={lang} textLang="ja" />
-    <h4>{ja ? '訪問当日：受付で見せるメモ' : '방문 당일: 접수대에 보여 줄 메모'}</h4>
-    {card.menuIds.length > 0 && <div>
-      <p>{ja ? '付加価値税込みの予想合計' : '부가세 포함 예상 합계'}: <strong>₩{card.orderTotalKrw.toLocaleString(lang)}</strong> · ¥{card.orderTotalJpy.toLocaleString(lang)}</p>
-      <small>{ja ? '為替基準日' : '환율 기준일'} {card.fxDateLabel} · ¥100 = ₩{card.krwPer100Jpy.toLocaleString(lang)}</small>
-    </div>}
-    <CopyText title={ja ? '韓国語の受付メモ' : '한국어 접수 메모'} value={card.orderSheetKo} lang={lang} textLang="ko" open />
-    <CopyText title={ja ? '日本語の受付メモ' : '일본어 접수 메모'} value={card.orderSheetJa} lang={lang} textLang="ja" />
-  </article>;
+  const tabLineId = useId();
+  const initialPeople = useMemo(() => {
+    const match = card.inquiryKo.match(/인원:\s*([1-5])명/);
+    return match ? Number(match[1]) : 1;
+  }, [card.inquiryKo]);
+
+  const [tab, setTab] = useState<'inquiry' | 'order'>('inquiry');
+  const [guestName, setGuestName] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [timeSlot, setTimeSlot] = useState<BookingTimeSlot>('any');
+  const [people, setPeople] = useState<number>(initialPeople);
+
+  const filledInquiry = useMemo(
+    () =>
+      applyInquiryQuickFill(card.inquiryKo, card.inquiryJa, {
+        guestName,
+        dateKo: selectedDate ? formatBookingDate(selectedDate, 'ko') : '',
+        dateJa: selectedDate ? formatBookingDate(selectedDate, 'ja') : '',
+        timeSlot,
+        people,
+      }),
+    [card.inquiryKo, card.inquiryJa, guestName, selectedDate, timeSlot, people]
+  );
+
+  const validChannels = card.channels.filter(channel =>
+    /^https?:\/\//i.test(ja ? channel.urlJa : channel.urlKo)
+  );
+  const hasOfficialSite = /^https?:\/\//i.test(card.officialSiteUrl);
+
+  return (
+    <article className="agent-card agent-booking dopa-agent-booking">
+      <div className="dopa-agent-book-head">
+        <div className="dopa-agent-book-title-row">
+          <h3 className="dopa-agent-book-title">{ja ? card.clinicNameJa : card.clinicNameKo}</h3>
+          <span className={`dopa-agent-tag-rect${card.japaneseSupport ? ' is-jp' : ' is-ko'}`}>
+            {card.japaneseSupport
+              ? ja
+                ? '日本語OK'
+                : '일본어 OK'
+              : ja
+                ? '韓国語対応'
+                : '한국어 전용'}
+          </span>
+        </div>
+
+        <div className="dopa-agent-book-subrow">
+          <span className="dopa-agent-book-caption">
+            {ja ? '手数料なし · 公式直接予約・決済' : '수수료 0원 · 공식 직접 예약·결제'}
+          </span>
+          {card.menuIds.length > 0 && (
+            <span className="dopa-agent-book-ledger num">
+              <strong>¥{card.orderTotalJpy.toLocaleString(lang)}</strong>
+              <small>₩{card.orderTotalKrw.toLocaleString(lang)}</small>
+            </span>
+          )}
+        </div>
+
+        {card.menuIds.length > 0 && (
+          <small className="dopa-agent-book-fx num">
+            {ja
+              ? `付加価値税込目安 · 為替 ${card.fxDateLabel}（¥100 = ₩${card.krwPer100Jpy.toLocaleString(lang)}）`
+              : `부가세 포함 예상 합계 · 환율 ${card.fxDateLabel} (¥100 = ₩${card.krwPer100Jpy.toLocaleString(lang)})`}
+          </small>
+        )}
+      </div>
+
+      {validChannels.length > 0 ? (
+        <div className="dopa-agent-book-channels">
+          <div className="dopa-agent-channel-grid">
+            {validChannels.map((channel, i) => (
+              <a
+                key={channel.kind + ':' + i}
+                href={ja ? channel.urlJa : channel.urlKo}
+                target="_blank"
+                rel="noreferrer"
+                className={`dopa-agent-channel-tile is-${channel.kind}`}
+              >
+                <span className="dopa-agent-ch-lbl">
+                  {ja ? channel.labelJa : channel.labelKo}
+                </span>
+                <ArrowUpRight size={13} strokeWidth={2.2} className="dopa-agent-ch-ico" aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+          {card.centralChannel && (
+            <small className="dopa-agent-muted-note">
+              {ja
+                ? 'ブランド共通窓口を含みます。予約時に支店名をお伝えください。'
+                : '브랜드 통합 창구가 포함되어 있어요. 예약 시 지점명을 함께 알려주세요.'}
+            </small>
+          )}
+        </div>
+      ) : (
+        <div className="dopa-agent-book-channels">
+          <small className="dopa-agent-muted-note">
+            {ja
+              ? '登録された予約窓口がありません。公式サイトでご確認ください。'
+              : '등록된 예약 채널이 없습니다. 공식 사이트에서 확인해 주세요.'}
+          </small>
+          {hasOfficialSite && (
+            <a
+              href={card.officialSiteUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="dopa-agent-inline-link"
+            >
+              <span>{ja ? '公式サイトへ' : '공식 사이트 바로가기'}</span>
+              <ArrowUpRight size={13} strokeWidth={2.2} aria-hidden="true" />
+            </a>
+          )}
+        </div>
+      )}
+
+      <Tabs.Root
+        value={tab}
+        onValueChange={v => setTab(v as 'inquiry' | 'order')}
+        className="dopa-agent-ed-tabs"
+      >
+        <Tabs.List className="dopa-agent-ed-tablist">
+          <Tabs.Trigger value="inquiry" className="dopa-agent-ed-tab">
+            <span>{ja ? '訪問前 · 予約メッセージ' : '방문 전 · 예약 문의'}</span>
+            {tab === 'inquiry' && (
+              <motion.span
+                layoutId={`bk-line-${tabLineId}`}
+                className="dopa-agent-ed-tab-bar"
+                transition={{ type: 'spring', stiffness: 520, damping: 38 }}
+              />
+            )}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="order" className="dopa-agent-ed-tab">
+            <span>{ja ? '当日 · 受付メモ' : '당일 · 접수 메모'}</span>
+            {tab === 'order' && (
+              <motion.span
+                layoutId={`bk-line-${tabLineId}`}
+                className="dopa-agent-ed-tab-bar"
+                transition={{ type: 'spring', stiffness: 520, damping: 38 }}
+              />
+            )}
+          </Tabs.Trigger>
+        </Tabs.List>
+
+        <Tabs.Content value="inquiry" className="dopa-agent-ed-tabpanel">
+          <div className="dopa-agent-qf-strip">
+            <label className="dopa-agent-qf-cell">
+              <span>{ja ? 'お名前（ローマ字）' : '여권 영문명'}</span>
+              <input
+                type="text"
+                value={guestName}
+                maxLength={40}
+                placeholder="YUKI TANAKA"
+                onChange={e => setGuestName(e.target.value)}
+              />
+            </label>
+            <div className="dopa-agent-qf-cell">
+              <span>{ja ? '希望日時' : '희망 일시'}</span>
+              <AgentDateTimePicker
+                lang={lang}
+                selectedDate={selectedDate}
+                timeSlot={timeSlot}
+                onSelectDate={setSelectedDate}
+                onSelectTimeSlot={setTimeSlot}
+              />
+            </div>
+            <label className="dopa-agent-qf-cell">
+              <span>{ja ? '人数' : '인원'}</span>
+              <select value={people} onChange={e => setPeople(Number(e.target.value))}>
+                {[1, 2, 3, 4, 5].map(cnt => (
+                  <option key={cnt} value={cnt}>
+                    {ja ? `${cnt}名` : `${cnt}명`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <AgentBilingualMessageBox
+            ko={filledInquiry.ko}
+            ja={filledInquiry.ja}
+            uiLang={lang}
+            japaneseSupport={card.japaneseSupport}
+            purpose="inquiry"
+          />
+        </Tabs.Content>
+
+        <Tabs.Content value="order" className="dopa-agent-ed-tabpanel">
+          <AgentBilingualMessageBox
+            ko={card.orderSheetKo}
+            ja={card.orderSheetJa}
+            uiLang={lang}
+            japaneseSupport={card.japaneseSupport}
+            purpose="order"
+            allowLangSwitch={false}
+          />
+        </Tabs.Content>
+      </Tabs.Root>
+    </article>
+  );
 }

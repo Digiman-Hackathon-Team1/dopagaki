@@ -9,14 +9,16 @@
 만든다(ADR 0009).
 """
 
+from datetime import date
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
 from pydantic.alias_generators import to_camel
 
-from api.domain.catalog import AreaId, ChannelKind
+from api.domain.catalog import AreaId, ChannelKind, ConcernId
 from api.domain.price_tags import PriceTag
+from api.domain.profile import BudgetScope, Visitor
 
 Lang = Literal["ja", "ko"]
 
@@ -37,6 +39,58 @@ class CardReason(BaseModel):
     card_id: str = Field(description="도구 결과에 있는 card_id를 그대로 쓴다")
     reason: str = Field(
         description="이 병원을 권하는 이유 한 줄. 예: 가장 싸고 일본어 상담이 가능해요"
+    )
+
+
+class RememberBudget(BaseModel):
+    amount: int = Field(description="사용자가 말한 금액 그대로. 예: 3만 엔이면 30000")
+    currency: Literal["JPY", "KRW"] = Field(description="엔이면 JPY, 원이면 KRW")
+    scope: BudgetScope | None = Field(
+        description=(
+            "per_treatment 시술 1회 예산, total 일정 전체 예산. 사용자가 어느 쪽인지 말하지 않았으면 null"
+        )
+    )
+
+
+class Remember(BaseModel):
+    """이번 사용자 메시지에서 사용자가 자기 조건으로 직접 말한 것. 앱이 검사해 사용자 기억에 저장한다.
+
+    말하지 않은 칸은 null(목록은 빈 배열)이다. 기본값·추측·건강 정보는 넣지 않는다.
+    """
+
+    visitor: Visitor | None = Field(
+        description="traveler 여행자, resident 서울 거주자. 사용자가 직접 말했을 때만"
+    )
+    budget: RememberBudget | None
+    arrival_in_days: int | None = Field(
+        description="서울 도착일이 오늘(서울)부터 며칠 뒤인지. 오늘 0, 내일 1. 달력 날짜로 말했으면 null"
+    )
+    arrival_date: str | None = Field(
+        description="달력 날짜로 말한 서울 도착일(YYYY-MM-DD). 앱 안내의 오늘 날짜로 연도를 정한다"
+    )
+    return_in_days: int | None = Field(
+        description="귀국일이 오늘(서울)부터 며칠 뒤인지. 오늘 0, 내일 1, 모레 2. 달력 날짜로 말했으면 null"
+    )
+    return_date: str | None = Field(
+        description="달력 날짜로 말한 귀국일(YYYY-MM-DD). 앱 안내의 오늘 날짜로 연도를 정한다"
+    )
+    location_id: str | None = Field(
+        description=(
+            "숙소나 사는 곳. 이번 대화에서 resolve_location이나 search_clinics의 location이 찾은 "
+            "location_id만 쓴다"
+        )
+    )
+    concerns: list[ConcernId] = Field(
+        description=(
+            "사용자가 말한 고민 분류(3개까지). pores 모공·여드름 흉터, glow 윤기·칙칙함, lift 처짐·턱선, "
+            "dry 건조·잔주름, jaw 사각턱·이갈이, skinbase 피부 밀도·피부결. 분류에 없으면 넣지 않는다"
+        )
+    )
+    avoid_needle: bool | None = Field(
+        description="바늘을 피하고 싶다고 하면 true, 상관없다고 하면 false"
+    )
+    jp_treatments: list[str] = Field(
+        description="일본에서 받은 시술. 사용자가 쓴 표현 그대로(3개까지, 각 40자까지)"
     )
 
 
@@ -72,6 +126,13 @@ class AgentReply(BaseModel):
         description=(
             "사용자가 지금 임신·수유 중이거나, 질환이 있거나, 약을 먹고 있어 병원 추천을 멈추면 true. "
             '"임신 계획은 없어요"처럼 부정하거나 과거·가정의 이야기면 false. 화면에는 보내지 않는다'
+        )
+    )
+    # 답변 뒤에 만들어지는 칸이라 화면에 흘려보내는 답변을 늦추지 않는다(ADR 0019). 마지막 칸으로 둔다.
+    remember: Remember | None = Field(
+        description=(
+            "이번 사용자 메시지에서 사용자가 자기 조건으로 직접 말한 것. 새로 말한 조건이 없으면 null. "
+            "화면에는 보내지 않는다"
         )
     )
 
@@ -467,8 +528,6 @@ class BundleCard(BundleCardData):
     )
 
 
-Visitor = Literal["traveler", "resident"]
-
 PlanReason = Literal["downtime", "budget", "needle", "far", "no_clinic", "one_clinic"]
 
 
@@ -625,7 +684,7 @@ Card = Annotated[
 ]
 
 
-FallbackReason = Literal["error", "daily_limit"]
+FallbackReason = Literal["error", "daily_limit", "busy", "turn_limit"]
 
 
 class ChatResponse(ResponseModel):
@@ -633,7 +692,9 @@ class ChatResponse(ResponseModel):
     fallback: FallbackReason | None = Field(
         description=(
             "에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·"
-            "시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도. 화면은 시세표로 가는 길을 "
+            "시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도, "
+            "busy는 같은 대화의 앞 요청이 대기 시간 안에 끝나지 않음, turn_limit은 한 대화 최대 턴 수를 넘음(새 대화를 열어야 함). "
+            "화면은 시세표로 가는 길을 "
             "보여 준다. 정상 답변이면 null"
         )
     )
@@ -689,3 +750,33 @@ class ChatStreamDone(ResponseModel):
 ChatStreamEvent = Annotated[
     ChatStreamStart | ChatStreamDelta | ChatStreamDone, Field(discriminator="type")
 ]
+
+
+class ProfileBudgetResponse(ResponseModel):
+    amount: int
+    currency: Literal["JPY", "KRW"]
+    scope: BudgetScope | None = Field(
+        description="per_treatment 시술 1회 예산, total 일정 전체 예산. 사용자가 말하지 않았으면 null"
+    )
+
+
+class ProfileLocation(ResponseModel):
+    location_id: str = Field(description="위치 ID. 예: area:hongdae, station:홍대입구")
+    name_ja: str
+    name_ko: str
+
+
+class UserProfileResponse(ResponseModel):
+    """저장된 사용자 기억(설계 문서 8장, 10장). 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다."""
+
+    visitor: Visitor | None = Field(description="traveler 여행자, resident 서울 거주자")
+    budget: ProfileBudgetResponse | None
+    arrival_date: date | None = Field(description="서울 도착일")
+    return_date: date | None = Field(description="귀국일")
+    location: ProfileLocation | None = Field(description="숙소나 사는 곳")
+    concerns: list[ConcernId] = Field(description="고민 분류")
+    avoid_needle: bool | None = Field(description="바늘 시술을 피하면 true")
+    jp_treatments: list[str] = Field(
+        description="일본에서 받은 시술(사용자 표현 그대로)"
+    )
+    updated_at: AwareDatetime | None = Field(description="마지막으로 저장한 시각")

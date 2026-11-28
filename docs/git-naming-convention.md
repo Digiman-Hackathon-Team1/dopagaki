@@ -34,7 +34,6 @@
 | `agent` | `apps/api/src/api/agent` |
 | `api` | 에이전트 외 `apps/api` |
 | `web` | `apps/web` |
-| `worker` | `apps/worker` |
 | `api-client` | `packages/api-client` |
 | `repo` | 레포 전체 설정, 여러 앱에 걸친 변경 |
 | `docs` | `docs/` |

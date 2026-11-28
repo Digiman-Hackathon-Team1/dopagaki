@@ -6,7 +6,6 @@
   가장 싼 병원 한 곳을 1일째에 둔다.
 - 거주자: 다음 약속(얼굴이 깨끗해야 하는 날)과 예산 기준으로 지금 받을 시술과 나중에 받을 시술(회복 기간
   때문에 약속 뒤, 예산 때문에 다음 달)을 나눈다. 병원은 기준 위치 3km 안(없는 시술은 6km)에서 고른다.
-  버튼식 상담(web concierge.ts `planConcierge`)의 거주자 결과와 같은 기준이다.
 
 회복 기간은 "시술 날부터 귀국·약속 날까지 날 수"와 비교한다(2박 3일 첫날 시술이면 2일, 내일 약속이면 1일).
 금액은 search_clinics·search_bundle과 같은 calc.py 계산이다. 영업시간·요일 한정가는 데이터에 없어 쓰지 않는다
@@ -44,7 +43,7 @@ from api.domain.locations import Location, get_locations
 
 TOOL_NAME = "plan_trip"
 
-# 거주자 "가까운 병원" 기준(web concierge.ts NEAR_RADIUS_M, WIDE_RADIUS_M)
+# 거주자 "가까운 병원" 기준: 기준 위치 3km 안, 없는 시술은 6km 안(ADR 0017)
 NEAR_RADIUS_M = 3000
 WIDE_RADIUS_M = 6000
 # 한 병원에서 같이 받는 시술 수 상한(search_bundle·예약 문의 문장과 같음)

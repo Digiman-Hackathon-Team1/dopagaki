@@ -1,135 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
-import { api, type Schemas } from '@repo/api-client';
-import mark from '@/assets/dopagaki-mark.png';
-import { SvgIcon } from '@/components/SvgIcon';
-import { Reply } from '@/components/agent/Reply';
-import { PriceTableLink } from '@/components/agent/PriceTableLink';
-import type { QuestionAnswer } from '@/components/agent/Questions';
-import { readSiteLanguage, saveSiteLanguage } from '@/lib/site-language';
-import { copy } from '@/components/agent/copy';
-import { anonymousId } from '@/components/agent/user-id';
+import { useEffect, useState } from 'react';
+import { AgentConsultView } from '@/components/AgentConsultView';
+import { useAgentChat } from '@/components/agent/useAgentChat';
+import { triggerHaptic } from '@/lib/fluid';
+import { readSiteLanguage } from '@/lib/site-language';
 import './agent.css';
 
-type Turn = {
-  id: number;
-  message: string;
-  answers?: QuestionAnswer[];
-  status: 'waiting' | 'writing' | 'invalid' | 'offline' | 'serverError' | null;
-  httpStatus?: number;
-  reply?: Schemas['ChatResponse'];
-};
-
+/**
+ * 개발용 상담 화면(/agent-dev). 실제 AI 상담 탭(AgentConsultView)을 그대로 띄워,
+ * 화면이 바뀌면 같이 바뀌고 에이전트 응답 변화만 따로 확인할 수 있게 한다.
+ * 언어는 앱 설정을 따르며, ?lang=ko 또는 ?lang=ja로 바꿀 수 있다.
+ */
 export default function AgentDev() {
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [draft, setDraft] = useState('');
-  const [lang, setLang] = useState<Schemas['ChatRequest']['lang']>(() => readSiteLanguage(new URLSearchParams(location.search).get('lang')));
-  const t = copy[lang];
-  const tooLong = [...draft.trim()].length > 2000;
+  const [lang] = useState(() => readSiteLanguage(new URLSearchParams(location.search).get('lang')));
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
-  const userId = useRef<string>(undefined);
-  const lifetime = useRef<AbortController>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    lifetime.current = controller;
-    return () => controller.abort();
-  }, []);
-  const chain = useRef(Promise.resolve());
-  const thread = useRef<string>(undefined);
-  const sequence = useRef(0);
-  const log = useRef<HTMLDivElement>(null);
-  const follow = useRef(true);
+  const chat = useAgentChat(lang);
 
-  const scrollTarget = useRef<number>(undefined);
-  useEffect(() => {
-    if (scrollTarget.current !== undefined && follow.current) {
-      const turn = log.current?.querySelector('[data-turn="' + scrollTarget.current + '"]');
-      const reply = turn?.querySelector('.agent-reply');
-      if (reply) reply.scrollIntoView({ block: 'start' });
-      else if (log.current) log.current.scrollTop = log.current.scrollHeight;
-    }
-    scrollTarget.current = undefined;
-  }, [turns]);
-
-  function send(value: string, answers?: QuestionAnswer[]) {
-    const message = value.trim();
-    if (!message || [...message].length > 2000) return;
-    const id = ++sequence.current;
-    follow.current = true;
-    scrollTarget.current = id;
-    setTurns(previous => [...previous, { id, message, answers, status: 'waiting' }]);
-    function update(changes: Partial<Turn>) {
-      setTurns(previous => previous.map(turn => turn.id === id ? { ...turn, ...changes } : turn));
-    }
-    const signal = lifetime.current?.signal;
-    chain.current = chain.current.then(async () => {
-      if (signal?.aborted) return;
-      update({ status: 'writing' });
-      try {
-        userId.current ??= anonymousId();
-        const { data, response } = await api.POST('/api/agent/chat', {
-          signal,
-          body: { userId: userId.current, threadId: thread.current, message, lang }
-        });
-        if (!data) {
-          update({ status: response.status >= 500 ? 'serverError' : 'invalid', httpStatus: response.status });
-          return;
-        }
-        thread.current = data.threadId;
-        scrollTarget.current = id;
-        update({ reply: data, status: null });
-      } catch {
-        update({ status: 'offline' });
-      }
-    });
-  }
-
-  return <main className="agent-dev">
-    <header><img src={mark} alt="" /><h1>{t.title}</h1><small>{t.dev}</small>
-      <select aria-label={t.language} value={lang} onChange={e => {
-        const next = e.target.value === 'ko' ? 'ko' : 'ja';
-        setLang(next);
-        saveSiteLanguage(next);
-        const url = new URL(location.href);
-        if (url.searchParams.has('lang')) {
-          url.searchParams.set('lang', next);
-          history.replaceState(history.state, '', url);
-        }
-      }}>
-        <option value="ko">한국어</option><option value="ja">日本語</option>
-      </select>
-    </header>
-    <div className="agent-log" ref={log} onScroll={e => {
-      const el = e.currentTarget;
-      follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    }}>
-      {!turns.length && <section className="agent-welcome"><img src={mark} alt="" /><h2>{t.welcome}</h2>
-        <p>{t.intro}</p>
-        <small>{t.progress}</small>
-        <div className="agent-examples">
-          <button onClick={() => send(t.prompt)}>{t.example} <SvgIcon name="chevronRight" /></button>
-          <button onClick={() => send(t.locationPrompt)}>{t.locationExample} <SvgIcon name="chevronRight" /></button>
-          <button onClick={() => send(t.jpPrompt)}>{t.jpExample} <SvgIcon name="chevronRight" /></button>
-          <button onClick={() => send(t.safetyPrompt)}>{t.safetyExample} <SvgIcon name="chevronRight" /></button>
-          <button onClick={() => send(t.negationPrompt)}>{t.negationExample} <SvgIcon name="chevronRight" /></button>
-        </div>
-      </section>}
-      {turns.map(turn => <section data-turn={turn.id} key={turn.id} className="agent-turn">
-        {turn.answers?.length ? <dl className="agent-user agent-user-answers">
-          {turn.answers.map((item, index) => <div key={index}>
-            <dt>{item.question}</dt>
-            <dd>{item.answer}</dd>
-          </div>)}
-        </dl> : <p className="agent-user">{turn.message}</p>}
-        {turn.reply ? <Reply lang={lang} reply={turn.reply} send={send} /> : <div>
-          <small role="status">{turn.status && t[turn.status]} {turn.httpStatus && '(' + turn.httpStatus + ')'}</small>
-          {(turn.status === 'offline' || turn.status === 'serverError') && <PriceTableLink lang={lang} />}
-        </div>}
-      </section>)}
+  // 앱과 같은 틀(app-shell > app-col > screen)에 넣어 폭과 배치를 맞춘다.
+  return <div className="app-shell">
+    <div className="app-col agent-dev">
+      <main className="screen">
+        <AgentConsultView
+          lang={lang}
+          chat={chat}
+          onOpenPriceTable={() => { location.href = '/?lang=' + lang; }}
+          onHaptic={() => triggerHaptic(6)}
+        />
+      </main>
     </div>
-    <form className="agent-composer" onSubmit={e => { e.preventDefault(); if (!tooLong && draft.trim()) { send(draft); setDraft(''); } }}>
-      <input aria-label={t.message} placeholder={t.placeholder} aria-invalid={tooLong} value={draft} onChange={e => setDraft(e.target.value)} />
-      <button disabled={!draft.trim() || tooLong}>{t.send}</button>
-      {tooLong && <small role="alert">{t.tooLong}</small>}
-    </form>
-  </main>;
+  </div>;
 }
