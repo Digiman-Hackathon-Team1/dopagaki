@@ -18,10 +18,15 @@ Ranges = tuple[tuple[int, int], ...]
 # 완성형 음절, 자모(ㅋㅋ 같은 입력 포함), 호환용 자모
 HANGUL: Ranges = ((0xAC00, 0xD7A3), (0x1100, 0x11FF), (0x3130, 0x318F))
 HIRAGANA: Ranges = ((0x3040, 0x309F),)
-# 가타카나(장음 ー 포함), 가타카나 확장, 반각 가타카나
+# 가타카나, 가타카나 확장, 반각 가타카나
 KATAKANA: Ranges = ((0x30A0, 0x30FF), (0x31F0, 0x31FF), (0xFF66, 0xFF9F))
 # CJK 통합 한자, 확장 A, 호환 한자
 KANJI: Ranges = ((0x4E00, 0x9FFF), (0x3400, 0x4DBF), (0xF900, 0xFAFF))
+
+
+# 글자 범위 안에 있지만 문장부호로 쓰이는 것: 가운뎃점 ・(30FB), 장음 ー(30FC)·ｰ(FF70), 한국식 가운뎃점 ㆍ(318D).
+# "Rejuran・HIFU"처럼 한글·가나가 없는 메시지를 일본어로 판정하지 않도록 세지 않는다.
+IGNORED = frozenset({0x30FB, 0x30FC, 0xFF70, 0x318D})
 
 
 def _within(ch: str, ranges: Ranges) -> bool:
@@ -38,6 +43,8 @@ def detect_lang(text: str) -> Lang | None:
     """
     hangul = hiragana = katakana = kanji = 0
     for ch in text:
+        if ord(ch) in IGNORED:
+            continue
         if _within(ch, HANGUL):
             hangul += 1
         elif _within(ch, HIRAGANA):

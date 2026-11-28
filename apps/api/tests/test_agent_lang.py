@@ -26,6 +26,12 @@ from api.agent.lang import detect_lang, reply_lang, turn_lang
         ("리쥬란 リジュラン", "ko"),
         # 같으면 정하지 못한다
         ("강남 新村", None),
+        # 문장부호(가운뎃점·장음)는 세지 않는다
+        ("・", None),
+        ("ー", None),
+        ("Rejuran・HIFU", None),
+        ("ㆍ", None),
+        ("ピコトーニング 얼마?", "ko"),
     ],
 )
 def test_detect_lang_examples(message: str, expected: str | None) -> None:
