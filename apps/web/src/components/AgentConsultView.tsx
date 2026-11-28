@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { RotateCcw, Send as SendIcon, ShieldCheck, Sparkles } from 'lucide-react';
+import { Brain, RotateCcw, Send as SendIcon, ShieldCheck, Sparkles } from 'lucide-react';
 import dopagakiMarkUrl from '@/assets/dopagaki-mark.png';
 import type { Lang } from '@/types.ts';
 import { copy } from '@/components/agent/copy';
+import { MemorySheet } from '@/components/agent/MemorySheet';
 import type { Send } from '@/components/agent/Questions';
 import { Turns } from '@/components/agent/Turns';
 import { failed, type AgentChat, type Turn } from '@/components/agent/useAgentChat';
@@ -25,6 +26,7 @@ export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
 }) {
   const t = copy[lang];
   const [draft, setDraft] = useState('');
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const tooLong = [...draft.trim()].length > 2000;
   const log = useRef<HTMLDivElement>(null);
   // 턴마다 마지막으로 본 단계. 처음 그릴 때는 이미 있는 대화로 스크롤하지 않는다.
@@ -75,8 +77,21 @@ export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
             <span>{t.trust}</span>
           </p>
         </div>
-        {chat.turns.length > 0 && (
-          <div className="cg-head-right">
+        <div className="cg-head-right">
+          {/* 기억한 조건은 대화가 없어도 보고 지울 수 있다(ADR 0019). */}
+          <button
+            type="button"
+            className="cg-reset-icon"
+            aria-label={t.memoryButton}
+            title={t.memoryButton}
+            onClick={() => {
+              onHaptic();
+              setMemoryOpen(true);
+            }}
+          >
+            <Brain size={14} strokeWidth={2.3} />
+          </button>
+          {chat.turns.length > 0 && (
             <button
               type="button"
               className="cg-reset-icon"
@@ -89,9 +104,16 @@ export function AgentConsultView({ lang, chat, onOpenPriceTable, onHaptic }: {
             >
               <RotateCcw size={14} strokeWidth={2.3} />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
+      <MemorySheet
+        open={memoryOpen}
+        onOpenChange={setMemoryOpen}
+        lang={lang}
+        hasTurns={chat.turns.length > 0}
+        onRestart={chat.reset}
+      />
 
       <div className="cg-chat" ref={log} aria-live="polite">
         <div className="cg-bot-row">
