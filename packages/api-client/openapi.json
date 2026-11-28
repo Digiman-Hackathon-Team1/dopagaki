@@ -129,6 +129,89 @@
         }
       }
     },
+    "/api/agent/users/{userId}/profile": {
+      "get": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Get Agent User Profile",
+        "description": "저장된 사용자 기억. 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다.",
+        "operationId": "getAgentUserProfile",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "브라우저가 만든 익명 사용자 ID",
+              "title": "Userid"
+            },
+            "description": "브라우저가 만든 익명 사용자 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "agent"
+        ],
+        "summary": "Delete Agent User Profile",
+        "description": "사용자 기억을 모두 지운다. 저장된 게 없어도 204다.",
+        "operationId": "deleteAgentUserProfile",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "브라우저가 만든 익명 사용자 ID",
+              "title": "Userid"
+            },
+            "description": "브라우저가 만든 익명 사용자 ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Get Health",
@@ -1766,6 +1849,71 @@
         "title": "PriceProof",
         "description": "가격표 증빙. web 병원 화면의 공식 가격 링크와 같다(설계 문서 4.7)."
       },
+      "ProfileBudgetResponse": {
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "title": "Amount"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "JPY",
+              "KRW"
+            ],
+            "title": "Currency"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "per_treatment",
+                  "total"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope",
+            "description": "per_treatment 시술 1회 예산, total 일정 전체 예산. 사용자가 말하지 않았으면 null"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "amount",
+          "currency",
+          "scope"
+        ],
+        "title": "ProfileBudgetResponse"
+      },
+      "ProfileLocation": {
+        "properties": {
+          "locationId": {
+            "type": "string",
+            "title": "Locationid",
+            "description": "위치 ID. 예: area:hongdae, station:홍대입구"
+          },
+          "nameJa": {
+            "type": "string",
+            "title": "Nameja"
+          },
+          "nameKo": {
+            "type": "string",
+            "title": "Nameko"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "locationId",
+          "nameJa",
+          "nameKo"
+        ],
+        "title": "ProfileLocation"
+      },
       "Question": {
         "properties": {
           "question": {
@@ -2291,6 +2439,137 @@
           "kind"
         ],
         "title": "TripPlanCard"
+      },
+      "UserProfileResponse": {
+        "properties": {
+          "visitor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "traveler",
+                  "resident"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visitor",
+            "description": "traveler 여행자, resident 서울 거주자"
+          },
+          "budget": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileBudgetResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arrivalDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arrivaldate",
+            "description": "서울 도착일"
+          },
+          "returnDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returndate",
+            "description": "귀국일"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileLocation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "숙소나 사는 곳"
+          },
+          "concerns": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "pores",
+                "glow",
+                "lift",
+                "dry",
+                "jaw",
+                "skinbase"
+              ]
+            },
+            "type": "array",
+            "title": "Concerns",
+            "description": "고민 분류"
+          },
+          "avoidNeedle": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avoidneedle",
+            "description": "바늘 시술을 피하면 true"
+          },
+          "jpTreatments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Jptreatments",
+            "description": "일본에서 받은 시술(사용자 표현 그대로)"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updatedat",
+            "description": "마지막으로 저장한 시각"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "visitor",
+          "budget",
+          "arrivalDate",
+          "returnDate",
+          "location",
+          "concerns",
+          "avoidNeedle",
+          "jpTreatments",
+          "updatedAt"
+        ],
+        "title": "UserProfileResponse",
+        "description": "저장된 사용자 기억(설계 문서 8장, 10장). 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다."
       },
       "ValidationError": {
         "properties": {

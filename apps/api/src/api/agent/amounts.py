@@ -17,6 +17,9 @@ from pydantic import BaseModel
 
 Currency = Literal["JPY", "KRW"]
 
+# 사용자 기억 안내 블록의 머리말(memory.py가 이 머리말로 안내를 만든다). 이 블록의 금액도 답변에 쓸 수 있다.
+MEMORY_NOTE_HEAD = "[Note from Dopa app] Saved conditions"
+
 _UNITS = {"억": 100_000_000, "万": 10_000, "만": 10_000, "천": 1_000, "千": 1_000}
 _NUMBER = r"\d[\d,]*(?:\.\d+)?"
 # 28만 4천, 2万1,111, 21,111, 2.1万
@@ -139,8 +142,42 @@ def _message_text(message: BaseMessage) -> str:
     return message.text if hasattr(message, "text") else str(message.content)
 
 
+def _memory_notes(message: HumanMessage) -> list[str]:
+    """앱이 붙인 사용자 기억 안내 블록(ADR 0019). 사용자가 앞 대화에서 말해 저장된 조건이다."""
+    if not isinstance(message.content, list):
+        return []
+    return [
+        block.get("text", "")
+        for block in message.content[1:]
+        if isinstance(block, dict)
+        and str(block.get("text", "")).startswith(MEMORY_NOTE_HEAD)
+    ]
+
+
+def text_amounts(text: str) -> set[tuple[Currency, int]]:
+    """사용자가 쓴 글의 금액. 통화 없이 만·万 단위로 쓴 금액("3万")은 엔·원 둘 다로 본다."""
+    found = {(m.currency, m.value) for m in find_money(text)}
+    for bare in _BARE_MAN.findall(text):
+        value = parse_number(bare)
+        if value is not None:
+            found.update({("JPY", value), ("KRW", value)})
+    return found
+
+
+def user_amounts(messages: Sequence[BaseMessage]) -> set[tuple[Currency, int]]:
+    """이 대화에서 사용자가 직접 쓴 금액(사용자 메시지 본문만, 앱이 붙인 안내 제외)."""
+    known: set[tuple[Currency, int]] = set()
+    for message in messages:
+        if isinstance(message, HumanMessage):
+            known.update(text_amounts(_message_text(message)))
+    return known
+
+
 def known_amounts(messages: Sequence[BaseMessage]) -> set[tuple[Currency, int]]:
-    """이 대화에서 답변에 써도 되는 금액: 도구 결과와 사용자가 직접 쓴 금액."""
+    """이 대화에서 답변에 써도 되는 금액: 도구 결과, 사용자가 직접 쓴 금액, 사용자 기억 안내의 금액.
+
+    기억 안내의 금액은 사용자가 앞 대화에서 말해 저장된 예산이다. 이것을 빼면 "어제 말한 예산 3만 엔"이 지워진다.
+    """
     known: set[tuple[Currency, int]] = set()
     for message in messages:
         if isinstance(message, ToolMessage):
@@ -151,12 +188,9 @@ def known_amounts(messages: Sequence[BaseMessage]) -> set[tuple[Currency, int]]:
                 (m.currency, m.value) for m in find_money(_message_text(message))
             )
         elif isinstance(message, HumanMessage):
-            text = _message_text(message)
-            known.update((m.currency, m.value) for m in find_money(text))
-            for bare in _BARE_MAN.findall(text):
-                value = parse_number(bare)
-                if value is not None:
-                    known.update({("JPY", value), ("KRW", value)})
+            known.update(text_amounts(_message_text(message)))
+            for note in _memory_notes(message):
+                known.update((m.currency, m.value) for m in find_money(note))
     return known
 
 

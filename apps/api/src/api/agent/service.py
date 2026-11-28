@@ -39,6 +39,7 @@ from api.agent.graph import (
     read_failure,
     read_reply,
 )
+from api.agent.memory import get_profile_store
 from api.agent.schemas import (
     AgentReply,
     ChatRequest,
@@ -49,8 +50,13 @@ from api.agent.schemas import (
     ChatStreamStart,
     FallbackReason,
     Lang,
+    ProfileBudgetResponse,
+    ProfileLocation,
+    UserProfileResponse,
 )
 from api.agent.tools import TOOLS
+from api.domain.locations import get_locations
+from api.domain.profile import ProfileStore
 
 logger = logging.getLogger(__name__)
 
@@ -269,6 +275,7 @@ def _graph_for(
         max_steps=max_steps,
         max_seconds=max_seconds,
         prompt_cache=prompt_cache,
+        profile_store=get_profile_store(),
     )
 
 
@@ -415,7 +422,8 @@ class ChatService:
         # 다른 사용자의 대화 ID로 대화를 이어 읽지 못하도록 사용자 ID와 묶어 저장한다.
         key = f"{body.user_id}:{thread_id}"
         config = {
-            "configurable": {"thread_id": key},
+            # 사용자 ID는 사용자 기억을 읽고 쓸 때 그래프가 쓴다. LLM에는 넘기지 않는다(ADR 0019).
+            "configurable": {"thread_id": key, "user_id": str(body.user_id)},
             # 단계 한도는 그래프가 먼저 멈춘다. 이 값은 그보다 넉넉한 안전장치다(노드 4개 + 단계마다 2개).
             "recursion_limit": self._settings.agent_max_steps * 2 + 10,
         }
@@ -517,7 +525,8 @@ class ChatService:
             exclusions=read_exclusions(state),
             # card_reasons는 cards에 합쳐졌으므로 응답에 따로 내보내지 않는다.
             # 안전 판정은 건강 정보라 화면에 보내지 않는다(설계 문서 4.8).
-            **reply.model_dump(exclude={"card_reasons", "safety_stop"}),
+            # 기억할 조건은 그래프가 사용자 기억에 저장했으므로 화면에 보내지 않는다(ADR 0019).
+            **reply.model_dump(exclude={"card_reasons", "safety_stop", "remember"}),
         )
 
     def _demo_reply(
@@ -616,3 +625,60 @@ def get_chat_service(
         yield service
     finally:
         service.close()
+
+
+class ProfileService:
+    """사용자 기억 보기·지우기(설계 문서 10장, ADR 0019)."""
+
+    def __init__(self, store: ProfileStore) -> None:
+        self._store = store
+
+    def get(self, user_id: UUID) -> UserProfileResponse:
+        """저장된 기억. 없거나 보관 기한이 지났으면 모든 칸이 비어 있다."""
+        profile = self._store.get(user_id)
+        if profile is None:
+            return UserProfileResponse(
+                visitor=None,
+                budget=None,
+                arrival_date=None,
+                return_date=None,
+                location=None,
+                concerns=[],
+                avoid_needle=None,
+                jp_treatments=[],
+                updated_at=None,
+            )
+        location = (
+            get_locations().get(profile.location_id) if profile.location_id else None
+        )
+        return UserProfileResponse(
+            visitor=profile.visitor,
+            budget=(
+                ProfileBudgetResponse(**profile.budget.model_dump())
+                if profile.budget
+                else None
+            ),
+            arrival_date=profile.arrival_date,
+            return_date=profile.return_date,
+            location=(
+                ProfileLocation(
+                    location_id=location.id,
+                    name_ja=location.name_ja,
+                    name_ko=location.name_ko,
+                )
+                if location
+                else None
+            ),
+            concerns=list(profile.concerns),
+            avoid_needle=profile.avoid_needle,
+            jp_treatments=list(profile.jp_treatments),
+            updated_at=profile.updated_at,
+        )
+
+    def delete(self, user_id: UUID) -> None:
+        """전체를 지운다. 저장된 게 없어도 같은 결과다."""
+        self._store.delete(user_id)
+
+
+def get_profile_service() -> ProfileService:
+    return ProfileService(get_profile_store())

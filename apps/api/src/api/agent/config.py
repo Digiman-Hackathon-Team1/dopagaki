@@ -49,6 +49,10 @@ class AgentSettings(BaseSettings):
     agent_max_turns: int = Field(default=50, ge=1)
     agent_thread_ttl_seconds: float = Field(default=24 * 60 * 60, ge=0)
     agent_max_threads: int = Field(default=1000, ge=1)
+    # 사용자 기억(설계 문서 8장 사용자 기억 관리, ADR 0019). 마지막 저장 뒤 보관 시간(초)이 지난 프로필과, 사용자 수
+    # 상한을 넘은 오래된 프로필은 서버 메모리에서 지운다.
+    agent_profile_ttl_seconds: float = Field(default=30 * 24 * 60 * 60, ge=0)
+    agent_max_profiles: int = Field(default=10_000, ge=1)
 
 
 @lru_cache

@@ -4,7 +4,9 @@
 (전송하지 않음) 도구 정의·시스템 프롬프트가 같고, 앞 호출의 메시지가 다음 호출 메시지의 앞부분인지 본다.
 """
 
+from datetime import date, timedelta
 from itertools import pairwise
+from uuid import uuid4
 
 from agent_fakes import fake_model, reply_message
 from langchain_anthropic import ChatAnthropic
@@ -16,6 +18,7 @@ from api.agent.config import AgentSettings
 from api.agent.graph import build_graph
 from api.agent.schemas import AgentReply
 from api.agent.service import get_agent
+from api.domain.profile import InMemoryProfileStore, ProfileBudget, ProfilePatch
 
 EPHEMERAL = {"type": "ephemeral"}
 
@@ -125,6 +128,55 @@ def test_request_prefix_stays_stable_across_tool_loop_and_turns() -> None:
         assert len(after["messages"]) > len(before["messages"])
     # 대화 기록 블록에는 표시를 직접 붙이지 않는다(표시는 시스템 끝과 요청 전체, 4개 한도 안).
     assert all(block_marks(body) == [] for body in bodies)
+
+
+def test_profile_note_keeps_prefix_stable_and_same_for_every_user() -> None:
+    """사용자 기억 안내와 remember 칸이 있어도 대화 안에서 앞 호출이 다음 호출의 앞부분이고, 도구·시스템·응답 형식은
+    사용자마다 같다(ADR 0019). 기억 안내가 바뀐 뒤 다시 붙는 턴도 덧붙이기만 한다."""
+    store = InMemoryProfileStore(ttl=timedelta(days=30), max_users=10)
+    alice, bob = uuid4(), uuid4()
+    store.update(
+        alice, ProfilePatch(budget=ProfileBudget(amount=30000, currency="JPY"))
+    )
+    model = fake_model(
+        AIMessage(
+            content="", tool_calls=[{"name": "echo", "args": {"text": "a"}, "id": "c1"}]
+        ),
+        reply_message("첫 답"),
+        reply_message("둘째 답", remember={"return_in_days": 2}),
+        reply_message("셋째 답"),
+        reply_message("다른 사용자 답"),
+    )
+    graph = build_graph(
+        model,
+        tools=[echo],
+        checkpointer=InMemorySaver(),
+        prompt_cache=True,
+        profile_store=store,
+        today=lambda: date(2026, 11, 28),
+    )
+
+    def turn(user, message: str, thread: str) -> None:
+        graph.invoke(
+            {"messages": [HumanMessage(message)], "lang": "ko"},
+            {"configurable": {"thread_id": thread, "user_id": str(user)}},
+        )
+
+    turn(alice, "리쥬란 싼 곳", "a1")
+    turn(alice, "모레 귀국해요", "a1")
+    turn(alice, "그럼 다른 시술은?", "a1")
+    turn(bob, "리쥬란 싼 곳", "b1")
+
+    bodies = [payload(messages) for messages in model.calls]
+    alice_bodies, bob_body = bodies[:4], bodies[4]
+    for before, after in pairwise(alice_bodies):
+        assert after["messages"][: len(before["messages"])] == before["messages"]
+    # 귀국일이 저장돼 셋째 턴에 기억 안내가 다시 붙었다.
+    third_user = alice_bodies[3]["messages"][-1]["content"]
+    assert sum("Saved conditions" in b.get("text", "") for b in third_user) == 1
+    for body in alice_bodies:
+        for key in body.keys() - {"messages"}:
+            assert body[key] == bob_body[key], key
 
 
 def test_settings_switch_prompt_cache() -> None:

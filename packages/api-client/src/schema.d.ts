@@ -41,6 +41,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/users/{userId}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Agent User Profile
+         * @description 저장된 사용자 기억. 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다.
+         */
+        get: operations["getAgentUserProfile"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Agent User Profile
+         * @description 사용자 기억을 모두 지운다. 저장된 게 없어도 204다.
+         */
+        delete: operations["deleteAgentUserProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -872,6 +896,33 @@ export interface components {
              */
             matchedText: string | null;
         };
+        /** ProfileBudgetResponse */
+        ProfileBudgetResponse: {
+            /** Amount */
+            amount: number;
+            /**
+             * Currency
+             * @enum {string}
+             */
+            currency: "JPY" | "KRW";
+            /**
+             * Scope
+             * @description per_treatment 시술 1회 예산, total 일정 전체 예산. 사용자가 말하지 않았으면 null
+             */
+            scope: ("per_treatment" | "total") | null;
+        };
+        /** ProfileLocation */
+        ProfileLocation: {
+            /**
+             * Locationid
+             * @description 위치 ID. 예: area:hongdae, station:홍대입구
+             */
+            locationId: string;
+            /** Nameja */
+            nameJa: string;
+            /** Nameko */
+            nameKo: string;
+        };
         /** Question */
         Question: {
             /** Question */
@@ -1128,6 +1179,50 @@ export interface components {
              */
             kind: "trip_plan";
         };
+        /**
+         * UserProfileResponse
+         * @description 저장된 사용자 기억(설계 문서 8장, 10장). 저장된 게 없으면 모든 칸이 null이거나 빈 배열이다.
+         */
+        UserProfileResponse: {
+            /**
+             * Visitor
+             * @description traveler 여행자, resident 서울 거주자
+             */
+            visitor: ("traveler" | "resident") | null;
+            budget: components["schemas"]["ProfileBudgetResponse"] | null;
+            /**
+             * Arrivaldate
+             * @description 서울 도착일
+             */
+            arrivalDate: string | null;
+            /**
+             * Returndate
+             * @description 귀국일
+             */
+            returnDate: string | null;
+            /** @description 숙소나 사는 곳 */
+            location: components["schemas"]["ProfileLocation"] | null;
+            /**
+             * Concerns
+             * @description 고민 분류
+             */
+            concerns: ("pores" | "glow" | "lift" | "dry" | "jaw" | "skinbase")[];
+            /**
+             * Avoidneedle
+             * @description 바늘 시술을 피하면 true
+             */
+            avoidNeedle: boolean | null;
+            /**
+             * Jptreatments
+             * @description 일본에서 받은 시술(사용자 표현 그대로)
+             */
+            jpTreatments: string[];
+            /**
+             * Updatedat
+             * @description 마지막으로 저장한 시각
+             */
+            updatedAt: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1204,6 +1299,68 @@ export interface operations {
                 content: {
                     "text/event-stream": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getAgentUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 브라우저가 만든 익명 사용자 ID */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deleteAgentUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 브라우저가 만든 익명 사용자 ID */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
