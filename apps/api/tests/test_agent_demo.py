@@ -22,6 +22,7 @@ from api.agent.demo import (
     normalize,
 )
 from api.agent.graph import build_graph
+from api.agent.lang import turn_lang
 from api.agent.service import DailyUsage, get_agent
 from api.agent.tools import TOOLS
 from api.main import app
@@ -45,14 +46,16 @@ def use(graph, *, demo: bool, key: str | None = "test-key") -> None:
     app.dependency_overrides[get_agent] = lambda: graph
 
 
-def post(client: TestClient, message: str, user_id: str, thread_id=None) -> dict:
+def post(
+    client: TestClient, message: str, user_id: str, thread_id=None, screen: str = "ja"
+) -> dict:
     response = client.post(
         "/api/agent/chat",
         json={
             "userId": user_id,
             "threadId": thread_id,
             "message": message,
-            "lang": "ja",
+            "lang": screen,
         },
     )
     assert response.status_code == 200, response.text
@@ -145,6 +148,56 @@ def test_script_turns_are_answered_from_recording_without_llm(
     assert {k: v for k, v in first.items() if k != "threadId"} == recorded
     # 녹화 응답은 하루 한도에 세지 않는다.
     assert agent_service.daily_usage._total == recorded_usage
+
+
+def test_script_is_found_by_message_language_not_screen_language(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """일본어 대본은 한국어 화면에서 같은 메시지를 보내도 녹화본으로 답한다(이슈 #76)."""
+    record(client, monkeypatch, tmp_path)
+    model = fake_model()  # 부르면 응답이 없어 실패한다
+    use(build_graph(model, tools=TOOLS, checkpointer=InMemorySaver()), demo=True)
+    user_id = str(uuid4())
+
+    first = post(client, SCRIPT[0], user_id, screen="ko")
+    second = post(client, SCRIPT[1], user_id, first["threadId"], screen="ko")
+
+    assert model.calls == []
+    assert first["answer"] == "シュリンクの上位3院です"
+    assert second["answer"] == "LINEでお問い合わせください"
+    assert first["lang"] == second["lang"] == "ja"
+
+
+def test_recording_without_lang_uses_script_language(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """응답 언어 칸이 생기기 전에 녹화한 응답도 그대로 쓴다."""
+    demo = record(client, monkeypatch, tmp_path)
+    for turn in demo.scripts[0].turns:
+        turn.response.pop("lang")
+    use(build_graph(fake_model(), tools=TOOLS, checkpointer=InMemorySaver()), demo=True)
+
+    body = post(client, SCRIPT[0], str(uuid4()))
+
+    assert body["fallback"] is None
+    assert body["lang"] == "ja"
+
+
+def test_recorded_demo_messages_resolve_to_script_language() -> None:
+    """레포의 녹화본(scripts/record_demo.py로 만든 것)은 대본 메시지의 1차 판별 언어로 찾을 수 있어야 한다.
+
+    판정이 어긋나면 녹화본을 못 찾고 실제 Claude를 불러 시연이 느려진다. 녹화한 답의 언어도 대본 언어와 같아야
+    다음 턴의 직전 턴 언어가 대본 언어로 이어진다.
+    """
+    for script in load_demo().scripts:
+        previous = None
+        for turn in script.turns:
+            assert turn_lang(turn.message, previous, script.lang) == script.lang, (
+                script.id,
+                turn.message,
+            )
+            previous = turn.response.get("lang", script.lang)
+            assert previous == script.lang, (script.id, turn.message)
 
 
 def test_leaving_the_script_continues_with_claude_and_recorded_context(

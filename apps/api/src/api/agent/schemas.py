@@ -149,7 +149,12 @@ class ChatRequest(CamelModel):
     message: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)
     ] = Field(description="이번 턴의 사용자 메시지. 앞뒤 공백을 지운 뒤 1~2000자")
-    lang: Lang = Field(description="응답 언어")
+    lang: Lang = Field(
+        description=(
+            "화면 언어. 응답 언어는 메시지에서 판별하고, 판별하지 못할 때(이름·숫자·영어만 쓴 메시지 등) "
+            "직전 턴 응답 언어, 첫 턴이면 이 값을 쓴다"
+        )
+    )
 
 
 class ResponseModel(CamelModel):
@@ -697,6 +702,14 @@ FallbackReason = Literal["error", "daily_limit", "busy", "turn_limit"]
 
 class ChatResponse(ResponseModel):
     thread_id: UUID
+    lang: Lang = Field(
+        description=(
+            "이번 응답의 언어. 답변·조건 요약·질문·다음 질문 제안의 글자로 정하고, 면책·금액 주의 문구도 이 언어다"
+            "(주의사항·추천 이유도 같은 언어로 쓰도록 지시하지만 코드가 확인하지는 않는다). "
+            "사용자가 그 턴에 쓴 언어라 요청의 화면 언어와 다를 수 있다. 화면 글자(카드 라벨·버튼)는 화면 언어로 "
+            "두고, 사용자 대신 보내는 문장(카드의 예약 버튼 등)은 이 언어로 만든다"
+        )
+    )
     fallback: FallbackReason | None = Field(
         description=(
             "에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·"

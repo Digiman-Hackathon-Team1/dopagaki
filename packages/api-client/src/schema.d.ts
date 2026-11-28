@@ -456,7 +456,7 @@ export interface components {
             message: string;
             /**
              * Lang
-             * @description 응답 언어
+             * @description 화면 언어. 응답 언어는 메시지에서 판별하고, 판별하지 못할 때(이름·숫자·영어만 쓴 메시지 등) 직전 턴 응답 언어, 첫 턴이면 이 값을 쓴다
              * @enum {string}
              */
             lang: "ja" | "ko";
@@ -468,6 +468,12 @@ export interface components {
              * Format: uuid
              */
             threadId: string;
+            /**
+             * Lang
+             * @description 이번 응답의 언어. 답변·조건 요약·질문·다음 질문 제안의 글자로 정하고, 면책·금액 주의 문구도 이 언어다(주의사항·추천 이유도 같은 언어로 쓰도록 지시하지만 코드가 확인하지는 않는다). 사용자가 그 턴에 쓴 언어라 요청의 화면 언어와 다를 수 있다. 화면 글자(카드 라벨·버튼)는 화면 언어로 두고, 사용자 대신 보내는 문장(카드의 예약 버튼 등)은 이 언어로 만든다
+             * @enum {string}
+             */
+            lang: "ja" | "ko";
             /**
              * Fallback
              * @description 에이전트가 답하지 못해 시세표 안내로 대신했으면 그 이유(FR-08). error는 API 키 없음·LLM 오류·시간 초과(호출별·한 턴 전체)·빈 응답 두 번·응답 형식 오류·단계 한도, daily_limit은 사용자별·전체 하루 호출 한도, busy는 같은 대화의 앞 요청이 대기 시간 안에 끝나지 않음, turn_limit은 한 대화 최대 턴 수를 넘음(새 대화를 열어야 함). 화면은 시세표로 가는 길을 보여 준다. 정상 답변이면 null

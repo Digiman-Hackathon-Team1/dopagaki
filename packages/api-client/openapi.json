@@ -1022,7 +1022,7 @@
               "ko"
             ],
             "title": "Lang",
-            "description": "응답 언어"
+            "description": "화면 언어. 응답 언어는 메시지에서 판별하고, 판별하지 못할 때(이름·숫자·영어만 쓴 메시지 등) 직전 턴 응답 언어, 첫 턴이면 이 값을 쓴다"
           }
         },
         "type": "object",
@@ -1039,6 +1039,15 @@
             "type": "string",
             "format": "uuid",
             "title": "Threadid"
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "ja",
+              "ko"
+            ],
+            "title": "Lang",
+            "description": "이번 응답의 언어. 답변·조건 요약·질문·다음 질문 제안의 글자로 정하고, 면책·금액 주의 문구도 이 언어다(주의사항·추천 이유도 같은 언어로 쓰도록 지시하지만 코드가 확인하지는 않는다). 사용자가 그 턴에 쓴 언어라 요청의 화면 언어와 다를 수 있다. 화면 글자(카드 라벨·버튼)는 화면 언어로 두고, 사용자 대신 보내는 문장(카드의 예약 버튼 등)은 이 언어로 만든다"
           },
           "fallback": {
             "anyOf": [
@@ -1142,6 +1151,7 @@
         "type": "object",
         "required": [
           "threadId",
+          "lang",
           "fallback",
           "conditionSummary",
           "answer",

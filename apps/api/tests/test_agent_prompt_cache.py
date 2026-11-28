@@ -8,17 +8,21 @@ from datetime import date, timedelta
 from itertools import pairwise
 from uuid import uuid4
 
+import pytest
 from agent_fakes import fake_model, reply_message
+from fastapi.testclient import TestClient
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
 
+from api.agent import service as agent_service
 from api.agent.config import AgentSettings
-from api.agent.graph import build_graph
+from api.agent.graph import LANG_NAME, LANG_NOTE, build_graph
 from api.agent.schemas import AgentReply
-from api.agent.service import get_agent
+from api.agent.service import Conversations, DailyUsage, get_agent
 from api.domain.profile import InMemoryProfileStore, ProfileBudget, ProfilePatch
+from api.main import app
 
 EPHEMERAL = {"type": "ephemeral"}
 
@@ -128,6 +132,54 @@ def test_request_prefix_stays_stable_across_tool_loop_and_turns() -> None:
         assert len(after["messages"]) > len(before["messages"])
     # 대화 기록 블록에는 표시를 직접 붙이지 않는다(표시는 시스템 끝과 요청 전체, 4개 한도 안).
     assert all(block_marks(body) == [] for body in bodies)
+
+
+def test_prefix_stays_stable_when_reply_language_changes_by_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """화면 언어는 그대로 두고 메시지 언어만 턴마다 바꿔도 앞 호출의 요청이 다음 요청의 앞부분이다(이슈 #76)."""
+    monkeypatch.setattr(agent_service, "daily_usage", DailyUsage())
+    monkeypatch.setattr(agent_service, "conversations", Conversations())
+    model = fake_model(
+        reply_message("리쥬란은 이 병원이 가장 싸요."),
+        reply_message("リジュランはこちらが最安です。"),
+        reply_message("2ccの価格です。"),
+        reply_message("강남에서는 이 병원이에요."),
+    )
+    graph = build_graph(model, checkpointer=InMemorySaver(), prompt_cache=True)
+    app.dependency_overrides[get_agent] = lambda: graph
+    client = TestClient(app)
+    user_id, thread_id = str(uuid4()), None
+    try:
+        for message in (
+            "리쥬란 얼마예요?",
+            "リジュランはいくらですか",
+            "2cc?",
+            "강남은?",
+        ):
+            thread_id = client.post(
+                "/api/agent/chat",
+                json={
+                    "userId": user_id,
+                    "threadId": thread_id,
+                    "message": message,
+                    "lang": "ja",
+                },
+            ).json()["threadId"]
+    finally:
+        app.dependency_overrides.clear()
+
+    bodies = [payload(messages) for messages in model.calls]
+    assert len(bodies) == 4
+    for before, after in pairwise(bodies):
+        assert after["tools"] == before["tools"]
+        assert after["system"] == before["system"]
+        assert after["messages"][: len(before["messages"])] == before["messages"]
+    notes = [body["messages"][-1]["content"][-1]["text"] for body in bodies]
+    # 판별하지 못한 "2cc?"는 직전 턴 언어(일본어)를 쓴다.
+    assert notes == [
+        LANG_NOTE.format(language=LANG_NAME[lang]) for lang in ("ko", "ja", "ja", "ko")
+    ]
 
 
 def test_profile_note_keeps_prefix_stable_and_same_for_every_user() -> None:
