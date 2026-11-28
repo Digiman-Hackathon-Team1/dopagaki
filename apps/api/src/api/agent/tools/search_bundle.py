@@ -76,7 +76,7 @@ class SearchBundleInput(BaseModel):
     offset: int = Field(
         default=0,
         ge=0,
-        le=50,
+        le=200,
         description=(
             "순위표 앞에서 건너뛸 수. 기본 0. 사용자가 다른 병원·더 보여 달라고 하면 같은 입력으로 "
             "이미 보여 준 수(3, 그다음 6)를 넣는다. 조건(시술·지역·예산·정렬 등)을 바꾸면 0"
@@ -496,7 +496,7 @@ def search_bundle(
         )
         lines += [_summary_line(c.rank, c) for c in cards]
         lines.append(
-            "Booking channels of the first clinic: "
+            f"Booking channels of the rank-{cards[0].rank} clinic: "
             + channel_names(catalog.place(cards[0].place_id))
         )
     return "\n".join(lines), _artifact(list(menu_ids), target, cards)
