@@ -9,11 +9,27 @@ import { anonymousId } from './user-id';
  * 탭을 닫으면 사라지고 서버로 보내지 않는다. 서버는 같은 대화 ID를 24시간 기억하므로 이어서 보내면 앞 대화를 이어 답한다.
  */
 const SESSION_KEY = 'dopagaki.agent.session';
+/** 저장 형식이나 ChatResponse 모양을 바꾸면 올린다. 다른 버전의 저장분은 버린다. */
 const SESSION_VERSION = 1;
 /** 서버가 받는 한 대화의 최대 턴 수(설계 문서 8장)와 같다. */
 const MAX_SAVED_TURNS = 50;
 
 type SavedTurn = Pick<Turn, 'message' | 'answers' | 'reply'>;
+
+/** 화면이 검사 없이 쓰는 응답 칸이 모두 있는지. 모양이 다른 저장분을 그리면 화면 전체가 멈춘다. */
+function isReply(value: unknown): value is Schemas['ChatResponse'] {
+  const reply = value as Partial<Record<keyof Schemas['ChatResponse'], unknown>> | null;
+  return !!reply && typeof reply === 'object'
+    && typeof reply.threadId === 'string'
+    && typeof reply.answer === 'string'
+    && typeof reply.conditionSummary === 'string'
+    && typeof reply.disclaimer === 'string'
+    && Array.isArray(reply.cards)
+    && Array.isArray(reply.exclusions)
+    && Array.isArray(reply.questions)
+    && Array.isArray(reply.cautions)
+    && Array.isArray(reply.suggestions);
+}
 type SavedSession = { v: number; threadId?: string; turns: SavedTurn[] };
 
 function loadSession(): { threadId?: string; turns: Turn[] } {
@@ -23,20 +39,31 @@ function loadSession(): { threadId?: string; turns: Turn[] } {
     const saved = JSON.parse(raw) as SavedSession;
     // 저장 형식이 바뀌었거나 깨졌으면 버리고 새 대화로 시작한다.
     if (saved?.v !== SESSION_VERSION || !Array.isArray(saved.turns)) return { turns: [] };
-    const turns = saved.turns
-      .filter(turn => typeof turn?.message === 'string' && turn.reply && typeof turn.reply === 'object')
-      .map((turn, index) => ({ id: index + 1, message: turn.message, answers: turn.answers, reply: turn.reply, status: null }));
-    return { threadId: typeof saved.threadId === 'string' ? saved.threadId : undefined, turns };
+    const valid = saved.turns.filter(turn => typeof turn?.message === 'string' && isReply(turn.reply));
+    // 이미 답한 질문 묶음은 다시 그릴 때 시트가 한꺼번에 열리지 않게 비운다. 마지막 턴의 질문만 남긴다.
+    const turns: Turn[] = valid.map((turn, index) => ({
+      id: index + 1,
+      message: turn.message,
+      answers: turn.answers,
+      reply: index === valid.length - 1 ? turn.reply : { ...turn.reply!, questions: [] },
+      status: null
+    }));
+    return { threadId: turns.at(-1)?.reply?.threadId, turns };
   } catch {
     return { turns: [] };
   }
 }
 
-function saveSession(threadId: string | undefined, turns: Turn[]) {
-  // 답을 받은 턴만 둔다. 보내는 중이거나 실패한 턴은 새로고침하면 다시 보내면 된다.
-  const done = turns.filter(turn => turn.reply && turn.status === null).slice(-MAX_SAVED_TURNS);
+/** 답을 받은 턴. 보내는 중이거나 실패한 턴은 새로고침하면 다시 보내면 된다. */
+function doneTurns(turns: Turn[]) {
+  return turns.filter(turn => turn.reply && turn.status === null).slice(-MAX_SAVED_TURNS);
+}
+
+function saveSession(done: Turn[]) {
   try {
-    if (!threadId && done.length === 0) {
+    // 대화 ID는 마지막으로 답을 받은 턴의 것을 쓴다. 첫 답을 받기 전에 새로고침하면 새 대화로 시작한다.
+    const threadId = done.at(-1)?.reply?.threadId;
+    if (!threadId) {
       sessionStorage.removeItem(SESSION_KEY);
       return;
     }
@@ -91,7 +118,10 @@ export function useAgentChat(lang: Schemas['ChatRequest']['lang'], onSettled?: (
     return () => current.current?.abort();
   }, []);
 
-  useEffect(() => saveSession(thread.current, turns), [turns]);
+  // 답을 받은 턴이 바뀔 때만 쓴다. 답변이 흘러나오는 동안(delta)마다 다시 쓰지 않는다.
+  const done = doneTurns(turns);
+  const savedKey = `${done.length}:${done.at(-1)?.reply?.threadId ?? ''}:${done.at(-1)?.id ?? ''}`;
+  useEffect(() => saveSession(done), [savedKey]);
 
   /** 대화를 비우고 새 대화로 시작한다. 보내는 중인 요청은 취소한다. */
   function reset() {
