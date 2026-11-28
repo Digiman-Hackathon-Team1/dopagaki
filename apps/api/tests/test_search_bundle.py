@@ -392,3 +392,24 @@ def test_booking_with_three_treatment_bundle_and_too_many() -> None:
     too_many = f"{top.place_id}:shrink-300+aquapeel+lalapeel+jaw-botox"
     with pytest.raises(ValueError, match="At most three"):
         get_booking_options.invoke({"place_id": too_many})
+
+
+def test_new_clinic_bundle_line_says_rating_is_being_collected() -> None:
+    # 신규 개원 지점은 평점 숫자 대신 개원일과 집계 중임을 쓴다(이슈 #101).
+    message = search_bundle.invoke(
+        {
+            "type": "tool_call",
+            "name": "search_bundle",
+            "id": "c1",
+            "args": {"menu_ids": ["rejuran-2cc", "shrink-300"], "limit": 5},
+        }
+    )
+    lines = message.content.splitlines()
+    shown = [
+        BundleCardData.model_validate(c).place_id for c in message.artifact["cards"]
+    ]
+    assert "vands-balsan" in shown, "데이터가 바뀌어 신규 개원 지점이 상위 5곳에 없음"
+
+    new = next(line for line in lines if "card_id=vands-balsan" in line)
+    assert "new clinic opened 2026.11.25, rating still being collected" in new
+    assert "rating 3.7" not in new

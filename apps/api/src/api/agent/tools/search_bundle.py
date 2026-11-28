@@ -21,9 +21,10 @@ from api.agent.tools.search_clinics import (
     booking_channels,
     channel_names,
     get_fx_provider,
+    rating_text,
 )
 from api.domain.calc import PriceRow, rank_rows, savings_against
-from api.domain.catalog import AreaId, Fx, get_catalog
+from api.domain.catalog import AreaId, Fx, Place, get_catalog
 from api.domain.locations import get_locations
 from api.domain.price_tags import price_tags
 
@@ -246,7 +247,7 @@ def _card(
     )
 
 
-def _summary_line(rank: int, card: BundleCardData) -> str:
+def _summary_line(rank: int, card: BundleCardData, place: Place) -> str:
     items = "; ".join(
         f"{i.menu_name_ko} / {i.menu_name_ja} ₩{i.total_krw:,} incl. VAT ≈ ¥{i.total_jpy:,}"
         for i in card.items
@@ -286,8 +287,7 @@ def _summary_line(rank: int, card: BundleCardData) -> str:
         f"items: {items}",
         separate,
         f"Japanese support: {'yes' if card.japanese_support else 'no'}",
-        f"rating {card.rating}"
-        + (" (few verified reviews)" if card.rating_tier == "limited" else ""),
+        rating_text(card.rating, card.rating_tier, place),
     ]
     if card.distance_meters is not None:
         parts.append(f"{card.distance_meters:,} m (walk ~{card.walk_minutes} min)")
@@ -494,7 +494,7 @@ def search_bundle(
             if offset
             else f"Top {len(cards)} single-clinic bundles:"
         )
-        lines += [_summary_line(c.rank, c) for c in cards]
+        lines += [_summary_line(c.rank, c, catalog.place(c.place_id)) for c in cards]
         lines.append(
             f"Booking channels of the rank-{cards[0].rank} clinic: "
             + channel_names(catalog.place(cards[0].place_id))

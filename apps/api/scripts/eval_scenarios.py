@@ -64,6 +64,11 @@ class Turn:
     # 원래 답변에 Markdown 표가 있어야 하면 True. table_excludes는 표 줄에 들어 있으면 안 되는 말이다(이슈 #97).
     has_table: bool | None = None
     table_excludes: tuple[str, ...] = ()
+    # 카드 추천 이유 검사: {병원 ID: (하나라도 들어 있어야 하는 말(비면 검사 안 함), 들어 있으면 안 되는 말)}.
+    # 그 병원 카드가 나왔는데 추천 이유가 없어도 실패다. 예: 신규 개원 지점(이슈 #101).
+    reason_checks: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass(frozen=True)
@@ -87,6 +92,20 @@ NOT_IN_DATA = (
     "おすすめの人",
     "向いている",
 )
+# 신규 개원 지점(vands-balsan, 2026.11.25 개원)의 추천 이유: 평점 숫자로 낮다고 하지 않는다(이슈 #101).
+# 개원을 말하지 않고 다른 이유만 쓰는 것은 틀린 설명이 아니라 실패로 보지 않는다.
+NEW_CLINIC_REASON = (
+    (),
+    (
+        "3.7",
+        "평점이 낮",
+        "평점은 낮",
+        "평점이 다소 낮",
+        "評価が低",
+        "評価は低",
+        "低評価",
+    ),
+)
 # 도구 사이 모델 왕복(이슈 #72) 전후 비교용 시나리오. 기본 평가에는 넣지 않는다.
 ROUNDTRIP = ("s8", "s9", "s10")
 
@@ -108,6 +127,8 @@ SCENARIOS: tuple[Scenario, ...] = (
                 },
                 shape="answer",
                 safety_stop=False,
+                # 리쥬란 기본 검색 2위가 신규 개원 지점이다(이슈 #101).
+                reason_checks={"vands-balsan": NEW_CLINIC_REASON},
             ),
             Turn(
                 "귀국은 모레예요",
@@ -358,6 +379,7 @@ SCENARIOS: tuple[Scenario, ...] = (
                 args={"search_clinics": {"menu_id": "rejuran-2cc", "offset": 0}},
                 shape="answer",
                 safety_stop=False,
+                reason_checks={"vands-balsan": NEW_CLINIC_REASON},
             ),
             Turn(
                 # 다른 병원도 보여 주세요.
@@ -515,6 +537,31 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
         in_table = [w for w in turn.table_excludes if any(w in row for row in table)]
         if in_table:
             failures.append(f"표에 데이터에 없는 행: {', '.join(in_table)}")
+        # 추천 이유는 병원·묶음 카드에만 붙는다. 예약 카드에도 placeId가 있지만 이유가 없다.
+        shown_places = {
+            c.get("placeId")
+            for c in body["cards"]
+            if c["kind"] in ("recommendation", "bundle")
+        }
+        for place_id, (need_any, forbid) in turn.reason_checks.items():
+            if place_id not in shown_places:
+                continue
+            reasons = [
+                r.reason
+                for r in raw.card_reasons
+                if r.card_id.startswith(f"{place_id}:")
+            ]
+            if not reasons:
+                failures.append(f"{place_id} 카드 추천 이유 없음")
+                continue
+            if need_any and not any(w in r for r in reasons for w in need_any):
+                failures.append(f"{place_id} 추천 이유에 {need_any[0]} 언급 없음")
+            # 금지어는 그 병원 추천 이유와 답변 본문 모두에서 본다.
+            bad = [w for w in forbid if any(w in r for r in [*reasons, raw.answer])]
+            if bad:
+                failures.append(
+                    f"{place_id} 추천 이유·답변에 쓰면 안 되는 말: {', '.join(bad)}"
+                )
 
     clinic_cards = [c for c in body["cards"] if c["kind"] == "recommendation"]
     if turn.shape == "ask":

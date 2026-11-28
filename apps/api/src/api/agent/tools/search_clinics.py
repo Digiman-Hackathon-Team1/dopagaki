@@ -351,6 +351,21 @@ def channel_names(place: Place) -> str:
     return ", ".join(CHANNEL_NAMES[c.kind] for c in place.channels) or "none in data"
 
 
+def rating_text(rating: float, rating_tier: str, place: Place) -> str:
+    """결과 문장의 평점 부분. 신규 개원 지점은 평점 대신 개원일과 집계 중임을 쓴다(이슈 #101).
+
+    후기가 쌓이기 전의 평점은 보수적인 기준치라, 숫자를 보여 주면 Claude가 낮은 평점으로 설명한다.
+    """
+    if place.opened_date:
+        return (
+            f"new clinic opened {place.opened_date}, rating still being collected "
+            "(do not describe its rating as low)"
+        )
+    return f"rating {rating}" + (
+        " (few verified reviews)" if rating_tier == "limited" else ""
+    )
+
+
 def _summary_line(rank: int, card: RecommendationCardData, place: Place) -> str:
     parts = [
         f"{rank}. card_id={card.card_id}",
@@ -358,8 +373,7 @@ def _summary_line(rank: int, card: RecommendationCardData, place: Place) -> str:
         f"₩{card.total_krw:,} incl. VAT ≈ ¥{card.total_jpy:,}",
         f"saves ¥{card.savings_jpy:,} ({card.savings_pct}%) vs Japan average",
         f"Japanese support: {'yes' if card.japanese_support else 'no'}",
-        f"rating {card.rating}"
-        + (" (few verified reviews)" if card.rating_tier == "limited" else ""),
+        rating_text(card.rating, card.rating_tier, place),
         f"booking channels: {channel_names(place)}",
     ]
     if card.jp_clinic:

@@ -318,3 +318,20 @@ def test_treatment_exclusion_with_unknown_clinic_has_no_zero_count() -> None:
     # 빠진 병원이 0곳인 사유는 내보내지 않고, 지점을 못 찾았다고 알린다.
     assert message.artifact["exclusions"] == []
     assert "No clinic in the data matches" in message.content
+
+
+def _line(message: ToolMessage, place_id: str) -> str:
+    return next(
+        line for line in message.content.splitlines() if f"card_id={place_id}:" in line
+    )
+
+
+def test_new_clinic_line_says_rating_is_being_collected() -> None:
+    # 신규 개원 지점은 평점 숫자 대신 개원일과 집계 중임을 쓴다(이슈 #101).
+    message = call(menu_id="rejuran-2cc", limit=10)
+
+    new = _line(message, "vands-balsan")
+    assert "new clinic opened 2026.11.25, rating still being collected" in new
+    assert "rating 3.7" not in new
+    other = next(c for c in cards(message) if c.place_id != "vands-balsan")
+    assert f"rating {other.rating}" in _line(message, other.place_id)
