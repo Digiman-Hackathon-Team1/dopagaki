@@ -472,7 +472,7 @@ class ChatService:
     def _turn_lang(self, config: dict, body: ChatRequest) -> Lang:
         """1차 판별(설계 문서 2장). 직전 턴 응답 언어는 대화 기억에 남은 값이다."""
         previous = (
-            self._agent.get_state(config).values.get("lang")
+            self._agent.get_state(config).values.get("answered_lang")
             if self._agent is not None
             else None
         )
@@ -541,11 +541,11 @@ class ChatService:
     @staticmethod
     def _respond(state: dict, thread_id: UUID, lang: Lang) -> ChatResponse:
         """lang은 1차 판별 언어다. 답을 냈으면 finalize가 상태에 남긴 실제 답의 언어를 쓴다."""
-        lang = state.get("lang") or lang
         if failure := read_failure(state):
             logger.warning("에이전트가 답하지 못해 시세표 안내로 답한다: %s", failure)
             return fallback_response(thread_id, lang, "error")
         reply = read_reply(state)
+        lang = state.get("answered_lang") or lang
         return ChatResponse(
             thread_id=thread_id,
             lang=lang,
@@ -573,7 +573,8 @@ class ChatService:
             is_new = body.thread_id is None or (
                 agent is None or not agent.get_state(config).values.get("messages")
             )
-            # 녹화본은 1차 판별 언어로 찾는다. 화면 언어가 달라도 같은 메시지면 같은 녹화본이다.
+            # 녹화본은 1차 판별 언어로 찾는다. 메시지 글자로 언어가 정해지면 화면 언어가 달라도 같은 녹화본이다
+            # ("Rejuran?"처럼 정해지지 않는 첫 메시지는 화면 언어로 찾는다).
             hit = demo_sessions.take(load_demo(), key, is_new, body.message, lang)
             if hit is None:
                 return None
@@ -583,7 +584,11 @@ class ChatService:
                 # 대본에서 벗어난 다음 턴을 실제 Claude가 앞 맥락과 함께 이어 답하게 한다.
                 agent.update_state(
                     config,
-                    {"messages": recorded_messages(turn), "lang": response.lang},
+                    {
+                        "messages": recorded_messages(turn),
+                        "lang": response.lang,
+                        "answered_lang": response.lang,
+                    },
                     as_node="finalize",
                 )
         except Exception:

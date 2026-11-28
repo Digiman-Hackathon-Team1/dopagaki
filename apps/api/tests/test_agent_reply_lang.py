@@ -263,3 +263,41 @@ def test_busy_fallback_uses_this_message_only(
     assert busy["answer"] == FALLBACK_ANSWER["busy"][expected]
     assert busy["lang"] == expected
     assert result[0]["lang"] == "ko"
+
+
+class FailOnceModel(FakeChatModel):
+    """fail_at번째 호출(0부터)에서만 API 장애를 흉내 낸다."""
+
+    fail_at: int = 1
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        if len(self.calls) == self.fail_at:
+            self.calls.append(list(messages))
+            raise RuntimeError("simulated API failure")
+        return super()._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
+
+
+def test_failed_turn_does_not_change_previous_turn_language(
+    client: TestClient,
+) -> None:
+    """실패한 턴의 안내 언어가 아니라, Claude가 마지막으로 실제 답한 언어가 다음 턴에 이어진다."""
+    use_settings(agent_max_retries=0)
+    model = use_model(
+        FailOnceModel(
+            messages=iter(
+                [
+                    reply_message("리쥬란은 이 병원이 가장 싸요."),
+                    reply_message("2cc 기준이에요."),
+                ]
+            )
+        )
+    )
+    first = post(client, "리쥬란 얼마예요?", "ja")
+    failed = post(client, "リジュランアイは?", "ja", first["threadId"])
+    third = post(client, "2cc?", "ja", first["threadId"])
+
+    assert failed["fallback"] == "error"
+    assert failed["lang"] == "ja"
+    # 판별하지 못한 메시지는 실패 턴(일본어 안내)이 아니라 앞서 한국어로 답한 턴을 따른다.
+    assert lang_note(model, 2) == note("ko")
+    assert third["lang"] == "ko"

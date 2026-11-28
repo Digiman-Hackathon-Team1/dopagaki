@@ -228,15 +228,12 @@ the latest user message tells you how to choose."""
 
 # 응답 언어는 Claude가 메시지의 뜻으로 고르고, language에는 코드가 글자로 정한 1차 판별(모호할 때 쓸 언어)을
 # 넣는다(설계 문서 2장, ADR 0020).
+# 언어는 코드가 정한 1차 판별을 따르고, 사용자가 다른 언어를 직접 요청할 때만 Claude가 바꾼다(ADR 0020).
 # 예시는 실측 입력(scripts/eval_reply_lang.py)과 다른 문장으로 둔다.
 LANG_NOTE = (
-    "[Note from Dopa app] Reply language: the language the user's own sentence in this message is "
-    "written in, Japanese or Korean. Judge it from the grammar words (particles, endings, question "
-    "words), not from names. A Korean sentence with a Japanese treatment name is Korean, for "
-    'example "ポテンツァ 몇 번 받아야 해요?"; a Japanese sentence with a Korean clinic or place '
-    'name is Japanese, for example "신촌역 近くで安いところは?". The app screen language and the '
-    "user being Japanese do not decide it. If the user asks for a language, use it. If this message "
-    "does not show a language (only names, numbers, or English), use {language}."
+    "[Note from Dopa app] Reply language for this turn: {language}. Keep it even when the message "
+    "has names or words in another language. Only when the user explicitly asks you to answer in "
+    'another language (for example "한국말로 해 주세요" or "日本語でお願いします"), use that language.'
 )
 SAFETY_NOTE = (
     "[Note from Dopa app] Health keywords found in the user's messages in this conversation: "
@@ -256,9 +253,11 @@ Failure = Literal[
 
 
 class AgentState(MessagesState):
-    # 턴을 시작할 때는 서비스가 정한 1차 판별 언어이고, finalize가 Claude가 실제로 쓴 답의 언어로 바꾼다.
-    # 대화 기억에 남아 다음 턴의 직전 턴 응답 언어가 된다.
+    # 이번 턴의 1차 판별 언어(서비스가 넣는다). 언어 안내와, 답 글자로 언어를 정하지 못할 때 쓴다.
     lang: Lang
+    # Claude가 마지막으로 실제 답한 언어. finalize가 답을 냈을 때만 바꾼다. 다음 턴의 직전 턴 응답 언어가 된다.
+    # 실패한 턴(시세표 안내)은 바꾸지 않는다.
+    answered_lang: Lang | None
     # 대화 기억에 저장되므로 모델 객체 대신 일반 데이터로 둔다. 읽을 때는 read_reply를 쓴다.
     reply: dict | None
     cards: list[dict]
@@ -815,7 +814,7 @@ def build_graph(
                 for loc in location_cards(state["messages"], results, bundles, plans)
             ]
             return {
-                "lang": lang,
+                "answered_lang": lang,
                 "reply": reply.model_dump(),
                 "cards": [c.model_dump() for c in locations],
                 "exclusions": [],
@@ -842,7 +841,7 @@ def build_graph(
         ]
         exclusions = assemble_exclusions(results)
         return {
-            "lang": lang,
+            "answered_lang": lang,
             "reply": reply.model_dump(),
             "cards": [c.model_dump() for c in cards],
             "exclusions": [e.model_dump() for e in exclusions],
