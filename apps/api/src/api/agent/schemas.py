@@ -75,7 +75,10 @@ class Remember(BaseModel):
         description="달력 날짜로 말한 귀국일(YYYY-MM-DD). 앱 안내의 오늘 날짜로 연도를 정한다"
     )
     location_id: str | None = Field(
-        description="숙소나 사는 곳. 이번 대화에서 resolve_location이 찾은 location_id만 쓴다"
+        description=(
+            "숙소나 사는 곳. 이번 대화에서 resolve_location이나 search_clinics의 location이 찾은 "
+            "location_id만 쓴다"
+        )
     )
     concerns: list[ConcernId] = Field(
         description=(

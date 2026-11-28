@@ -46,7 +46,7 @@ def location_card(location: Location, query: str | None) -> LocationCardData:
     )
 
 
-def _label(location: Location) -> str:
+def location_label(location: Location) -> str:
     kind = "area center" if location.type == "area" else "station"
     return (
         f"location_id={location.id} ({location.name_ko} / {location.name_ja}, {kind})"
@@ -63,8 +63,9 @@ def _area_names() -> str:
 
 DESCRIPTION = f"""\
 사용자가 말한 위치(숙소, 사는 동네, 역)를 위치 ID로 바꾼다. 아래 서울 지역 12곳과 병원 근처 역만 안다.
-필수 입력: query. 사용자가 숙소·기준 위치를 말하면 search_clinics보다 먼저 부르고, 결과의 location_id를
-search_clinics의 origin_id에 그대로 넣는다. 좌표를 직접 넘기거나 지어내지 않는다.
+필수 입력: query. 사용자가 숙소·기준 위치를 말하면 search_bundle·plan_trip보다 먼저 부르고, 결과의 location_id를
+그 도구의 origin_id에 그대로 넣는다. 좌표를 직접 넘기거나 지어내지 않는다. search_clinics는 장소 표현을
+location 입력으로 바로 받으므로 이 도구를 먼저 부르지 않는다.
 찾은 위치는 화면에 기준 위치 카드로 나간다. 답변 맨 위 조건 요약에 그 위치를 적어 사용자가 고칠 수 있게 한다.
 못 찾으면(unknown) 위치를 지어내지 말고 가까운 역이나 아래 지역 이름을 한 번 묻는다. 그동안은 origin_id 없이 검색한다.
 가타카나 읽기(ホンデ, カンナム 등)는 한국어나 한자 이름(홍대, 弘大)으로 바꿔 넣는다.
@@ -89,7 +90,7 @@ def resolve_location(query: str) -> tuple[str, dict]:
         )
         return message, ResolveLocationArtifact(status="unknown").model_dump()
     if result.status == "ambiguous":
-        listed = "; ".join(_label(loc) for loc in result.locations)
+        listed = "; ".join(location_label(loc) for loc in result.locations)
         message = (
             f"{head} → ambiguous, it names several places: {listed}. If the user is comparing them, "
             "call resolve_location once per place. Otherwise ask which one is their base."
@@ -99,7 +100,7 @@ def resolve_location(query: str) -> tuple[str, dict]:
     location = result.locations[0]
     card = location_card(location, query)
     message = (
-        f"{head} → found {_label(location)}. Pass origin_id={location.id!r} to search_clinics. "
+        f"{head} → found {location_label(location)}. Pass origin_id={location.id!r} to search_clinics. "
         "Distances will be straight-line distances from this point."
     )
     return message, ResolveLocationArtifact(status="found", location=card).model_dump()
