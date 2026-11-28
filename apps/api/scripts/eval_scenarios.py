@@ -17,6 +17,7 @@
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -55,6 +56,14 @@ class Turn:
     location_card: str | None = None
     # 원래 답변(answer)에 하나라도 들어 있어야 하는 말. 예: 추천에서 뺀 시술 이름(제외 사유 설명, 이슈 #72).
     mentions_any: tuple[str, ...] = ()
+    # 원래 응답의 화면 칸(답변, 조건 요약, 주의사항, 다음 질문 제안)에 들어 있으면 안 되는 말.
+    # 예: 쉬운 말로 바꿔야 하는 전문 용어(이슈 #97).
+    mentions_none: tuple[str, ...] = ()
+    # 이번 턴에 search_clinics로 모두 찾아야 하는 시술. 예: 비교 질문의 두 시술(이슈 #97).
+    searched_menus: tuple[str, ...] = ()
+    # 원래 답변에 Markdown 표가 있어야 하면 True. table_excludes는 표 줄에 들어 있으면 안 되는 말이다(이슈 #97).
+    has_table: bool | None = None
+    table_excludes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -67,6 +76,17 @@ class Scenario:
 
 
 EXCLUDED_INMODE = ("インモード", "인모드", "InMode", "Inmode")
+# 쉬운 말로 바꿔 써야 하는 전문 용어(이슈 #97). 표 행에는 데이터에 없는 통증·효과·추천 대상을 넣지 않는다.
+JARGON = ("다운타임", "ダウンタイム")
+NOT_IN_DATA = (
+    "통증",
+    "효과",
+    "추천 대상",
+    "痛み",
+    "効果",
+    "おすすめの人",
+    "向いている",
+)
 # 도구 사이 모델 왕복(이슈 #72) 전후 비교용 시나리오. 기본 평가에는 넣지 않는다.
 ROUNDTRIP = ("s8", "s9", "s10")
 
@@ -349,7 +369,68 @@ SCENARIOS: tuple[Scenario, ...] = (
             ),
         ),
     ),
+    Scenario(
+        "s13",
+        "시술 비교(표)",
+        "ko",
+        "리쥬란과 쥬베룩의 차이를 물음. 두 시술을 모두 찾고 회복 기간·바늘·서울 최저가 표로 답함(이슈 #97)",
+        (
+            Turn(
+                "리쥬란이랑 쥬베룩 뭐가 달라? 뭘 받는 게 나을까",
+                must_call=("search_clinics",),
+                searched_menus=("rejuran-2cc", "juvelook-2cc"),
+                shape="answer",
+                safety_stop=False,
+                has_table=True,
+                table_excludes=NOT_IN_DATA,
+                mentions_none=JARGON,
+            ),
+        ),
+    ),
+    Scenario(
+        "s14",
+        "시술 비교(표, 일본어)",
+        "ja",
+        "슈링크와 인모드의 차이를 일본어로 물음. 두 시술을 모두 찾고 표로 답함(이슈 #97)",
+        (
+            Turn(
+                # 슈링크와 인모드는 뭐가 달라요?
+                "シュリンクとインモードは何が違いますか？",
+                must_call=("search_clinics",),
+                searched_menus=("shrink-300", "inmode-fx"),
+                shape="answer",
+                safety_stop=False,
+                has_table=True,
+                table_excludes=NOT_IN_DATA,
+                mentions_none=JARGON,
+            ),
+        ),
+    ),
 )
+
+
+_TABLE_RULE = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
+
+
+def table_lines(text: str) -> list[str]:
+    """Markdown 표의 줄(머리 줄, 구분 줄, 본문 줄)을 돌려준다. 표가 없으면 빈 목록이다."""
+    lines = text.splitlines()
+    found: list[str] = []
+    for i, line in enumerate(lines):
+        if _TABLE_RULE.match(line) and i > 0 and "|" in lines[i - 1]:
+            found.append(lines[i - 1])
+            found.append(line)
+            found += _rows_after(lines, i + 1)
+    return found
+
+
+def _rows_after(lines: list[str], start: int) -> list[str]:
+    rows: list[str] = []
+    for line in lines[start:]:
+        if "|" not in line:
+            break
+        rows.append(line)
+    return rows
 
 
 def _tool_default(tool_name: str, arg: str) -> object:
@@ -386,6 +467,12 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
                 got = call["args"].get(key, _tool_default(name, key))
                 if got not in (value if isinstance(value, tuple) else (value,)):
                     failures.append(f"{name}.{key}={got!r} (기대 {value!r})")
+    searched = {
+        c["args"].get("menu_id") for c in calls if c["name"] == "search_clinics"
+    }
+    for menu_id in turn.searched_menus:
+        if menu_id not in searched:
+            failures.append(f"search_clinics로 {menu_id}를 찾지 않음")
 
     raw: AgentReply | None = None
     if ai and not ai[-1].tool_calls:
@@ -416,6 +503,18 @@ def grade_turn(turn: Turn, body: dict, messages: list) -> dict:
             failures.append(f"safety_stop={raw.safety_stop} (기대 {turn.safety_stop})")
         if turn.mentions_any and not any(w in raw.answer for w in turn.mentions_any):
             failures.append(f"답변에 {turn.mentions_any[0]} 언급 없음")
+        shown = [raw.answer, raw.condition_summary, *raw.cautions, *raw.suggestions]
+        used = [w for w in turn.mentions_none if any(w in t for t in shown)]
+        if used:
+            failures.append(f"응답에 쓰면 안 되는 말: {', '.join(used)}")
+        table = table_lines(raw.answer)
+        if turn.has_table and not table:
+            failures.append("답변에 표 없음")
+        if turn.has_table is False and table:
+            failures.append("답변에 표가 있음")
+        in_table = [w for w in turn.table_excludes if any(w in row for row in table)]
+        if in_table:
+            failures.append(f"표에 데이터에 없는 행: {', '.join(in_table)}")
 
     clinic_cards = [c for c in body["cards"] if c["kind"] == "recommendation"]
     if turn.shape == "ask":
