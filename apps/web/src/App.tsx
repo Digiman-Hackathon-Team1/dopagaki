@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MotionConfig } from 'motion/react';
 import { Toaster, toast } from 'sonner';
@@ -69,6 +69,15 @@ const initialNaverFx = rawNaverFx as unknown as NaverFxSnapshot;
 
 
 const SESSION_LOC_KEY = 'dopagaki_user_loc_v1';
+
+// 개발용 주소 /agent-dev는 실제 앱을 AI 상담 탭으로 연다. 따로 만든 화면이 없어 상담 탭과 늘 같다.
+// 개발 서버에서는 항상, 배포 빌드에서는 VITE_AGENT_DEV=true일 때만 받는다.
+// 앱 경로 규칙(병원 상세 /clinic/...)이 그대로 맞도록, 앱 기준 경로를 정하기 전에 주소를 '/'로 바꾼다.
+const AGENT_DEV_ENABLED = import.meta.env.DEV || import.meta.env.VITE_AGENT_DEV === 'true';
+const OPEN_AGENT_TAB = AGENT_DEV_ENABLED && /^\/agent-dev\/?$/.test(window.location.pathname);
+if (OPEN_AGENT_TAB) {
+  window.history.replaceState(window.history.state, '', '/' + window.location.search + window.location.hash);
+}
 const APP_BASE_PATH = detectAppBasePath(window.location.pathname);
 
 const PRIMARY_AREAS: Array<{ id: AreaId; ko: string; ja: string }> = [
@@ -213,18 +222,7 @@ function MisregWord({ word }: { word: string }) {
   );
 }
 
-// 개발 서버에서는 항상, 배포 빌드에서는 VITE_AGENT_DEV=true일 때만 개발용 상담 화면을 넣는다.
-const AGENT_DEV_ENABLED = import.meta.env.DEV || import.meta.env.VITE_AGENT_DEV === 'true';
-const AgentDev = AGENT_DEV_ENABLED ? lazy(() => import('./dev/AgentDev')) : null;
-
 export function App() {
-  if (AgentDev && /^\/agent-dev\/?$/.test(window.location.pathname)) {
-    return <Suspense fallback={null}><AgentDev /></Suspense>;
-  }
-  return <ClinicApp />;
-}
-
-function ClinicApp() {
   const initialQuery = useMemo(() => parseHomeQuery(window.location.search), []);
   const initialRoute = useMemo(() => parseRoute(window.location.pathname, APP_BASE_PATH), []);
   const initialClinicParams = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -256,9 +254,11 @@ function ClinicApp() {
       fallback: turn.reply ? (turn.reply.fallback ?? 'none') : turn.status
     });
   });
-  const [activeTab, setActiveTab] = useState<'list' | 'info' | 'recommend' | 'saved'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'info' | 'recommend' | 'saved'>(
+    OPEN_AGENT_TAB ? 'recommend' : 'list'
+  );
   const [infoMenuId, setInfoMenuId] = useState<string>(initialQuery.menuId);
-  const lastMainTabRef = useRef<'list' | 'info' | 'recommend' | 'saved'>('list');
+  const lastMainTabRef = useRef<'list' | 'info' | 'recommend' | 'saved'>(OPEN_AGENT_TAB ? 'recommend' : 'list');
   const [savedClinicIds, setSavedClinicIds] = useState<string[]>(() => loadSavedClinicIds());
   const [savedClinicPlans, setSavedClinicPlans] = useState<Record<string, SavedClinicPlan>>(() =>
     loadSavedClinicPlans()

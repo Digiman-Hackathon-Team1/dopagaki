@@ -82,7 +82,7 @@ Railway 프로젝트 `dopagaki`에 서비스 두 개가 있다.
 - web은 `/api` 요청을 내부 네트워크로 api 서비스에 넘긴다. 브라우저는 web 주소 하나만 쓰므로 CORS 설정이 필요 없다.
 - web 빌드는 병원 가격표 이미지를 원본 레포에서 받아 포함한다.
 - 선택 변수: web의 `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, `VITE_AGENT_DEV` (빌드 때 들어간다).
-- `VITE_AGENT_DEV=true`(소문자)로 web을 빌드하면 배포 사이트의 `/agent-dev`에서 개발용 상담 화면이 열린다. 이 값은 화면만 켜고 끈다. `/api/agent/chat`은 이 값과 상관없이 공개되어 있고 api의 `ANTHROPIC_API_KEY`로 Claude를 부르므로, 지출 한도를 건 별도 키를 쓴다. Claude 호출을 멈추려면 api의 `ANTHROPIC_API_KEY`를 지운다.
+- `VITE_AGENT_DEV=true`(소문자)로 web을 빌드하면 배포 사이트의 `/agent-dev` 주소가 실제 앱을 AI 상담 탭으로 연다(열린 뒤 주소는 `/`로 바뀌어서, 새로고침하면 "순위" 탭으로 열린다. AI 상담 탭으로 다시 열려면 `/agent-dev`로 들어온다). 이 값은 이 주소만 켜고 끈다. `/api/agent/chat`은 이 값과 상관없이 공개되어 있고 api의 `ANTHROPIC_API_KEY`로 Claude를 부르므로, 지출 한도를 건 별도 키를 쓴다. Claude 호출을 멈추려면 api의 `ANTHROPIC_API_KEY`를 지운다.
 
 로컬에서 배포 이미지를 확인하려면:
 

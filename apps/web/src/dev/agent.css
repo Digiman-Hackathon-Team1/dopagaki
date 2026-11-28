@@ -1,6 +1,0 @@
-/* 실제 앱은 휴대폰 폭에서 아래 탭바 높이만큼 입력창을 띄운다. 개발 화면에는 탭바가 없으므로 바닥에 붙인다. */
-@media (max-width: 768px) {
-  .agent-dev .cg-composer {
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  }
-}
