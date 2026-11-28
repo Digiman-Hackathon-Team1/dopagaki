@@ -95,3 +95,15 @@ def test_questions_are_kept_with_only_a_condition_card(
 
     assert [c.kind for c in read_cards(result)] == [kind]
     assert len(read_reply(result).questions) == 2
+
+
+def test_questions_are_kept_when_only_confirming_ambiguous_candidates() -> None:
+    # 필링(ピーリング)은 후보가 둘(라라필·아쿠아필)이라 카드 없이 먼저 묻는다(#81). 질문 묶음과 빠른 답변을 쓴다.
+    result = run(
+        tool_call("match_jp_treatment", {"query": "ピーリング"}),
+        asking("どちらのピーリングですか?"),
+        message="ピーリングを受けたい",
+    )
+
+    assert read_cards(result) == []
+    assert len(read_reply(result).questions) == 2
