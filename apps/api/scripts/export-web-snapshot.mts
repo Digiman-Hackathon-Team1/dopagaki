@@ -151,6 +151,8 @@ const snapshot = {
       // 평점 근거: branch 지점 후기, brand 같은 브랜드 다른 지점 후기를 참고. limited는 확인된 후기가 적음.
       ratingScope: rating.reviewScope,
       ratingTier: rating.verificationTier,
+      // 신규 개원 지점의 개원일(YYYY.MM.DD, web brand-reviews.ts). 평점이 아직 쌓이지 않았다(이슈 #101).
+      openedDate: rating.openedDate,
       ...channels(place),
       proofs: proofs(place)
     };

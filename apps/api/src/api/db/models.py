@@ -137,6 +137,7 @@ class Place(Base):
     ai_rating: Mapped[float] = mapped_column(Float)
     rating_scope: Mapped[str] = mapped_column(String)
     rating_tier: Mapped[str] = mapped_column(String)
+    opened_date: Mapped[str | None] = mapped_column(String, nullable=True)
     central_channel: Mapped[bool] = mapped_column(Boolean)
 
 

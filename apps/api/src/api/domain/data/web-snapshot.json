@@ -9,7 +9,7 @@
     "apps/web/src/data/clinic-channels.ts": "f6ceab88e075b3617cdb996ecb8b3bc7fc1941a6a5cc7d3b7f999229c3352113",
     "apps/web/src/data/official-proofs.ts": "879df0bb3ec116fc1faadf5537603d47d23d2c10fd39f85b795b893161c2c83b",
     "apps/web/src/lib/clinic-helpers.ts": "2cbde3e04ba5e8ebce0c60b5b3dd204087a1dd5ec5c4568b70ccdc11cbbe05e7",
-    "apps/api/scripts/export-web-snapshot.mts": "b690ab961ee050a791905594cf8ebdeb155533bc4cd67ed7bf5bad55b3cdb99d",
+    "apps/api/scripts/export-web-snapshot.mts": "92ff2260067a4946059bc2e0dbadc22781350a35097d863d2cc5ae2a3630121b",
     "apps/web/src/data/proof-hidden.ts": "749e8e26e15f1d9a99b68739987ff212c251665dc03a5d981ec6c43b7ed460a2"
   },
   "meta": {
@@ -787,6 +787,7 @@
       "aiRating": 4.6,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -930,6 +931,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1052,6 +1054,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1157,6 +1160,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "line",
@@ -1236,6 +1240,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1341,6 +1346,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1437,6 +1443,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1575,6 +1582,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1678,6 +1686,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1766,6 +1775,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -1901,6 +1911,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2063,6 +2074,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2203,6 +2215,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2316,6 +2329,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2426,6 +2440,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2525,6 +2540,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2615,6 +2631,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2736,6 +2753,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -2887,6 +2905,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -3046,6 +3065,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -3199,6 +3219,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "limited",
+      "openedDate": "2026.11.25",
       "channels": [
         {
           "kind": "kakao",
@@ -3349,6 +3370,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -3478,6 +3500,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -3610,6 +3633,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -3746,6 +3770,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -3871,6 +3896,7 @@
       "aiRating": 4.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4002,6 +4028,7 @@
       "aiRating": 3.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4132,6 +4159,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4265,6 +4293,7 @@
       "aiRating": 3.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4371,6 +4400,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4487,6 +4517,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4606,6 +4637,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4703,6 +4735,7 @@
       "aiRating": 3.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4809,6 +4842,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -4915,6 +4949,7 @@
       "aiRating": 3.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5011,6 +5046,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5082,6 +5118,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5153,6 +5190,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5224,6 +5262,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5295,6 +5334,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5366,6 +5406,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5437,6 +5478,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5508,6 +5550,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5599,6 +5642,7 @@
       "aiRating": 3.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -5694,6 +5738,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "line",
@@ -5749,6 +5794,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "line",
@@ -5808,6 +5854,7 @@
       "aiRating": 3.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "line",
@@ -5858,6 +5905,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "line",
@@ -5928,6 +5976,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6024,6 +6073,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6109,6 +6159,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6204,6 +6255,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6324,6 +6376,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6449,6 +6502,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6590,6 +6644,7 @@
       "aiRating": 4.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6731,6 +6786,7 @@
       "aiRating": 4.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -6863,6 +6919,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7009,6 +7066,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7154,6 +7212,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7279,6 +7338,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7427,6 +7487,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7556,6 +7617,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7688,6 +7750,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7836,6 +7899,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -7974,6 +8038,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8079,6 +8144,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8150,6 +8216,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8221,6 +8288,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8297,6 +8365,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8372,6 +8441,7 @@
       "aiRating": 3.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "line",
@@ -8427,6 +8497,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8513,6 +8584,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8645,6 +8717,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8776,6 +8849,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -8899,6 +8973,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -9035,6 +9110,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -9172,6 +9248,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -9327,6 +9404,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -9477,6 +9555,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -9609,6 +9688,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -9755,6 +9835,7 @@
       "aiRating": 4.5,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -9905,6 +9986,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -10051,6 +10133,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -10211,6 +10294,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -10375,6 +10459,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -10535,6 +10620,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -10704,6 +10790,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -10856,6 +10943,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -11000,6 +11088,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -11169,6 +11258,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -11328,6 +11418,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -11479,6 +11570,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -11643,6 +11735,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -11788,6 +11881,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -11915,6 +12009,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12042,6 +12137,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12169,6 +12265,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12296,6 +12393,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12428,6 +12526,7 @@
       "aiRating": 3.7,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12559,6 +12658,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12672,6 +12772,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12795,6 +12896,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -12936,6 +13038,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -13067,6 +13170,7 @@
       "aiRating": 4.5,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -13199,6 +13303,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -13338,6 +13443,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -13476,6 +13582,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -13604,6 +13711,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -13752,6 +13860,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -13895,6 +14004,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14048,6 +14158,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14203,6 +14314,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14351,6 +14463,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14494,6 +14607,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14648,6 +14762,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14785,6 +14900,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14882,6 +14998,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -14966,6 +15083,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15064,6 +15182,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15219,6 +15338,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15343,6 +15463,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15430,6 +15551,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15508,6 +15630,7 @@
       "aiRating": 3.6,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15596,6 +15719,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15704,6 +15828,7 @@
       "aiRating": 3.9,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15798,6 +15923,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15898,6 +16024,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -15998,6 +16125,7 @@
       "aiRating": 4.2,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -16083,6 +16211,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -16177,6 +16306,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -16346,6 +16476,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -16520,6 +16651,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -16661,6 +16793,7 @@
       "aiRating": 4.1,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -16768,6 +16901,7 @@
       "aiRating": 4.3,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "direct_reserve",
@@ -16905,6 +17039,7 @@
       "aiRating": 4.4,
       "ratingScope": "branch",
       "ratingTier": "jp_kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -17001,6 +17136,7 @@
       "aiRating": 3.8,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",
@@ -17093,6 +17229,7 @@
       "aiRating": 4,
       "ratingScope": "branch",
       "ratingTier": "kr_verified",
+      "openedDate": null,
       "channels": [
         {
           "kind": "kakao",

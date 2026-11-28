@@ -161,6 +161,8 @@ class Place(SnapshotModel):
     # jp_kr_verified 일본·한국 후기 확인, kr_verified 한국 후기 확인, limited 확인된 후기가 적음
     rating_scope: Literal["branch", "brand"]
     rating_tier: Literal["jp_kr_verified", "kr_verified", "limited"]
+    # 신규 개원 지점의 개원일(YYYY.MM.DD). 후기가 쌓이기 전이라 평점을 낮다고 설명하지 않는다(이슈 #101).
+    opened_date: str | None = None
     channels: tuple[Channel, ...]
     # 브랜드 공통 예약 창구라 지점을 직접 골라 예약해야 하는지
     central_channel: bool

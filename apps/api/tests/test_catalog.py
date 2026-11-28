@@ -34,6 +34,7 @@ def test_snapshot_matches_web_prices_json() -> None:
         "aiRating",
         "ratingScope",
         "ratingTier",
+        "openedDate",
         "channels",
         "centralChannel",
         "proofs",
@@ -100,3 +101,10 @@ def test_every_offer_has_a_price_proof() -> None:
         for proof in place.proofs.values():
             assert proof.url_ko.startswith("http")
             assert proof.url_ja.startswith("http")
+
+
+def test_only_new_clinics_have_opened_date() -> None:
+    # web brand-reviews.ts NEW_CLINIC_OPENED_AT과 같다(이슈 #101).
+    opened = {p.id: p.opened_date for p in get_catalog().places if p.opened_date}
+
+    assert opened == {"vands-balsan": "2026.11.25"}
